@@ -14,6 +14,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Maintained packaged CPU acceptance now prepares destination workers after self-contained restore, runs fresh held-out recognition/diarization and speaker matching, and verifies retained canonical media, profiles and completed work history. Versioned internal receipts distinguish this coverage from earlier recovery-only evidence and retain separate source/destination provenance, terminal work identities and unchanged qualification timing.
+
 - Worker inspection and failed setup now expose bounded stage, reason and timing facts through shared JSON, CLI and desktop summaries. Readiness retains observed role facts when its enclosing budget expires, and interrupted hashing preserves cancellation or deadline identity. Ephemeral inspection disconnects stop owned probes; managed receipts retain their original integrity checks. Maintained CPU qualification records fresh snapshot and repeated inspection measurements separately.
 
 - Reference-backed packaged Windows CPU qualification prepares managed workers through the normal CLI, measures real transcription and two-reader speaker-profile matching against frozen licensed references, and verifies query, timeline, playback and model recovery after source withdrawal. Compact receipts separate functional acceptance, measured quality limits, preparation and qualification; deterministic integrity and cleanup regressions run without inference in CI.
@@ -34,6 +36,8 @@ All notable changes to this project will be documented here. The format follows 
 - Read-only public release and documentation verification compares the selected published inventory and original documentation with live pages, schemas, aliases and referenced resources, then rechecks the elected Pages deployment identity.
 
 ### Fixed
+
+- Worker environment snapshots resolve and enumerate declared dependency directories once, preserving file-link/reparse and Windows alias handling, full inventories and complete SHA-256 checks. Snapshot hashing and native receipt verification reuse bounded buffers across files. This removes repeated path work and buffer allocation exposed during managed diarization preparation while preserving the sixty-second probe deadline and all verification boundaries.
 
 - Fetched-profile qualification compares canonical destination and file identities, accepting equivalent Windows short/long path spellings while retaining owned-file, link, byte and digest checks.
 

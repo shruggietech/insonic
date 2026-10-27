@@ -2,7 +2,11 @@
 """Exercise the actual bundled probe without installing engine dependencies."""
 import importlib.util
 import json
+import hashlib
+import os
 from pathlib import Path
+import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +16,96 @@ probe = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(probe)
 
 class WorkerProbeDiagnostics(unittest.TestCase):
+    def test_distribution_inventory_matches_canonical_files_with_directory_work(self):
+        with tempfile.TemporaryDirectory(prefix="probe paths ") as directory:
+            root = Path(directory)
+            for name in ("one", "nested unicode \u96ea"):
+                parent = root / name
+                parent.mkdir()
+                for index in range(100):
+                    (parent / (str(index) + ".py")).write_bytes(str(index).encode())
+            items = [p.relative_to(root) for p in root.rglob("*.py")]
+            items += items[:30] + [Path("missing.py"), Path("missing-parent/missing.py")]
+            dist = SimpleNamespace(files=items, locate_file=lambda item: root / item)
+            expected = {str((root / item).resolve()) for item in items if (root / item).is_file()}
+            paths, observation = set(), probe.Observation(True, None)
+            original = Path.resolve
+            calls = []
+            def resolving(path, *args, **kwargs):
+                calls.append(path)
+                return original(path, *args, **kwargs)
+            with patch.object(Path, "resolve", resolving):
+                probe.inventory_distributions(paths, [dist], observation)
+            self.assertEqual(paths, expected)
+            self.assertLessEqual(len(calls), 6, "canonicalization repeated for ordinary file leaves")
+
+    def test_distribution_links_and_parent_aliases_keep_canonical_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "real"
+            target.mkdir()
+            (target / "data.py").write_bytes(b"independent bytes")
+            try:
+                (root / "parent-alias").symlink_to(target, target_is_directory=True)
+                (target / "file-alias.py").symlink_to(target / "data.py")
+            except OSError:
+                self.skipTest("file/directory symlinks unavailable on this host")
+            items = [Path("real/data.py"), Path("parent-alias/data.py"), Path("real/file-alias.py")]
+            dist = SimpleNamespace(files=items, locate_file=lambda item: root / item)
+            paths = set()
+            probe.inventory_distributions(paths, [dist], probe.Observation(True, None))
+            self.assertEqual(paths, {str((target / "data.py").resolve())})
+
+    def test_distribution_inventory_keeps_limit_and_unreadable_parent_failures(self):
+        class Full(set):
+            def __len__(self):
+                return 30001
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "file.py").write_bytes(b"bytes")
+            dist = SimpleNamespace(files=[Path("file.py")], locate_file=lambda item: root / item)
+            with self.assertRaises(probe.ProbeFailure) as caught:
+                probe.inventory_distributions(Full(), [dist], probe.Observation(True, None))
+            self.assertEqual(caught.exception.reason, "inventory_limit")
+            with patch.object(probe.os, "scandir", side_effect=PermissionError("private path")):
+                with self.assertRaises(PermissionError):
+                    probe.inventory_distributions(set(), [dist], probe.Observation(True, None))
+
+    @unittest.skipUnless(os.name == "nt", "actual Windows short filename alias")
+    def test_distribution_short_leaf_alias_matches_canonical_inventory(self):
+        import ctypes
+        with tempfile.TemporaryDirectory(prefix="long worker directory ") as directory:
+            target = Path(directory) / "a long dependency filename.py"
+            target.write_bytes(b"exact alias bytes")
+            buffer = ctypes.create_unicode_buffer(32768)
+            if not ctypes.windll.kernel32.GetShortPathNameW(str(target), buffer, len(buffer)):
+                self.skipTest("Windows short paths unavailable")
+            alias = Path(buffer.value)
+            if alias.name == target.name:
+                self.skipTest("Windows short leaf names disabled on this volume")
+            dist = SimpleNamespace(files=[Path(alias.name)], locate_file=lambda item: alias.parent / item)
+            paths = set()
+            probe.inventory_distributions(paths, [dist], probe.Observation(True, None))
+            self.assertEqual(paths, {str(target.resolve())})
+
+    def test_snapshot_hashes_empty_small_and_large_files_with_one_buffer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths, expected, total = set(), {}, 0
+            for index, content in enumerate((b"", b"abc", b"large" * 100000)):
+                path = Path(directory) / str(index)
+                path.write_bytes(content)
+                paths.add(str(path))
+                expected[str(path)] = hashlib.sha256(content).hexdigest()
+                total += len(content)
+            observation = probe.Observation(True, None)
+            with patch.object(probe, "bytearray", wraps=bytearray, create=True) as allocated:
+                result = probe.hash_inventory(paths, observation)
+            self.assertEqual(result, [{"path": name, "sha256": expected[name]} for name in sorted(paths)])
+            self.assertEqual(allocated.call_count, 1)
+            self.assertEqual((observation.value["hashed_files"], observation.value["hashed_bytes"]), (3, total))
+            Path(next(iter(paths))).write_bytes(b"changed")
+            self.assertNotEqual(probe.hash_inventory(paths, probe.Observation(True, None)), result)
+
     def test_version_mismatch_has_fixed_stage_and_reason(self):
         with patch.object(probe.metadata, "version", return_value="wrong-secret-token"):
             result = probe.inspect("recognition", False)
@@ -73,7 +167,7 @@ class WorkerProbeDiagnostics(unittest.TestCase):
             with self.ready(), patch.object(probe.metadata, "distributions", return_value=[]), \
                  patch.object(sys, "executable", str(exe)), patch.object(sys, "_base_executable", str(exe), create=True), \
                  patch.object(sys, "prefix", directory), patch.object(sys, "base_prefix", directory), \
-                 patch.object(probe.hashlib, "file_digest", side_effect=OSError("secret-token private/path")):
+                 patch.object(probe, "hash_inventory", side_effect=OSError("secret-token private/path")):
                 result = probe.inspect("recognition", True)
         self.assertEqual(result["probe"]["reason"], "inventory_unreadable")
         self.assertEqual(result["probe"]["stage"], "dependency_hashing")

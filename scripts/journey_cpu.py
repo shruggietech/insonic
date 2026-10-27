@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Reference-backed stages for the maintained connected CLI journey."""
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -51,6 +51,20 @@ def stage(journey, name):
 
 def digest(value):
     return isinstance(value, str) and re.fullmatch("[0-9a-f]{64}", value)
+
+
+def value_digest(value):
+    import hashlib
+    import json
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+
+def work_identity(value):
+    import uuid
+    try:
+        return isinstance(value, str) and str(uuid.UUID(value)) == value
+    except ValueError:
+        return False
 
 
 PROBE_STAGES = ("package_versions", "library_import", "cpu_prerequisites", "cuda_prerequisites",
@@ -150,10 +164,9 @@ def startup_report(raw, correlation, workspace, version):
         raise ValueError("Owned runtime startup report is invalid") from None
 
 
-def prepare_managed(journey):
-    journey.receipt["environments"] = {}
+def prepare_workers(journey, environments, *, staged=False):
     for role in ("recognition", "diarization"):
-        with stage(journey, "managed_" + role):
+        with stage(journey, "managed_" + role) if staged else nullcontext():
             election = {"role": role, "mode": "managed"}
             if journey.args.managed_offline_assets:
                 election["offline_assets"] = journey.args.managed_offline_assets
@@ -180,12 +193,17 @@ def prepare_managed(journey):
             reuse = journey.input("workers", "plan", value=election)
             if not reuse.get("verified_existing_environment") or reuse.get("download_bytes", 0) != 0:
                 raise ValueError("Managed environment reuse did not verify")
-            journey.receipt["environments"][role] = {
+            environments[role] = {
                 "profile_digest": selected["profile_digest"],
                 "python_sha256": prepared["python"]["sha256"],
                 "receipt_sha256": prepared["environment_receipt"]["sha256"],
                 "verified_reuse": True, "snapshot_probe": snapshot, "inspect_probes": inspections,
             }
+
+
+def prepare_managed(journey):
+    journey.receipt["environments"] = {}
+    prepare_workers(journey, journey.receipt["environments"], staged=True)
     model_ids = {}
     with stage(journey, "models"):
         journey.receipt["model_inputs"] = {}
@@ -225,6 +243,7 @@ REQUIRED_STAGES = (
     "package", "corpus", "managed_recognition", "managed_diarization", "models", "readiness",
     "processing", "enrollment", "matching", "queries", "timeline", "playback", "fetch", "restore", "cleanup",
 )
+RESTORED_STAGES = ("restored_preparation", "restored_processing", "restored_matching", "restored_retention")
 SPEAKER_OUTCOMES = ("correct_match", "incorrect", "unknown", "correct_unknown", "ambiguous",
                     "mixed_reference", "unreferenced_activity", "missing_prediction")
 
@@ -316,67 +335,13 @@ def timeline_identity(rows, record):
     return [actual[key] for key in sorted(actual)]
 
 
-def validate_acceptance(receipt, corpus):
+def validate_results(receipt, corpus):
+    """Share engine, reference and speaker validation across source/destination."""
     import math
     from collections import Counter
-    if receipt.get("kind") != "insonic-real-cpu-acceptance-v1" or receipt.get("mode") != "real" or receipt.get("device") != "cpu":
-        raise ValueError("Real acceptance receipt election differs")
-    package = receipt.get("package", {})
-    revision = receipt.get("source_revision")
-    if (not isinstance(revision, str) or not re.fullmatch("[0-9a-f]{40}", revision)
-            or package.get("revision") != revision or package.get("source_dirty") is not False
-            or receipt.get("harness_revision") != revision or receipt.get("harness_dirty") is not False
-            or receipt.get("harness_unchanged") is not True
-            or not digest(package.get("archive_sha256")) or not digest(package.get("inventory_sha256"))):
-        raise ValueError("Real acceptance source/package identity differs")
-    if any(not digest(receipt.get(key)) for key in ("cli_sha256", "worker_sha256", "harness_inputs_sha256")):
-        raise ValueError("Real acceptance executable/harness identity differs")
-    stages = receipt.get("stages", [])
-    if (not isinstance(stages, list) or len(stages) != len(REQUIRED_STAGES)
-            or [s.get("name") for s in stages] != list(REQUIRED_STAGES)
-            or any(s.get("state") != "succeeded" for s in stages)):
-        raise ValueError("Real acceptance required stage inventory differs")
     expected = {clip["id"]: clip for clip in corpus["clips"]}
     cases = receipt.get("cases", [])
-    if (not isinstance(cases, list) or len(cases) != len(expected) + 1
-            or {c.get("fixture") for c in cases} != set(expected) | {"sequence"}):
-        raise ValueError("Real acceptance case inventory differs")
-    startups = receipt.get("runtime_startups")
-    native_keys = {"kind", "schema_version", "startup_id", "workspace_id", "state", "stage"}
-    if not isinstance(startups, list) or len(startups) != 2:
-        raise ValueError("Real acceptance owned runtime startup inventory differs")
-    correlations = set()
-    for observed in startups:
-        if (not isinstance(observed, dict) or set(observed) != native_keys | {"reported", "elapsed_seconds", "budget_seconds"}
-                or observed["reported"] is not True
-                or any(type(observed[key]) not in (int, float) or not math.isfinite(observed[key])
-                       for key in ("elapsed_seconds", "budget_seconds"))
-                or not 0 <= observed["elapsed_seconds"] <= observed["budget_seconds"] <= timing.READINESS_SECONDS
-                or observed["budget_seconds"] <= 0):
-            raise ValueError("Real acceptance runtime startup bounds differ")
-        native = {key: observed[key] for key in native_keys}
-        import json
-        report = startup_report((json.dumps(native) + "\n").encode(), native["startup_id"], native["workspace_id"],
-                                receipt.get("product_version"))
-        if report["state"] != "ready" or report["startup_id"] in correlations:
-            raise ValueError("Real acceptance runtime readiness differs")
-        correlations.add(report["startup_id"])
-    if receipt.get("corpus_sha256") != corpus_digest(corpus):
-        raise ValueError("Real acceptance corpus identity differs")
-    if receipt.get("matching_settings") != corpus["matching"]:
-        raise ValueError("Real acceptance frozen matching settings differ")
     sequence = receipt.get("sequence", {})
-    cursor, components = 0, []
-    for index, key in enumerate(corpus["sequence"]["clips"]):
-        clip = expected[key]
-        cursor += corpus["sequence"]["gap_samples"] if index else 0
-        components.append({"fixture": key, "sha256": clip["sha256"], "start_sample": cursor,
-                           "end_sample": cursor + clip["samples"]})
-        cursor += clip["samples"]
-    if (not digest(sequence.get("sha256")) or sequence.get("sample_rate") != 16000
-            or sequence.get("samples") != cursor or sequence.get("components") != components
-            or sequence.get("gap_samples") != corpus["sequence"]["gap_samples"]):
-        raise ValueError("Real acceptance derived sequence identity differs")
     environments = receipt.get("environments", {})
     models = receipt.get("model_inputs", {})
     for role, operation in (("recognition", "transcribe"), ("diarization", "diarize")):
@@ -481,6 +446,156 @@ def validate_acceptance(receipt, corpus):
     if receipt.get("speaker_denominators") != {"evaluation_cases": len(evaluated),
                                                "observed_decisions": sum(len(c["decisions"]) for c in evaluated)}:
         raise ValueError("Real acceptance speaker denominators differ")
+
+
+def source_work_ids(receipt):
+    pairs = [(case.get("processing_work_id"), "recordings.process") for case in receipt["cases"]]
+    pairs += [(profile.get("training_work_id"), "models.train") for profile in receipt["speaker_profiles"]]
+    pairs += [(case.get("matching_work_id"), "recordings.match") for case in receipt["speaker_cases"]]
+    if any(not work_identity(identity) for identity, _ in pairs) or len(dict(pairs)) != len(pairs):
+        raise ValueError("Real acceptance source work identities differ")
+    return dict(pairs)
+
+
+def validate_restored(receipt, corpus):
+    restored = receipt.get("restored")
+    if not isinstance(restored, dict):
+        raise ValueError("Real acceptance fresh destination evidence is missing")
+    expected = {c["id"] for c in corpus["clips"] if c["role"] != "enrollment"} | {"sequence"}
+    cases = restored.get("cases")
+    if (not isinstance(cases, list) or len(cases) != len(expected)
+            or {c.get("fixture") for c in cases} != expected):
+        raise ValueError("Real acceptance destination case inventory differs")
+    for key in ("model_inputs", "speaker_profiles"):
+        if restored.get(key) != receipt[key]:
+            raise ValueError("Real acceptance restored model/profile identity differs")
+    validate_results({**receipt, **restored}, corpus)
+    source = {case["fixture"]: case for case in receipt["cases"]}
+    prior_work = source_work_ids(receipt)
+    fresh = {}
+    for case in cases:
+        original = source[case["fixture"]]
+        if (case.get("media_id") != original.get("media_id")
+                or case.get("canonical_audio_sha256") != original["canonical_audio_sha256"]
+                or type(case.get("prior_revision")) is not int or type(case.get("revision")) is not int
+                or case["prior_revision"] < original.get("revision", 1)
+                or case["revision"] <= case["prior_revision"]):
+            raise ValueError("Real acceptance fresh destination authority differs")
+        identity = case.get("processing_work_id")
+        if identity in fresh:
+            raise ValueError("Real acceptance duplicate destination work identity")
+        fresh[identity] = ("recordings.process", case.get("result_sha256"))
+    for case in restored["speaker_cases"]:
+        identity = case.get("matching_work_id")
+        if identity in fresh:
+            raise ValueError("Real acceptance duplicate destination work identity")
+        fresh[identity] = ("recordings.match", case.get("result_sha256"))
+    if (any(not work_identity(identity) for identity in fresh) or set(fresh) & set(prior_work)):
+        raise ValueError("Real acceptance destination reused or invalid work identity")
+    completed = restored.get("completed_work")
+    if not isinstance(completed, dict) or set(completed) != set(fresh):
+        raise ValueError("Real acceptance destination terminal work inventory differs")
+    for identity, (kind, result_sha) in fresh.items():
+        proof = completed[identity]
+        if (not isinstance(proof, dict) or set(proof) != {"kind", "state", "generation", "result_sha256"}
+                or proof["kind"] != kind or proof["state"] != "succeeded"
+                or type(proof["generation"]) is not int or proof["generation"] < 1
+                or not digest(result_sha) or proof["result_sha256"] != result_sha):
+            raise ValueError("Real acceptance destination terminal result differs")
+    tasks = {"import", "existing_subtitles", "transcription", "diarization", "training"}
+    for key in ("readiness_before", "readiness_after"):
+        observed = restored.get(key)
+        if (not isinstance(observed, dict) or set(observed) != tasks
+                or any(not isinstance(task, dict) or set(task) != {"state", "usable"}
+                       or task["state"] not in ("prerequisites_available", "needs_attention", "unknown")
+                       or type(task["usable"]) is not bool
+                       or task["usable"] != (task["state"] == "prerequisites_available") for task in observed.values())):
+            raise ValueError("Real acceptance destination readiness facts differ")
+    if any(restored["readiness_after"][role]["usable"] is not True for role in ("import", "transcription", "diarization")):
+        raise ValueError("Real acceptance destination inference prerequisites unavailable")
+    if restored.get("source_withdrawal") != {"before_processing": True, "after_processing": True}:
+        raise ValueError("Real acceptance destination source withdrawal differs")
+    retained = restored.get("retention", {})
+    authority = [retained.get(key) for key in ("before_sha256", "restored_sha256", "after_sha256")]
+    history = retained.get("history")
+    if (any(not digest(value) for value in authority) or len(set(authority)) != 1
+            or not isinstance(history, dict) or set(history) != set(prior_work)):
+        raise ValueError("Real acceptance retained destination authority/history differs")
+    for identity, proof in history.items():
+        if (not isinstance(proof, dict) or set(proof) != {"kind", "state", "generation", "result_sha256"}
+                or proof["kind"] != prior_work[identity] or proof["state"] != "succeeded"
+                or type(proof["generation"]) is not int or proof["generation"] < 1
+                or not digest(proof["result_sha256"])):
+            raise ValueError("Real acceptance retained completed work differs")
+    if any(retained.get(key) != value_digest(history) for key in (
+            "history_sha256", "history_restored_sha256", "history_after_sha256")):
+        raise ValueError("Real acceptance retained history digest differs")
+
+
+def validate_acceptance(receipt, corpus):
+    import math
+    from collections import Counter
+    extended = receipt.get("kind") == "insonic-real-cpu-acceptance-v2"
+    if receipt.get("kind") not in ("insonic-real-cpu-acceptance-v1", "insonic-real-cpu-acceptance-v2") or receipt.get("mode") != "real" or receipt.get("device") != "cpu":
+        raise ValueError("Real acceptance receipt election differs")
+    package = receipt.get("package", {})
+    revision = receipt.get("source_revision")
+    if (not isinstance(revision, str) or not re.fullmatch("[0-9a-f]{40}", revision)
+            or package.get("revision") != revision or package.get("source_dirty") is not False
+            or receipt.get("harness_revision") != revision or receipt.get("harness_dirty") is not False
+            or receipt.get("harness_unchanged") is not True
+            or not digest(package.get("archive_sha256")) or not digest(package.get("inventory_sha256"))):
+        raise ValueError("Real acceptance source/package identity differs")
+    if any(not digest(receipt.get(key)) for key in ("cli_sha256", "worker_sha256", "harness_inputs_sha256")):
+        raise ValueError("Real acceptance executable/harness identity differs")
+    stages = receipt.get("stages", [])
+    required = REQUIRED_STAGES[:-1] + RESTORED_STAGES + REQUIRED_STAGES[-1:] if extended else REQUIRED_STAGES
+    if (not isinstance(stages, list) or len(stages) != len(required)
+            or [s.get("name") for s in stages] != list(required)
+            or any(s.get("state") != "succeeded" for s in stages)):
+        raise ValueError("Real acceptance required stage inventory differs")
+    expected = {clip["id"]: clip for clip in corpus["clips"]}
+    cases = receipt.get("cases", [])
+    if (not isinstance(cases, list) or len(cases) != len(expected) + 1
+            or {c.get("fixture") for c in cases} != set(expected) | {"sequence"}):
+        raise ValueError("Real acceptance case inventory differs")
+    startups = receipt.get("runtime_startups")
+    native_keys = {"kind", "schema_version", "startup_id", "workspace_id", "state", "stage"}
+    if not isinstance(startups, list) or len(startups) != 2:
+        raise ValueError("Real acceptance owned runtime startup inventory differs")
+    correlations = set()
+    for observed in startups:
+        if (not isinstance(observed, dict) or set(observed) != native_keys | {"reported", "elapsed_seconds", "budget_seconds"}
+                or observed["reported"] is not True
+                or any(type(observed[key]) not in (int, float) or not math.isfinite(observed[key])
+                       for key in ("elapsed_seconds", "budget_seconds"))
+                or not 0 <= observed["elapsed_seconds"] <= observed["budget_seconds"] <= timing.READINESS_SECONDS
+                or observed["budget_seconds"] <= 0):
+            raise ValueError("Real acceptance runtime startup bounds differ")
+        native = {key: observed[key] for key in native_keys}
+        import json
+        report = startup_report((json.dumps(native) + "\n").encode(), native["startup_id"], native["workspace_id"],
+                                receipt.get("product_version"))
+        if report["state"] != "ready" or report["startup_id"] in correlations:
+            raise ValueError("Real acceptance runtime readiness differs")
+        correlations.add(report["startup_id"])
+    if receipt.get("corpus_sha256") != corpus_digest(corpus):
+        raise ValueError("Real acceptance corpus identity differs")
+    if receipt.get("matching_settings") != corpus["matching"]:
+        raise ValueError("Real acceptance frozen matching settings differ")
+    sequence = receipt.get("sequence", {})
+    cursor, components = 0, []
+    for index, key in enumerate(corpus["sequence"]["clips"]):
+        clip = expected[key]
+        cursor += corpus["sequence"]["gap_samples"] if index else 0
+        components.append({"fixture": key, "sha256": clip["sha256"], "start_sample": cursor,
+                           "end_sample": cursor + clip["samples"]})
+        cursor += clip["samples"]
+    if (not digest(sequence.get("sha256")) or sequence.get("sample_rate") != 16000
+            or sequence.get("samples") != cursor or sequence.get("components") != components
+            or sequence.get("gap_samples") != corpus["sequence"]["gap_samples"]):
+        raise ValueError("Real acceptance derived sequence identity differs")
+    validate_results(receipt, corpus)
     fixtures = set(expected) | {"sequence"}
     if (set(receipt.get("timeline_cue_counts", {})) != fixtures or set(receipt.get("playback", {})) != fixtures
             or receipt.get("query_operations") != ["media-list", "speaker-search", "model-list", "text-search"]):
@@ -495,6 +610,8 @@ def validate_acceptance(receipt, corpus):
     if (receipt.get("source_store") != "unavailable at original path"
             or receipt.get("post_restore_checks") != {"authority": True, "queries": True, "timeline": True, "playback": True, "fetched_models": True}):
         raise ValueError("Real acceptance restore comparisons are incomplete")
+    if extended:
+        validate_restored(receipt, corpus)
 
 
 def build_cases(journey, corpus):
@@ -554,10 +671,11 @@ def media_entry(journey, media_id):
     return value.get("entry", value)
 
 
-def engine_observation(journey, record, role, operation, models):
+def engine_observation(journey, record, role, operation, models, evidence=None):
+    evidence = journey.receipt if evidence is None else evidence
     provenance = record["provenance"][role]
     environment = "recognition" if role == "transcription" else "diarization"
-    selected = journey.receipt["environments"][environment]
+    selected = evidence["environments"][environment]
     if (provenance.get("device") != "cpu" or provenance.get("offline") is not True
             or provenance.get("model_id") != models[operation]
             or provenance.get("model_manifest_sha256") != journey.receipt["model_inputs"][operation]["manifest_sha256"]
@@ -572,37 +690,50 @@ def engine_observation(journey, record, role, operation, models):
     return {key: provenance[key] for key in fields if key in provenance}
 
 
-def process_cases(journey, cases, models):
+def process_cases(journey, cases, models, *, evidence=None, import_media=True):
     ref = references()
-    journey.receipt["cases"] = []
+    evidence = journey.receipt if evidence is None else evidence
+    evidence["cases"] = []
     for case in cases:
-        imported = journey.finish(journey.command("media", "import", case["path"], "--new-entry", "--no-pipeline",
-                                                 "--originated-at", "2020-01-01T00:00:00.123456789Z"))
-        media_id = imported["items"][0]["media_id"]
-        case["media_id"] = media_id
+        prior_revision = None
+        if import_media:
+            imported = journey.finish(journey.command("media", "import", case["path"], "--new-entry", "--no-pipeline",
+                                                     "--originated-at", "2020-01-01T00:00:00.123456789Z"))
+            media_id = imported["items"][0]["media_id"]
+            case["media_id"] = media_id
+        else:
+            media_id = case["media_id"]
+            prior_revision = journey.current_record(media_id)["revision"]
         entry = media_entry(journey, media_id)
         stream = entry["facts"]["canonical"]["tracks"][0]["index"]
-        journey.finish(journey.input("recordings", "process", media_id, value={
+        queued = journey.input("recordings", "process", media_id, value={
             "transcription": "generate", "diarization": "run", "recognition_model_id": models["transcribe"],
             "diarization_model_id": models["diarize"], "recognition": {"device": "cpu", "language": "en"},
-            "attribution": {"device": "cpu"}, "audio": {"stream_index": stream}}))
+            "attribution": {"device": "cpu"}, "audio": {"stream_index": stream}})
+        completed = journey.finish(queued)
         record = journey.current_record(media_id)
         if record["source_digest"] != entry["digest"]:
             raise ValueError("Accepted processing lost current audio authority")
+        if (completed.get("recording_id") != media_id or completed.get("revision") != record["revision"]
+                or completed.get("document_digest") != record["document_digest"]
+                or (prior_revision is not None and record["revision"] <= prior_revision)):
+            raise ValueError("Fresh processing terminal authority differs")
         case["document_digest"] = record["document_digest"]
         comparison = ref.word_counts(case["reference"], document_text(record))
-        journey.receipt["cases"].append({
+        evidence["cases"].append({
             "fixture": case["fixture"], "role": case["role"], "original_sha256": case["original_sha256"],
-            "media_id": media_id, "canonical_audio_sha256": record["source_digest"], "document_digest": record["document_digest"],
+            "media_id": media_id, "processing_work_id": queued.get("work_id", queued.get("id")),
+            "revision": record["revision"], "prior_revision": prior_revision, "result_sha256": value_digest(completed),
+            "canonical_audio_sha256": record["source_digest"], "document_digest": record["document_digest"],
             "word_error": comparison,
             "diagnostics": quality_diagnostics(record.get("diagnostics")),
-            "transcription": engine_observation(journey, record, "transcription", "transcribe", models),
-            "diarization": engine_observation(journey, record, "diarization", "diarize", models),
+            "transcription": engine_observation(journey, record, "transcription", "transcribe", models, evidence),
+            "diarization": engine_observation(journey, record, "diarization", "diarize", models, evidence),
         })
-    total = {key: sum(case["word_error"][key] for case in journey.receipt["cases"])
+    total = {key: sum(case["word_error"][key] for case in evidence["cases"])
              for key in ("reference_words", "generated_words", "substitutions", "deletions", "insertions", "edit_distance")}
     total["word_error_rate"] = total["edit_distance"] / total["reference_words"] if total["reference_words"] else None
-    journey.receipt["recognition_totals"] = total
+    evidence["recognition_totals"] = total
 
 
 ADAPTER = {"id": "pyannote-profile", "contract_version": "1", "mode": "local", "architecture": "pyannote",
@@ -631,20 +762,23 @@ def enroll_profiles(journey, cases, models, reader_ids):
         dataset = journey.input("models", "dataset", "create", value={
             "speaker_id": speaker_id, "recipe": {"recording_ids": [media_id], "min_duration_us": 1000000}})
         dataset_id = dataset["dataset"]["id"]
-        trained = journey.finish(journey.input("models", "train", value={
+        queued = journey.input("models", "train", value={
             "dataset_id": dataset_id, "name": "Reference reader " + reader, "output_kind": "voice-embedding",
-            "base_model_id": models["diarize"], "adapter": ADAPTER}))
+            "base_model_id": models["diarize"], "adapter": ADAPTER})
+        trained = journey.finish(queued)
         version_id = trained["version_id"]
         journey.input("models", "profile", "set", speaker_id, value={"expected_revision": 0, "version_id": version_id})
         profiles.append({"reader": reader, "speaker_id": speaker_id, "dataset_id": dataset_id, "version_id": version_id,
-                         "enrollment_fixture": case["fixture"], "enrollment_document_digest": case["document_digest"]})
+                         "training_work_id": queued.get("work_id", queued.get("id")),
+                          "enrollment_fixture": case["fixture"], "enrollment_document_digest": case["document_digest"]})
     if len(profiles) != 2:
         raise ValueError("Real enrollment profile inventory differs")
     journey.receipt["speaker_profiles"] = profiles
     return profiles
 
 
-def match_cases(journey, cases, models, reader_ids, settings):
+def match_cases(journey, cases, models, reader_ids, settings, *, evidence=None, prepare_roster=True):
+    evidence = journey.receipt if evidence is None else evidence
     from collections import Counter
     ref = references()
     comparisons, totals = [], Counter(dict.fromkeys(SPEAKER_OUTCOMES, 0))
@@ -652,12 +786,14 @@ def match_cases(journey, cases, models, reader_ids, settings):
         if case["role"] == "enrollment":
             continue
         media_id = case["media_id"]
-        for speaker_id in reader_ids.values():
-            roster = journey.command("recordings", "roster", "show", media_id)
-            journey.command("recordings", "roster", "add", media_id, "--speaker", speaker_id,
-                            "--expected-revision", str(roster["revision"]))
-        result = journey.finish(journey.input("recordings", "match", media_id, value={
-            "model_id": models["diarize"], "adapter": ADAPTER, **settings}))
+        if prepare_roster:
+            for speaker_id in reader_ids.values():
+                roster = journey.command("recordings", "roster", "show", media_id)
+                journey.command("recordings", "roster", "add", media_id, "--speaker", speaker_id,
+                                "--expected-revision", str(roster["revision"]))
+        queued = journey.input("recordings", "match", media_id, value={
+            "model_id": models["diarize"], "adapter": ADAPTER, **settings})
+        result = journey.finish(queued)
         if result.get("state") != "accepted" or result.get("missing_profiles"):
             raise ValueError("Real matching did not accept all elected profiles")
         record = journey.current_record(media_id)
@@ -681,10 +817,11 @@ def match_cases(journey, cases, models, reader_ids, settings):
             totals[row["outcome"]] += 1
         if not rows:
             totals["missing_prediction"] += 1
-        comparisons.append({"fixture": case["fixture"], "decisions": rows, "missing_prediction": not bool(rows)})
-    journey.receipt["speaker_cases"] = comparisons
-    journey.receipt["speaker_outcomes"] = dict(totals)
-    journey.receipt["speaker_denominators"] = {"evaluation_cases": len(comparisons),
+        comparisons.append({"fixture": case["fixture"], "matching_work_id": queued.get("work_id", queued.get("id")),
+                            "result_sha256": value_digest(result), "decisions": rows, "missing_prediction": not bool(rows)})
+    evidence["speaker_cases"] = comparisons
+    evidence["speaker_outcomes"] = dict(totals)
+    evidence["speaker_denominators"] = {"evaluation_cases": len(comparisons),
                                                "observed_decisions": sum(len(c["decisions"]) for c in comparisons)}
 
 
@@ -788,6 +925,90 @@ def require_equal(before, after, name):
         raise ValueError("Restored " + name + " differs from accepted source authority")
 
 
+def history_snapshot(journey, identities):
+    """Only stable completed inference/model work survives portability verbatim."""
+    observed = {}
+    for identity, kind in sorted(identities.items()):
+        work = journey.command("work", "show", identity)
+        if (work.get("id") != identity or work.get("kind") != kind or work.get("state") != "succeeded"
+                or type(work.get("generation")) is not int or work["generation"] < 1):
+            raise ValueError("Retained completed work identity/state differs")
+        observed[identity] = {"kind": kind, "state": "succeeded", "generation": work["generation"],
+                              "result_sha256": value_digest(work.get("result"))}
+    return observed
+
+
+def retained_authority(journey, cases, profiles):
+    media = {}
+    for case in cases:
+        entry = media_entry(journey, case["media_id"])
+        media[case["media_id"]] = {key: entry[key] for key in ("id", "digest", "asset_id", "duration_us", "facts", "dates")}
+    models = []
+    for profile in profiles:
+        shown = journey.command("models", "speaker", "show", profile["version_id"])
+        listing = journey.input("models", "speaker", "list", value={"speaker_id": profile["speaker_id"]})
+        models.append({"model": shown, "profile": listing.get("profile")})
+    return {"media": media, "models": models}
+
+
+def task_readiness(journey, models):
+    result = journey.input("processing", "readiness", value={
+        "recognition_model_id": models["transcribe"], "diarization_model_id": models["diarize"],
+        "recognition_device": "cpu", "diarization_device": "cpu"})
+    return {name: {"state": task["state"], "usable": task["usable"]} for name, task in result["tasks"].items()}
+
+
+def source_absent(source):
+    # lexists also refuses a dangling redirect at the original location.
+    import os
+    if os.path.lexists(source):
+        raise ValueError("Original source workspace became available during restored inference")
+
+
+def restored_inference(journey, cases, profiles, models, readers, corpus, source, retained, history):
+    import copy
+    result = {"environments": {}, "model_inputs": copy.deepcopy(journey.receipt["model_inputs"]),
+              "speaker_profiles": copy.deepcopy(profiles),
+              "readiness_before": journey.receipt["restored_task_prerequisites"],
+              "retention": {"before_sha256": value_digest(retained), "restored_sha256": value_digest(retained_authority(journey, cases, profiles)),
+                            "history": history, "history_sha256": value_digest(history),
+                            "history_restored_sha256": value_digest(history_snapshot(journey, source_work_ids(journey.receipt)))}}
+    journey.receipt["restored"] = result
+    source_absent(source)
+    result["source_withdrawal"] = {"before_processing": True}
+    with stage(journey, "restored_preparation"):
+        prepare_workers(journey, result["environments"])
+        for model in models.values():
+            if journey.command("models", "verify", model).get("verified") is not True:
+                raise ValueError("Restored accepted model bytes did not verify")
+        result["readiness_after"] = task_readiness(journey, models)
+        if any(result["readiness_after"][role]["usable"] is not True for role in ("import", "transcription", "diarization")):
+            raise ValueError("Restored CPU task prerequisites are unavailable")
+    selected = [dict(case) for case in cases if case["role"] != "enrollment"]
+    with stage(journey, "restored_processing"):
+        source_absent(source)
+        process_cases(journey, selected, models, evidence=result, import_media=False)
+    with stage(journey, "restored_matching"):
+        source_absent(source)
+        match_cases(journey, selected, models, readers, corpus["matching"], evidence=result, prepare_roster=False)
+    with stage(journey, "restored_retention"):
+        source_absent(source)
+        result["source_withdrawal"]["after_processing"] = True
+        final_authority = retained_authority(journey, cases, profiles)
+        final_history = history_snapshot(journey, source_work_ids(journey.receipt))
+        require_equal(retained, final_authority, "retained canonical/model authority")
+        require_equal(history, final_history, "completed work history")
+        result["retention"]["after_sha256"] = value_digest(final_authority)
+        result["retention"]["history_after_sha256"] = value_digest(final_history)
+        fresh = {case["processing_work_id"]: "recordings.process" for case in result["cases"]}
+        fresh.update({case["matching_work_id"]: "recordings.match" for case in result["speaker_cases"]})
+        result["completed_work"] = history_snapshot(journey, fresh)
+        for profile in profiles:
+            files = fetched_files(journey, profile["version_id"], journey.base / ("fetched-final-" + profile["reader"]))
+            require_equal(profile["files"], files, "retained profile bytes")
+        validate_restored(journey.receipt, corpus)
+
+
 def finalize_runtime(journey):
     journey.receipt["current_stage"] = "cleanup"
     try:
@@ -802,7 +1023,7 @@ def run(journey):
     import json
     import uuid
     ref = references()
-    journey.receipt.update(kind="insonic-real-cpu-acceptance-v1", state="running", stages=[],
+    journey.receipt.update(kind="insonic-real-cpu-acceptance-v2", state="running", stages=[],
                            operation_bounds_seconds={"default": timing.SUBPROCESS_SECONDS, "managed_setup": timing.REAL_PROCESSING_SECONDS, "decode": timing.SUBPROCESS_SECONDS},
                            child_output_bound_bytes=16 << 20)
     with stage(journey, "package"):
@@ -855,6 +1076,9 @@ def run(journey):
             profile["files"] = fetched_files(journey, profile["version_id"], journey.base / ("fetched-source-" + profile["reader"]))
     with stage(journey, "restore"):
         authority = portable_authority(journey, cases, profiles)
+        retained = retained_authority(journey, cases, profiles)
+        history = history_snapshot(journey, source_work_ids(journey.receipt))
+        original_source = journey.workspace
         journey.idle_runtime()
         bundle = journey.base / "backup"
         journey.command("backup", "create", bundle, "--mode", "self-contained")
@@ -873,13 +1097,12 @@ def run(journey):
         for profile in profiles:
             files = fetched_files(journey, profile["version_id"], journey.base / ("fetched-restored-" + profile["reader"]))
             require_equal(profile["files"], files, "retrieved profile files")
-        readiness = journey.input("processing", "readiness", value={
-            "recognition_model_id": models["transcribe"], "diarization_model_id": models["diarize"],
-            "recognition_device": "cpu", "diarization_device": "cpu"})
-        journey.receipt["restored_task_prerequisites"] = {
-            name: {"state": task["state"], "usable": task["usable"]} for name, task in readiness["tasks"].items()}
+        require_equal(retained, retained_authority(journey, cases, profiles), "retained canonical/model authority")
+        require_equal(history, history_snapshot(journey, source_work_ids(journey.receipt)), "completed work history")
+        journey.receipt["restored_task_prerequisites"] = task_readiness(journey, models)
         journey.receipt["post_restore_checks"] = {key: True for key in ("authority", "queries", "timeline", "playback", "fetched_models")}
         journey.receipt["authority_sha256"] = __import__("hashlib").sha256(json.dumps(authority, sort_keys=True).encode()).hexdigest()
+    restored_inference(journey, cases, profiles, models, readers, corpus, original_source, retained, history)
     finalize_runtime(journey)
     journey.receipt["qualification_seconds"] = time.monotonic() - qualification_started
     journey.receipt["combined_seconds"] = time.monotonic() - journey.started
@@ -888,6 +1111,6 @@ def run(journey):
         "Sequence reuses held-out speech: totals are scenario-weighted, not unique-word statistics.",
         "Reader windows include silence; no independent speech-activity annotation or DER claim.",
         "Profile enrollment derives embeddings; it does not retrain base-model weights.",
-        "Restore checks existing accepted results and prerequisites; fresh restored inference is not claimed.",
+        "Restored inference covers four held-out/sequence cases on managed Windows CPU workers, not broad platform or quality coverage.",
     ]
     return journey.receipt

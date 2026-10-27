@@ -205,12 +205,13 @@ func VerifyReceipt(ctx context.Context, pin, python library.PinnedFile) error {
 		return contracts.Fail("invalid_request")
 	}
 	seen := map[string]bool{}
+	buffer := make([]byte, 128<<10)
 	for _, p := range r.Inspection.Files {
 		if seen[p.Path] || len(p.SHA256) != 64 {
 			return contracts.Fail("invalid_request")
 		}
 		seen[p.Path] = true
-		actual, e := Hash(ctx, p.Path)
+		actual, e := hashWithBuffer(ctx, p.Path, buffer)
 		if err := probeContextError(ctx); err != nil {
 			return err
 		}

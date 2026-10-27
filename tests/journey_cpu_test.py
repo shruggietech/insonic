@@ -35,6 +35,69 @@ def probe(mode):
             "child": {"mode": mode, "reason": "success", **rows[-1], "checkpoints": rows}}
 
 
+def complete_receipt():
+    import copy
+    cpu = load("journey_cpu")
+    ref = cpu.references()
+    corpus = ref.load_corpus(ROOT / "tests/fixtures/acoustic/manifest.json")
+    readers = corpus["selection"]["enrolled_speakers"]
+    receipt = {"kind": "insonic-real-cpu-acceptance-v1", "mode": "real", "device": "cpu",
+               "cli_sha256": "7" * 64, "harness_inputs_sha256": "8" * 64,
+               "preparation_seconds": 1, "qualification_seconds": 2, "combined_seconds": 3,
+               "overall_bound_seconds": 1800,
+               "source_revision": "a" * 40, "harness_revision": "a" * 40, "harness_dirty": False, "harness_unchanged": True,
+               "package": {"revision": "a" * 40, "source_dirty": False, "archive_sha256": "b" * 64, "inventory_sha256": "c" * 64},
+               "stages": [{"name": s, "state": "succeeded"} for s in cpu.REQUIRED_STAGES],
+               "corpus_sha256": cpu.corpus_digest(corpus), "matching_settings": corpus["matching"], "worker_sha256": "d" * 64,
+               "environments": {role: {"profile_digest": "e" * 64, "python_sha256": "f" * 64, "receipt_sha256": "1" * 64,
+                                       "verified_reuse": True, "snapshot_probe": probe("snapshot"),
+                                       "inspect_probes": [probe("inspect"), probe("inspect")]} for role in ("recognition", "diarization")},
+               "model_inputs": {op: {"model_id": op, "manifest_sha256": "2" * 64, "local_verified_reuse": True}
+                                for op in ("transcribe", "diarize")},
+               "speaker_profiles": [{"reader": r, "speaker_id": "speaker-" + r, "version_id": "version-" + r,
+                                     "files": {"embedding.json": "3" * 64}} for r in readers],
+               "cleanup": {"runtime_released": True, "temporary_removed": True},
+               "source_store": "unavailable at original path",
+               "post_restore_checks": {key: True for key in ("authority", "queries", "timeline", "playback", "fetched_models")},
+               "query_operations": ["media-list", "speaker-search", "model-list", "text-search"]}
+    clips = {c["id"]: c for c in corpus["clips"]}
+    components, cursor = [], 0
+    for index, key in enumerate(corpus["sequence"]["clips"]):
+        cursor += corpus["sequence"]["gap_samples"] if index else 0
+        components.append({"fixture": key, "sha256": clips[key]["sha256"], "start_sample": cursor,
+                           "end_sample": cursor + clips[key]["samples"]})
+        cursor += clips[key]["samples"]
+    receipt["sequence"] = {"sha256": "4" * 64, "sample_rate": 16000, "samples": cursor,
+                           "components": components, "gap_samples": corpus["sequence"]["gap_samples"]}
+    receipt["cases"] = []
+    for clip in [*corpus["clips"], {"id": "sequence", "sha256": "4" * 64,
+                "transcript": " ".join(clips[key]["transcript"] for key in corpus["sequence"]["clips"])}]:
+        case = {"fixture": clip["id"], "original_sha256": clip["sha256"], "document_digest": "5" * 64,
+                "canonical_audio_sha256": "6" * 64, "word_error": ref.word_counts(clip["transcript"], clip["transcript"]),
+                "diagnostics": []}
+        for op, field in (("transcribe", "transcription"), ("diarize", "diarization")):
+            case[field] = {"device": "cpu", "offline": True, "model_id": op, "model_manifest_sha256": "2" * 64,
+                           "python_sha256": "f" * 64, "worker_sha256": "d" * 64, "threads": 2,
+                           "peak_rss_bytes": 1024, "packages": {"test-only": "1"}, "wall_seconds": 1, "cpu_seconds": .5}
+        receipt["cases"].append(case)
+    receipt["recognition_totals"] = {key: sum(c["word_error"][key] for c in receipt["cases"]) for key in (
+        "reference_words", "generated_words", "substitutions", "deletions", "insertions", "edit_distance")}
+    receipt["recognition_totals"]["word_error_rate"] = 0
+    receipt["speaker_cases"] = [{"fixture": c["id"], "decisions": [], "missing_prediction": True}
+                                for c in corpus["clips"] if c["role"] != "enrollment"]
+    receipt["speaker_cases"].append({"fixture": "sequence", "decisions": [], "missing_prediction": True})
+    receipt["speaker_outcomes"] = {**dict.fromkeys(cpu.SPEAKER_OUTCOMES, 0), "missing_prediction": 4}
+    receipt["speaker_denominators"] = {"evaluation_cases": 4, "observed_decisions": 0}
+    receipt["timeline_cue_counts"] = {c["fixture"]: 1 for c in receipt["cases"]}
+    receipt["playback"] = {c["fixture"]: {} for c in receipt["cases"]}
+    receipt["product_version"] = "1.0.1"
+    receipt["runtime_startups"] = [{"kind": "runtime-startup", "schema_version": "1.0.1",
+        "startup_id": digit * 8 + "-" + digit * 4 + "-4" + digit * 3 + "-8" + digit * 3 + "-" + digit * 12,
+        "workspace_id": "11111111-1111-4111-8111-111111111111", "state": "ready", "stage": "ready",
+        "reported": True, "elapsed_seconds": .01, "budget_seconds": 60} for digit in ("2", "3")]
+    return receipt, corpus
+
+
 class FakeJourney:
     def __init__(self):
         self.args = SimpleNamespace(recognition_model=str(ROOT / "recognition"),
@@ -398,65 +461,8 @@ class ResultContracts(unittest.TestCase):
         self.assertEqual(receipt["cleanup"], {"runtime_released": True, "temporary_removed": True})
 
     def test_complete_receipt_rejects_missing_cases_forged_scores_and_totals(self):
-        import copy
         cpu = load("journey_cpu")
-        ref = cpu.references()
-        corpus = ref.load_corpus(ROOT / "tests/fixtures/acoustic/manifest.json")
-        readers = corpus["selection"]["enrolled_speakers"]
-        receipt = {"kind": "insonic-real-cpu-acceptance-v1", "mode": "real", "device": "cpu",
-                   "cli_sha256": "7" * 64, "harness_inputs_sha256": "8" * 64,
-                   "preparation_seconds": 1, "qualification_seconds": 2, "combined_seconds": 3,
-                   "overall_bound_seconds": 1800,
-                   "source_revision": "a" * 40, "harness_revision": "a" * 40, "harness_dirty": False, "harness_unchanged": True,
-                   "package": {"revision": "a" * 40, "source_dirty": False, "archive_sha256": "b" * 64, "inventory_sha256": "c" * 64},
-                   "stages": [{"name": s, "state": "succeeded"} for s in cpu.REQUIRED_STAGES],
-                   "corpus_sha256": cpu.corpus_digest(corpus), "matching_settings": corpus["matching"], "worker_sha256": "d" * 64,
-                   "environments": {role: {"profile_digest": "e" * 64, "python_sha256": "f" * 64, "receipt_sha256": "1" * 64,
-                                           "verified_reuse": True, "snapshot_probe": probe("snapshot"),
-                                           "inspect_probes": [probe("inspect"), probe("inspect")]} for role in ("recognition", "diarization")},
-                   "model_inputs": {op: {"model_id": op, "manifest_sha256": "2" * 64, "local_verified_reuse": True}
-                                    for op in ("transcribe", "diarize")},
-                   "speaker_profiles": [{"reader": r, "speaker_id": "speaker-" + r, "version_id": "version-" + r,
-                                         "files": {"embedding.json": "3" * 64}} for r in readers],
-                   "cleanup": {"runtime_released": True, "temporary_removed": True},
-                   "source_store": "unavailable at original path",
-                   "post_restore_checks": {key: True for key in ("authority", "queries", "timeline", "playback", "fetched_models")},
-                   "query_operations": ["media-list", "speaker-search", "model-list", "text-search"]}
-        clips = {c["id"]: c for c in corpus["clips"]}
-        components, cursor = [], 0
-        for index, key in enumerate(corpus["sequence"]["clips"]):
-            cursor += corpus["sequence"]["gap_samples"] if index else 0
-            components.append({"fixture": key, "sha256": clips[key]["sha256"], "start_sample": cursor,
-                               "end_sample": cursor + clips[key]["samples"]})
-            cursor += clips[key]["samples"]
-        receipt["sequence"] = {"sha256": "4" * 64, "sample_rate": 16000, "samples": cursor,
-                               "components": components, "gap_samples": corpus["sequence"]["gap_samples"]}
-        receipt["cases"] = []
-        for clip in [*corpus["clips"], {"id": "sequence", "sha256": "4" * 64,
-                    "transcript": " ".join(clips[key]["transcript"] for key in corpus["sequence"]["clips"])}]:
-            case = {"fixture": clip["id"], "original_sha256": clip["sha256"], "document_digest": "5" * 64,
-                    "canonical_audio_sha256": "6" * 64, "word_error": ref.word_counts(clip["transcript"], clip["transcript"]),
-                    "diagnostics": []}
-            for op, field in (("transcribe", "transcription"), ("diarize", "diarization")):
-                case[field] = {"device": "cpu", "offline": True, "model_id": op, "model_manifest_sha256": "2" * 64,
-                               "python_sha256": "f" * 64, "worker_sha256": "d" * 64, "threads": 2,
-                               "peak_rss_bytes": 1024, "packages": {"test-only": "1"}, "wall_seconds": 1, "cpu_seconds": .5}
-            receipt["cases"].append(case)
-        receipt["recognition_totals"] = {key: sum(c["word_error"][key] for c in receipt["cases"]) for key in (
-            "reference_words", "generated_words", "substitutions", "deletions", "insertions", "edit_distance")}
-        receipt["recognition_totals"]["word_error_rate"] = 0
-        receipt["speaker_cases"] = [{"fixture": c["id"], "decisions": [], "missing_prediction": True}
-                                    for c in corpus["clips"] if c["role"] != "enrollment"]
-        receipt["speaker_cases"].append({"fixture": "sequence", "decisions": [], "missing_prediction": True})
-        receipt["speaker_outcomes"] = {**dict.fromkeys(cpu.SPEAKER_OUTCOMES, 0), "missing_prediction": 4}
-        receipt["speaker_denominators"] = {"evaluation_cases": 4, "observed_decisions": 0}
-        receipt["timeline_cue_counts"] = {c["fixture"]: 1 for c in receipt["cases"]}
-        receipt["playback"] = {c["fixture"]: {} for c in receipt["cases"]}
-        receipt["product_version"] = "1.0.1"
-        receipt["runtime_startups"] = [{"kind": "runtime-startup", "schema_version": "1.0.1",
-            "startup_id": digit * 8 + "-" + digit * 4 + "-4" + digit * 3 + "-8" + digit * 3 + "-" + digit * 12,
-            "workspace_id": "11111111-1111-4111-8111-111111111111", "state": "ready", "stage": "ready",
-            "reported": True, "elapsed_seconds": .01, "budget_seconds": 60} for digit in ("2", "3")]
+        receipt, corpus = complete_receipt()
         cpu.validate_acceptance(receipt, corpus)
         for mutation in (
                 lambda r: r["runtime_startups"].pop(),

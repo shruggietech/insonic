@@ -67,6 +67,9 @@ func Selected(role string) (Profile, error) {
 func (p Profile) Digest() string { data, _ := json.Marshal(p); return Digest(data) }
 func Digest(data []byte) string  { h := sha256.Sum256(data); return hex.EncodeToString(h[:]) }
 func Hash(ctx context.Context, path string) (library.PinnedFile, error) {
+	return hashWithBuffer(ctx, path, nil)
+}
+func hashWithBuffer(ctx context.Context, path string, buffer []byte) (library.PinnedFile, error) {
 	out := library.PinnedFile{Path: path}
 	if err := probeContextError(ctx); err != nil {
 		return out, err
@@ -84,7 +87,10 @@ func Hash(ctx context.Context, path string) (library.PinnedFile, error) {
 		return out, contracts.Fail("invalid_request")
 	}
 	h := sha256.New()
-	b := make([]byte, 128<<10)
+	b := buffer
+	if len(b) == 0 {
+		b = make([]byte, 128<<10)
+	}
 	for {
 		if ctx.Err() != nil {
 			return out, probeContextError(ctx)
