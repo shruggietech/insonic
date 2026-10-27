@@ -537,37 +537,95 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs): return None
 
 
+def publication_failure(method, url, status, request_bytes, response, token):
+    """Keep useful server classifications without echoing arbitrary response data."""
+    try: raw = response.read(8193)
+    except (OSError, http.client.HTTPException): raw = b''
+    reason, fields = 'unrecognized server explanation withheld', []
+    if len(raw) > 8192:
+        reason = 'server explanation exceeds diagnostic limit'
+    else:
+        try: value = json.loads(raw)
+        except (ValueError, UnicodeError, RecursionError): value = None
+        if isinstance(value, dict):
+            messages = [value.get('message', '')]
+            errors = value.get('errors', [])
+            if isinstance(errors, list):
+                for error in errors[:8]:
+                    if not isinstance(error, dict): continue
+                    messages.append(error.get('message', ''))
+                    allowed = {
+                        'resource': {'Tree', 'Blob', 'Commit', 'Reference', 'Release', 'ReleaseAsset', 'Repository'},
+                        'field': {'tree', 'base_tree', 'content', 'encoding', 'sha', 'ref', 'parents', 'name', 'tag_name'},
+                        'code': {'missing', 'missing_field', 'invalid', 'already_exists', 'unprocessable', 'custom', 'too_large'},
+                    }
+                    selected = {key: error[key] for key, choices in allowed.items() if isinstance(error.get(key), str) and error[key] in choices}
+                    if selected and selected not in fields: fields.append(selected)
+            message = ' '.join(m for m in messages if isinstance(m, str)).lower()
+            # Only fixed explanations are emitted: server messages can contain
+            # credentials, signed URLs or excerpts of submitted private files.
+            for pattern, explanation in (
+                (r'too large|exceeds?.{0,40}size', 'request or content is too large'),
+                (r'rate limit|abuse', 'server rate limit exceeded'),
+                (r'not.{0,10}fast.forward|reference update failed', 'non-fast-forward reference conflict'),
+                (r'validation|invalid|unprocessable', 'request validation failed'),
+                (r'not found', 'requested resource not found'),
+                (r'bad credentials|authentication', 'authentication failed'),
+                (r'not accessible|forbidden', 'requested operation is not accessible'),
+                (r'internal server error|service unavailable|bad gateway', 'server temporarily unavailable'),
+            ):
+                if re.search(pattern, message):
+                    reason = explanation
+                    break
+    endpoint = urllib.parse.urlsplit(url).path
+    if token: endpoint = endpoint.replace(token, '[redacted]')
+    endpoint = re.sub(r'(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)', '[redacted]', endpoint)
+    endpoint = re.sub(r'[^A-Za-z0-9_./%+\[\]-]', '?', endpoint)[:240]
+    context = {'method': method, 'endpoint': endpoint, 'status': status,
+               'request_bytes': request_bytes, 'server_reason': reason}
+    if fields: context['errors'] = fields[:3]
+    diagnostic = json.dumps(context)
+    if token: diagnostic = diagnostic.replace(token, '[redacted]')
+    return ValueError('GitHub publication operation failed: ' + diagnostic)
+
+
 class GitHub:
     def __init__(self, token, *, read_only=False):
         if not token and not read_only: raise ValueError('GitHub publication token is required')
         self.token = token; self.read_only = read_only
         self.opener = urllib.request.build_opener(NoRedirect())
 
-    def call(self, method, endpoint, value=None, path=None):
+    def call(self, method, endpoint, value=None, path=None, *, timeout=None):
         if self.read_only and (method != 'GET' or value is not None or path is not None):
             raise ValueError('read-only GitHub verification permits GET only')
         url = endpoint if urllib.parse.urlsplit(endpoint).scheme else 'https://api.github.com/' + endpoint
         parsed = urllib.parse.urlsplit(url)
         if parsed.scheme != 'https' or parsed.hostname not in ('api.github.com', 'uploads.github.com') or parsed.username is not None or parsed.port not in (None, 443):
             raise ValueError('GitHub publication endpoint is invalid')
+        if timeout is None: timeout = timing.SUBPROCESS_SECONDS
+        if type(timeout) not in (int, float) or not 0 < timeout <= timing.SUBPROCESS_SECONDS:
+            raise ValueError('GitHub publication timeout is invalid')
         body = json.dumps(value).encode() if value is not None else None
         headers = {'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/octet-stream' if path else 'application/json'}
         if self.token: headers['Authorization'] = 'Bearer ' + self.token
         if path:
             headers['Content-Length'] = str(path.stat().st_size)
-            connection = http.client.HTTPSConnection(parsed.hostname, timeout=timing.SUBPROCESS_SECONDS)
+            connection = http.client.HTTPSConnection(parsed.hostname, timeout=timeout)
             try:
                 with path.open('rb') as source:
                     connection.request(method, parsed.path + ('?' + parsed.query if parsed.query else ''), body=source, headers=headers)
                     response = connection.getresponse()
-                    if response.status not in (200, 201): raise ValueError(f'GitHub asset upload failed ({response.status})')
+                    if response.status not in (200, 201):
+                        raise publication_failure(method, url, response.status, path.stat().st_size, response, self.token)
                     return json.load(response)
             finally: connection.close()
         try:
-            with self.opener.open(urllib.request.Request(url, data=body, headers=headers, method=method), timeout=timing.SUBPROCESS_SECONDS) as response: return json.load(response)
+            with self.opener.open(urllib.request.Request(url, data=body, headers=headers, method=method), timeout=timeout) as response: return json.load(response)
         except urllib.error.HTTPError as error:
-            if error.code == 404: return None
-            raise ValueError(f'GitHub publication operation failed ({error.code})') from None
+            try:
+                if error.code == 404 and method == 'GET': return None
+                raise publication_failure(method, url, error.code, len(body) if body is not None else 0, error, self.token) from None
+            finally: error.close()
 
     def download_asset(self, asset_id, path, size, digest):
         if type(asset_id) is not int or asset_id <= 0 or type(size) is not int or size < 0 or not re.fullmatch(SHA_PATTERN, digest):

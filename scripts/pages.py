@@ -17,6 +17,8 @@ import qualification_timing as timing
 DOMAIN = 'insonic.io'
 BRANCH = 'gh-pages'
 SHA = re.compile(r'[0-9a-f]{40}')
+TREE_REQUEST_BYTES = 1 << 20
+BLOB_REQUEST_BYTES = 24 << 20
 
 
 def commit_sha(value):
@@ -146,45 +148,108 @@ def git_blob_sha(data):
     return hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
 
 
+def verify_staged_tree(tree, files):
+    """Require the complete elected inventory before making a commit public."""
+    if not tree or tree.get('truncated') is not False or not isinstance(tree.get('tree'), list):
+        raise ValueError('Pages staged tree inventory is incomplete')
+    expected = {name: (git_blob_sha(data), len(data)) for name, data in files.items()}
+    directories = {parent.as_posix() for name in files for parent in PurePosixPath(name).parents if parent.as_posix() != '.'}
+    seen, blobs, folders = set(), {}, set()
+    for item in tree['tree']:
+        name = member_path(item.get('path', ''))
+        if name in seen: raise ValueError('Pages staged tree inventory has duplicate paths')
+        seen.add(name)
+        if item.get('type') == 'tree' and item.get('mode') == '040000':
+            commit_sha(item.get('sha'))
+            folders.add(name)
+        elif item.get('type') == 'blob' and item.get('mode') == '100644' and type(item.get('size')) is int:
+            blobs[name] = (item.get('sha'), item['size'])
+        else: raise ValueError('Pages staged tree inventory has unsupported entries')
+    if blobs != expected or folders != directories:
+        raise ValueError('Pages staged tree inventory differs from original files')
+
+
 def promote_tree(api, repository, destination, files, version, revision, *, sleep=time.sleep, clock=time.monotonic):
     if destination['repository'] != repository:
         raise ValueError('Pages repository election differs')
     started = clock()
     endpoint = f'repos/{repository}'
-    entries = []
+    deadline = started + timing.ARTIFACT_PRODUCER_SECONDS
+    last_write = None
+
+    def request(method, route, value=None, *, limit=BLOB_REQUEST_BYTES):
+        nonlocal last_write
+        if clock() >= deadline: raise ValueError('Pages build deadline exceeded')
+        if value is not None and len(json.dumps(value).encode()) > limit:
+            raise ValueError('Pages request exceeds its bounded payload')
+        # GitHub recommends at least one second between mutative requests.
+        # Staging more batches must not trade the payload failure for throttling.
+        if method in ('POST', 'PATCH') and last_write is not None:
+            delay = max(0, last_write + 1 - clock())
+            if delay >= deadline - clock(): raise ValueError('Pages build deadline exceeded')
+            if delay: sleep(delay)
+        remaining = deadline - clock()
+        if remaining <= 0: raise ValueError('Pages build deadline exceeded')
+        if method in ('POST', 'PATCH'): last_write = clock()
+        result = api.call(method, route, value, timeout=min(timing.SUBPROCESS_SECONDS, remaining))
+        if clock() >= deadline: raise ValueError('Pages build deadline exceeded')
+        return result
+
+    entries, uploaded, tree_sha = [], set(), None
+    # Reserve the largest envelope, including a later base tree and separators.
+    envelope = len(json.dumps({'tree': [], 'base_tree': '0' * 40}).encode())
+    batch_size = envelope
+
+    def flush():
+        nonlocal entries, batch_size, tree_sha
+        value = {'tree': entries}
+        if tree_sha is not None: value['base_tree'] = tree_sha
+        tree = request('POST', endpoint + '/git/trees', value, limit=TREE_REQUEST_BYTES)
+        tree_sha = commit_sha(tree.get('sha') if tree else None)
+        entries, batch_size = [], envelope
+
     for name, data in sorted(files.items()):
         item = {'path': name, 'mode': '100644', 'type': 'blob'}
         digest = git_blob_sha(data)
-        if destination['entries'].get(name) == digest:
+        if destination['entries'].get(name) == digest or digest in uploaded:
             item['sha'] = digest
         else:
-            try: item['content'] = data.decode('utf-8')
-            except UnicodeDecodeError:
-                blob = api.call('POST', endpoint + '/git/blobs', {'encoding': 'base64', 'content': base64.b64encode(data).decode('ascii')})
-                item['sha'] = commit_sha(blob.get('sha') if blob else None)
+            try: text = data.decode('utf-8')
+            except UnicodeDecodeError: text = None
+            if text is not None: item['content'] = text
+            if text is None or envelope + len(json.dumps(item).encode()) > TREE_REQUEST_BYTES:
+                item.pop('content', None)
+                blob = request('POST', endpoint + '/git/blobs', {'encoding': 'base64', 'content': base64.b64encode(data).decode('ascii')})
+                if commit_sha(blob.get('sha') if blob else None) != digest:
+                    raise ValueError('Pages staged blob identity differs from original bytes')
+                uploaded.add(digest)
+                item['sha'] = digest
+        size = len(json.dumps(item).encode())
+        if entries and batch_size + 2 + size > TREE_REQUEST_BYTES: flush()
+        batch_size += (2 if entries else 0) + size
         entries.append(item)
-    tree = api.call('POST', endpoint + '/git/trees', {'tree': entries})
-    tree_sha = commit_sha(tree.get('sha') if tree else None)
+    flush()
+    verify_staged_tree(request('GET', endpoint + '/git/trees/' + tree_sha + '?recursive=1'), files)
     if tree_sha == destination['tree']:
         staged = destination['head']
     else:
-        commit = api.call('POST', endpoint + '/git/commits', {'message': f'Publish insonic {version} documentation ({revision})', 'tree': tree_sha, 'parents': [destination['head']]})
+        commit = request('POST', endpoint + '/git/commits', {'message': f'Publish insonic {version} documentation ({revision})', 'tree': tree_sha, 'parents': [destination['head']]})
         staged = commit_sha(commit.get('sha') if commit else None)
         try:
-            api.call('PATCH', endpoint + '/git/refs/heads/' + BRANCH, {'sha': staged, 'force': False})
+            request('PATCH', endpoint + '/git/refs/heads/' + BRANCH, {'sha': staged, 'force': False})
         except (OSError, ValueError):
             # A lost response may follow a successful atomic update. Only its
             # exact remote identity can reconcile that outcome; races still fail.
-            ref = api.call('GET', endpoint + '/git/ref/heads/' + BRANCH)
+            ref = request('GET', endpoint + '/git/ref/heads/' + BRANCH)
             if not ref or ref.get('object', {}).get('sha') != staged: raise
-    ref = api.call('GET', endpoint + '/git/ref/heads/' + BRANCH)
+    ref = request('GET', endpoint + '/git/ref/heads/' + BRANCH)
     if not ref or ref.get('object', {}).get('sha') != staged:
         raise ValueError('Pages branch changed before its build was requested')
-    requested = api.call('POST', endpoint + '/pages/builds')
+    requested = request('POST', endpoint + '/pages/builds')
     if not requested: raise ValueError('Pages build request was not accepted')
     while True:
         if clock() - started >= timing.ARTIFACT_PRODUCER_SECONDS: raise ValueError('Pages build deadline exceeded')
-        build = api.call('GET', endpoint + '/pages/builds/latest')
+        build = request('GET', endpoint + '/pages/builds/latest')
         if not build: raise ValueError('Pages build result is unavailable')
         if build.get('status') == 'built':
             if build.get('commit') == staged:

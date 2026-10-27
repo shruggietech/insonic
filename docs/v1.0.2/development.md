@@ -102,6 +102,10 @@ Squash merges follow green required checks and resolved review findings. Human P
 
 See [contribution guidance](../../CONTRIBUTING.md) and [release workflow](releases.md).
 
+Maintained Pages publication stages the original accepted release export in unpublished incremental Git trees. Each serialized tree request is at most 1 MiB, including JSON escaping and its base-tree envelope. Large text and binary files use separate base64 blob requests bounded at 24 MiB within the existing 16 MiB file and 64 MiB archive limits; returned blob identities must match the original bytes. The initial tree contains only elected files, so obsolete nonhistorical content is removed. A complete recursive inventory must match every expected path, regular-file mode, size and Git content identity before a publication commit or non-forced branch update. Existing source/release/asset authority, domain and environment fences, historical compatibility routes, exact completed build and original-byte live verification remain required.
+
+All staging, branch-update and build requests share the original enclosing promotion allowance. Request waits use its remaining time; another batch never restarts that clock. Mutative requests are serial and separated by at least one second, including pacing waits inside the same allowance. Failed intermediate staging cannot advance the public branch. GitHub JSON and asset-upload failures retain bounded method, query-free endpoint, status, request-byte count and recognized server explanations or structured error codes. Diagnostics never echo arbitrary server messages, submitted content, authorization headers or signed query values. Unrecognized or excessive server text is withheld.
+
 Windows native preparation installs its pinned archive decoder with `python -m pip install --target build/native/python zstandard==0.25.0`. The prepared graph loader uses checksum-pinned OpenSSL ABI-3 companions, and relocated packages include their exact DLLs and Apache 2.0 notice beside the executables. No ambient OpenSSL PATH is required.
 
 
