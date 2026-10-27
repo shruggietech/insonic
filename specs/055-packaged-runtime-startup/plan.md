@@ -59,3 +59,7 @@ No constitution exception. Reuse existing lock, probes, native hook and artifact
 ## First CI correction
 
 The observed eight-case acceptance gap also requires cmd/insonic/work_wait.go and work_wait_test.go. Use the existing absolute deadline to classify a context-derived refusal when transport expiry precedes context timer notification. Controlled virtual-time tests reproduce this ordering; ordinary operation bounds, the injected 500 ms timeout, actual terminal cases and concrete startup causes remain unchanged.
+
+## Setup inventory correction
+
+Add scripts/ci-acceptance.mjs and tests/ci-acceptance.test.mjs for the CI-observed incomplete enumeration refusal. A typed incomplete-inventory error retains only internal observations for identity/deadline validation. Setup may request three fresh complete snapshots under the same deadline; it cannot qualify from partial data. Invalid records, changed authority, persistent incomplete/duplicate pages and all terminal audit incompleteness remain failures.

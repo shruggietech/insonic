@@ -21,3 +21,10 @@
 - Independent rejected audit: 220 s preparation + 604 s qualification = 824 s combined. Eight original ZIP sizes/digests and five completed terminal receipts / 40 cases verified. [Complete durable evidence](https://github.com/shruggietech/insonic/pull/192#issuecomment-6454336247) was recovered byte-for-byte before another run.
 - Controlled virtual-time regressions failed before the deadline-notification repair and passed afterward. Affected command/runtime tests, vet, repository checks and all 206 root tests passed. Existing clocks and eight-case acceptance are unchanged.
 - First Codex review completed without findings on e31ddda. The deadline correction requires the remaining authorized round; no third round may be requested.
+
+## 2026-10-27: Corrected product proof and setup enumeration
+
+- CI 40589369443 at PR head c9f3948 (tested merge 8813ae3, matching tracked tree) passed the Windows desktop archive campaign. All six source/package terminal receipts and 48 cases independently validated.
+- Overall acceptance still failed: setup stopped before product work in wait-inputs with an incomplete job inventory; join/candidate/aggregate correctly failed downstream. Its exact page counts are unknown.
+- [Second complete retained audit](https://github.com/shruggietech/insonic/pull/192#issuecomment-6454665442): 258 s preparation + 556 s qualification = 814 s combined; eight original ZIP sizes/digests verified and durable payload recovered byte-for-byte before another run.
+- Four new inventory regressions failed before the bounded resnapshot repair. All 24 acceptance-helper tests and all 210 root tests passed afterward, along with repository/schema checks. Strict final inventories, attempt/readiness identity, fixed deadline, duplicate refusal and finite retry bounds remain enforced.

@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-27: Actual-terminal CI qualification elects the existing sanitized startup-stage/native-error hook and captures bounded process, request/work/session and generated-event observations before owned teardown. Failure receipts remain distinct from successful terminal acceptance; private paths, arbitrary error text, inputs and environment values are excluded. Terminal containment and all eight acceptance cases remain required.
 
+- 2026-10-27: Overlapping qualification setup can resnapshot a short, count-changing or duplicate job inventory up to three times under its original verified readiness deadline. Partial observations can retain that bound and reject known failures, but never authorize work. Complete unique inventories, attempt identity and terminal audits remain mandatory; clocks and required checks are unchanged.
+
 ## [1.0.2] - 2026-10-27
 
 ### Changed

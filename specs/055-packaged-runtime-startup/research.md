@@ -15,3 +15,9 @@
 - Exact-head attempt 40586738671 reached the Windows desktop timeout case and returned generic cancellation/exit 1 instead of wait_timeout/exit 4. Captured owner was running, and prior human/JSON/quiet clients exited successfully. This is a distinct failure from the historical startup refusal.
 - Controlled virtual-time regressions reproduce transport expiry before context Err/Done notification. Decision: classify expiry from the existing absolute deadline while retaining explicit caller cancellation and concrete startup reports. No timeout value or acceptance assertion changes.
 - The rejected terminal audit (220 s preparation + 604 s qualification = 824 s total), eight original ZIP identities, five complete terminal receipts and correlated failure are retained on PR #192 comment 6454336247 and recovered byte-for-byte before another run.
+
+## 2026-10-27: Setup inventory correction
+
+- CI 40589369443 setup scope failed before product execution in wait-inputs with Incomplete job inventory. Its exact page counts were not retained by the earlier helper. Terminal/archive qualification continued independently.
+- Source enumeration rejected short pages or changing totals immediately while the job graph was still active. New regressions exercise both cases, original deadline expiry, changed readiness/identity, persistent incompleteness and duplicate IDs. All four failed before the repair.
+- Decision: keep strict attemptMetadata rejection and use at most three additional complete resnapshots only in waitForQualificationInputs. Partial validated observations may retain the original readiness bound and reject failures, never accept work. Terminal audit remains strict. No policy time or required check changes.

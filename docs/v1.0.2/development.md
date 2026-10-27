@@ -70,6 +70,8 @@ Measure dependency prerequisite preparation, qualification and combined elapsed 
 
 Actual-terminal CI children elect the existing sanitized startup producer diagnostics. A failed campaign retains a bounded separate receipt with the executed image digest, generated request/work/startup/session identities, observed process liveness/exit, generated wait-state events and matching client-PID startup stages/native numeric errors when available. Capture precedes owned teardown; unavailable observations stay explicit. These records exclude private paths, arbitrary error text, arguments, inputs and environment values, and cannot substitute for the successful eight-case terminal receipt.
 
+Overlapping consumer setup requires a complete unique job inventory before accepting its inputs. While scheduling changes that inventory, it may acquire up to three fresh snapshots from the first page under the same verified readiness deadline. Partial observations can anchor the earlier deadline and reject known failures, but cannot establish successful qualification. Invalid identity, ambiguous readiness, changed bounds and persistent incompleteness still fail; terminal audits require complete inventories without this setup-only recovery.
+
 ## Explicit maintainer engine qualification
 
 Committed CC BY 3.0 speech audio and a short dialogue video are ordinary Git files under `tests/fixtures/media/`, with license/attribution, source/rendition/crop provenance, hashes, measured streams and separately declared reference expectations. Clean checkout and CI use these bytes without Git LFS or test-time media downloads. Supplied subtitles and constructed speaker turns qualify document/timing behavior, not model quality.

@@ -48,3 +48,8 @@ Setup -> analysis -> US1/US2 focused tests and implementation -> integrated veri
 
 - [x] T015 [US2] Reproduce expired transport deadline before context notification in cmd/insonic/work_wait_test.go per FR-005 (partial).
 - [x] T016 [US2] Preserve wait_timeout versus cancellation and concrete startup failures in cmd/insonic/work_wait.go; document unchanged clocks in docs/v1.0.2/cli.md and CHANGELOG.md per FR-005 (partial).
+
+## Phase 8: Convergence after corrected-head CI
+
+- [x] T017 [US3] Reproduce incomplete/changing CI inventories, finite retries, original-deadline expiry and identity/duplicate refusal in tests/ci-acceptance.test.mjs per FR-008 (partial).
+- [x] T018 [US3] Resnapshot setup-only unstable inventories without accepting partial records or changing readiness authority in scripts/ci-acceptance.mjs and docs/v1.0.2/development.md per FR-007/FR-008 (partial).
