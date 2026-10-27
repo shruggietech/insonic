@@ -4,6 +4,14 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Fixed
+
+- Publish complete documentation through bounded incremental Git tree requests, with verified standalone blobs for large text and binary files. Require the complete original path, mode, size and content inventory before advancing Pages; retain historical routes, release authority, non-forced updates and exact build/live verification.
+
+### Changed
+
+- 2026-10-27: Documentation staging and build requests share the original enclosing deadline, with each network wait bounded by remaining time and serial mutative requests paced at least one second apart. GitHub JSON operations and asset uploads report bounded method, query-free endpoint, status, request size and recognized server explanations without echoing credentials, request bodies or arbitrary server text. This replaces the oversized single-tree request without adding a local Git transport or changing publication authorization.
+
 ## [1.0.2] - 2026-10-27
 
 ### Changed

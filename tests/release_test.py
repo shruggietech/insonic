@@ -334,6 +334,73 @@ class ReleaseDeliveryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'GET only'): api.call(method, 'repos/example/project')
         with self.assertRaisesRegex(ValueError, 'token'): release.GitHub('')
 
+    def test_github_errors_keep_bounded_operation_context_without_echoes(self):
+        secret = 'synthetic-active-token'
+        api = release.GitHub(secret)
+        endpoint = 'repos/example/project/git/trees?signature=private-query'
+        request = {'tree': [{'content': 'private submitted document'}]}
+        payload = json.dumps({'message': 'Input too large. ' + secret + ' private submitted document',
+                              'errors': [{'resource': 'Tree', 'field': 'tree', 'code': 'custom', 'message': secret}],
+                              'documentation_url': 'https://example.invalid/?token=private-query'}).encode()
+        error = release.urllib.error.HTTPError('https://api.github.com/' + endpoint, 422, 'bad', {}, io.BytesIO(payload))
+        with patch.object(api.opener, 'open', side_effect=error):
+            with self.assertRaises(ValueError) as caught: api.call('POST', endpoint, request)
+        text = str(caught.exception)
+        for expected in ('POST', '/repos/example/project/git/trees', '422', str(len(json.dumps(request).encode())), 'large'):
+            self.assertIn(expected, text)
+        for forbidden in (secret, 'private submitted document', 'signature', 'private-query', 'Authorization'):
+            self.assertNotIn(forbidden, text)
+        self.assertLessEqual(len(text), 1024)
+
+    def test_github_malformed_oversized_and_unknown_error_bodies_are_not_echoed(self):
+        for raw in (b'private non-json response', b'{', b'[]', b'[' * 2000 + b']' * 2000,
+                    json.dumps({'message': 'private arbitrary echo'}).encode(), b'x' * 20000):
+            api = release.GitHub('synthetic-token')
+            stream = io.BytesIO(raw)
+            error = release.urllib.error.HTTPError('https://api.github.com/repos/a/b/git/trees', 502, 'bad', {}, stream)
+            with patch.object(api.opener, 'open', side_effect=error):
+                with self.assertRaises(ValueError) as caught: api.call('POST', 'repos/a/b/git/trees', {})
+            self.assertIn('502', str(caught.exception))
+            self.assertIn('POST', str(caught.exception))
+            self.assertNotIn('private', str(caught.exception))
+            self.assertLessEqual(len(str(caught.exception)), 1024)
+
+    def test_github_missing_get_remains_optional_but_missing_write_is_an_error(self):
+        api = release.GitHub('synthetic-token')
+        for method in ('GET', 'POST'):
+            error = release.urllib.error.HTTPError('https://api.github.com/repos/a/b', 404, 'missing', {}, io.BytesIO(b'{"message":"Not Found"}'))
+            with patch.object(api.opener, 'open', side_effect=error):
+                if method == 'GET': self.assertIsNone(api.call(method, 'repos/a/b'))
+                else:
+                    with self.assertRaisesRegex(ValueError, 'POST.*404'): api.call(method, 'repos/a/b', {})
+
+    def test_github_request_timeout_is_explicit_and_bounded(self):
+        api = release.GitHub('synthetic-token')
+        response = io.BytesIO(b'{}')
+        with patch.object(api.opener, 'open', return_value=response) as opened:
+            api.call('POST', 'repos/a/b/git/trees', {}, timeout=3.25)
+            self.assertEqual(opened.call_args.kwargs['timeout'], 3.25)
+        for bad in (0, -1, float('inf'), float('nan'), True, '3'):
+            with self.assertRaisesRegex(ValueError, 'timeout'): api.call('POST', 'repos/a/b/git/trees', {}, timeout=bad)
+
+    def test_asset_upload_errors_use_the_same_credential_free_context(self):
+        api = release.GitHub('synthetic-token')
+        asset = self.root / 'diagnostic-upload.bin'; asset.write_bytes(b'private asset body')
+        with patch.object(release.http.client, 'HTTPSConnection') as connection:
+            response = connection.return_value.getresponse.return_value
+            response.status = 422
+            response.read.return_value = b'{"message":"Validation failed: synthetic-token private asset body"}'
+            with self.assertRaises(ValueError) as caught:
+                api.call('POST', 'https://uploads.github.com/repos/a/b/releases/1/assets?name=private-query', path=asset, timeout=2)
+            text = str(caught.exception)
+            for expected in ('POST', '/repos/a/b/releases/1/assets', '422', str(asset.stat().st_size), 'validation'):
+                self.assertIn(expected, text)
+            for forbidden in ('synthetic-token', 'private asset body', 'private-query'):
+                self.assertNotIn(forbidden, text)
+            self.assertEqual(connection.call_args.kwargs['timeout'], 2)
+            self.assertEqual(response.read.call_args.args, (8193,))
+            connection.return_value.close.assert_called_once()
+
     def test_pages_promotion_verifies_live_content_after_exact_build(self):
         from types import SimpleNamespace
         target = self.root / 'original'
