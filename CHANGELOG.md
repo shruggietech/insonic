@@ -37,6 +37,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Restored CPU acceptance requires explicit canonical recording identities unique across all source cases and positive integer source revisions. Missing authority, duplicate enrollment identities and malformed revisions are refused without inventing a baseline; existing destination lineage checks and historical source-only receipt behavior remain intact.
+
 - Worker environment snapshots resolve and enumerate declared dependency directories once, preserving file-link/reparse and Windows alias handling, full inventories and complete SHA-256 checks. Snapshot hashing and native receipt verification reuse bounded buffers across files. This removes repeated path work and buffer allocation exposed during managed diarization preparation while preserving the sixty-second probe deadline and all verification boundaries.
 
 - Fetched-profile qualification compares canonical destination and file identities, accepting equivalent Windows short/long path spellings while retaining owned-file, link, byte and digest checks.

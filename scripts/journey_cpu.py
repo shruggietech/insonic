@@ -470,15 +470,22 @@ def validate_restored(receipt, corpus):
         if restored.get(key) != receipt[key]:
             raise ValueError("Real acceptance restored model/profile identity differs")
     validate_results({**receipt, **restored}, corpus)
+    source_recordings = set()
+    for case in receipt["cases"]:
+        media_id, revision = case.get("media_id"), case.get("revision")
+        if (not work_identity(media_id) or media_id in source_recordings
+                or type(revision) is not int or revision < 1):
+            raise ValueError("Real acceptance source recording authority differs")
+        source_recordings.add(media_id)
     source = {case["fixture"]: case for case in receipt["cases"]}
     prior_work = source_work_ids(receipt)
     fresh = {}
     for case in cases:
         original = source[case["fixture"]]
-        if (case.get("media_id") != original.get("media_id")
+        if (case.get("media_id") != original["media_id"]
                 or case.get("canonical_audio_sha256") != original["canonical_audio_sha256"]
                 or type(case.get("prior_revision")) is not int or type(case.get("revision")) is not int
-                or case["prior_revision"] < original.get("revision", 1)
+                or case["prior_revision"] < original["revision"]
                 or case["revision"] <= case["prior_revision"]):
             raise ValueError("Real acceptance fresh destination authority differs")
         identity = case.get("processing_work_id")

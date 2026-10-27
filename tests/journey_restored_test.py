@@ -17,6 +17,10 @@ def sha(value):
 
 def restored_receipt():
     receipt, corpus = complete_receipt()
+    cpu = load("journey_cpu")
+    receipt["kind"] = "insonic-real-cpu-acceptance-v2"
+    receipt["stages"] = [{"name": s, "state": "succeeded"} for s in
+                         cpu.REQUIRED_STAGES[:-1] + cpu.RESTORED_STAGES + cpu.REQUIRED_STAGES[-1:]]
     history = {}
 
     def work(label, kind):
@@ -63,6 +67,81 @@ def restored_receipt():
 
 
 class RestoredReceiptTests(unittest.TestCase):
+    def test_all_source_recordings_require_canonical_unique_identity(self):
+        cpu = load("journey_cpu")
+        receipt, corpus = restored_receipt()
+        missing = object()
+        identifier = receipt["cases"][0]["media_id"]
+        invalid = (missing, None, "", True, 1, [], {}, "not-a-uuid", identifier.upper(),
+                   identifier.replace("-", ""), "{" + identifier + "}")
+        for index, case in enumerate(receipt["cases"]):
+            for value in invalid:
+                with self.subTest(fixture=case["fixture"], value=value):
+                    changed = copy.deepcopy(receipt)
+                    source = changed["cases"][index]
+                    destination = next((c for c in changed["restored"]["cases"]
+                                        if c["fixture"] == source["fixture"]), None)
+                    for target in (source, destination):
+                        if target is not None:
+                            if value is missing:
+                                target.pop("media_id")
+                            else:
+                                target["media_id"] = value
+                    with self.assertRaises(ValueError):
+                        cpu.validate_acceptance(changed, corpus)
+        enrollment = {c["id"] for c in corpus["clips"] if c["role"] == "enrollment"}
+        source_only = [c for c in receipt["cases"] if c["fixture"] in enrollment]
+        self.assertEqual(len(source_only), 2)
+        source_only[1]["media_id"] = source_only[0]["media_id"]
+        with self.assertRaises(ValueError):
+            cpu.validate_acceptance(receipt, corpus)
+
+    def test_all_source_revisions_are_explicit_positive_integers(self):
+        cpu = load("journey_cpu")
+        receipt, corpus = restored_receipt()
+        missing = object()
+        for index, case in enumerate(receipt["cases"]):
+            for value in (missing, None, True, False, 0, -1, 1.0, 1.5, "1", [], {}):
+                with self.subTest(fixture=case["fixture"], value=value):
+                    changed = copy.deepcopy(receipt)
+                    if value is missing:
+                        changed["cases"][index].pop("revision")
+                    else:
+                        changed["cases"][index]["revision"] = value
+                    with self.assertRaises(ValueError):
+                        cpu.validate_acceptance(changed, corpus)
+
+    def test_restored_revision_types_and_lineage_are_explicit(self):
+        cpu = load("journey_cpu")
+        receipt, corpus = restored_receipt()
+        missing = object()
+        for field in ("prior_revision", "revision"):
+            for value in (missing, None, True, False, 0, -1, 1.0, "2", [], {}):
+                with self.subTest(field=field, value=value):
+                    changed = copy.deepcopy(receipt)
+                    if value is missing:
+                        changed["restored"]["cases"][0].pop(field)
+                    else:
+                        changed["restored"]["cases"][0][field] = value
+                    with self.assertRaises(ValueError):
+                        cpu.validate_acceptance(changed, corpus)
+        for prior, current in ((0, 2), (1, 1), (2, 2), (3, 2)):
+            with self.subTest(prior=prior, current=current):
+                changed = copy.deepcopy(receipt)
+                changed["restored"]["cases"][0].update(prior_revision=prior, revision=current)
+                with self.assertRaises(ValueError):
+                    cpu.validate_acceptance(changed, corpus)
+
+    def test_valid_newer_prior_and_legacy_source_only_remain_accepted(self):
+        cpu = load("journey_cpu")
+        legacy, corpus = complete_receipt()
+        self.assertNotIn("media_id", legacy["cases"][0])
+        self.assertNotIn("revision", legacy["cases"][0])
+        cpu.validate_acceptance(legacy, corpus)
+        receipt, corpus = restored_receipt()
+        receipt["restored"]["cases"][0].update(prior_revision=2, revision=3)
+        cpu.validate_acceptance(receipt, corpus)
+
     def test_destination_worker_preparation_preserves_source_and_models(self):
         cpu = load("journey_cpu")
         journey = FakeJourney()
@@ -143,9 +222,6 @@ class RestoredReceiptTests(unittest.TestCase):
     def test_extended_campaign_requires_destination_stages_and_evidence(self):
         cpu = load("journey_cpu")
         receipt, corpus = restored_receipt()
-        receipt["kind"] = "insonic-real-cpu-acceptance-v2"
-        receipt["stages"] = [{"name": s, "state": "succeeded"} for s in
-                             cpu.REQUIRED_STAGES[:-1] + cpu.RESTORED_STAGES + cpu.REQUIRED_STAGES[-1:]]
         cpu.validate_acceptance(receipt, corpus)
         for key in ("restored", "stages"):
             changed = copy.deepcopy(receipt)
