@@ -34,8 +34,8 @@
 
 - [x] T008 Run actual current-host source campaign, full relevant Python, Go checks if product changes, root check/test and affected site checks; update docs/v1.0.1/development.md, CHANGELOG.md and verification.md (FR-001-008, SC-001-003).
 - [x] T009 Converge implementation against all FR/SC/acceptance/plan/constitution obligations and resolve gaps in specs/052-terminal-interruption/ (FR-008).
-- [ ] T010 Commit/push/open official PR, attach artifact and update #182/Project7 In review; monitor exact final-source CI and at most two Codex rounds, fix/reply/resolve every finding (FR-008, SC-003).
-- [ ] T011 Retain compact audited receipts/review evidence, remove owned scratch after readback, and stop unmerged for owner review (FR-007, FR-008).
+- [x] T010 Commit/push/open official PR, attach artifact and update #182/Project7 In review; monitor exact final-source CI and at most two Codex rounds, fix/reply/resolve every finding (FR-008, SC-003).
+- [x] T011 Retain compact audited receipts/review evidence, remove owned scratch after readback, and stop unmerged for owner review (FR-007, FR-008).
 
 ## Dependencies and Strategy
 
@@ -47,7 +47,7 @@ T001 -> T002 -> T003 -> T004 -> T005 -> T006 -> T007 -> T008 -> T009 -> T010 -> 
 
 - [x] T013 Correct the Linux fixture-only host-cache placement and add cleanup/socket-bound regression in scripts/cli_terminal_qualification.py and tests/cli_terminal_qualification_test.py; preserve deep Unicode library paths and the product endpoint bound (FR-005/007; partial).
 
-- [ ] T014 Replace the transport test's single long native sleep with a signal-dispatch cadence and verify the unchanged actual terminal-byte interrupt, natural exit7 and cleanup assertions on Windows/Linux (FR-002/007; partial).
+- [x] T014 Replace the transport test's single long native sleep with a signal-dispatch cadence and verify the unchanged actual terminal-byte interrupt, natural exit7 and cleanup assertions on Windows/Linux (FR-002/007; partial).
 
 ## Phase 8: Convergence
 
