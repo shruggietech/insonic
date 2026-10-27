@@ -102,6 +102,7 @@
         "scripts/qualify_installer_setup.py",
         "scripts/qualify_installer_ui.py",
         "scripts/release.py",
+        "scripts/release_history.py",
         "scripts/source-toolchain.py",
         "scripts/test-processing-worker.py",
         "scripts/website.py",

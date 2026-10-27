@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Revalidate the immutable original v1.0.1 publication using its complete selected source and original receipt/MSI formats, while retaining applicable first-use, source, inventory, signing and lifecycle checks. Current and unknown candidates still require modern terminal and coordinated setup evidence.
+
 - Join an existing runtime after a transient readiness miss while its workspace owner lock remains held, instead of attempting an unnecessary detached launch from the terminal client. Preserve the existing startup deadline, cold-start conflict handling and protected-input loading.
 
 - Preserve `work wait` timeout classification when an IPC deadline expires before the context timer publishes its notification. The unchanged wait budget reports `wait_timeout` with the last observed work state; explicit interruption and concrete startup failures remain distinct.
@@ -13,6 +15,8 @@ All notable changes to this project will be documented here. The format follows 
 - Publish complete documentation through bounded incremental Git tree requests, with verified standalone blobs for large text and binary files. Require the complete original path, mode, size and content inventory before advancing Pages; retain historical routes, release authority, non-forced updates and exact build/live verification.
 
 ### Changed
+
+- 2026-10-27: Bind original v1.0.1 compatibility to its reviewed source tree and published manifest/MSI digests. Maintained verification reads historical source as data and checks every tracked file; it neither executes old verifier code nor reconstructs the old installer with the current MSI model. Altered history cannot acquire acceptance by recomputing local checksums. Original tags/assets and product version remain unchanged.
 
 - 2026-10-27: Documentation staging and build requests share the original enclosing deadline, with each network wait bounded by remaining time and serial mutative requests paced at least one second apart. GitHub JSON operations and asset uploads report bounded method, query-free endpoint, status, request size and recognized server explanations without echoing credentials, request bodies or arbitrary server text. This replaces the oversized single-tree request without adding a local Git transport or changing publication authorization.
 
