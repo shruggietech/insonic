@@ -45,3 +45,7 @@ Independent test: the final PR head has terminal passing elected checks, zero un
 ## Dependencies and execution
 
 Setup -> foundation -> US1 -> US2 bootstrap/capture -> final US2 rendering -> US3 -> polish. The US3 release guide can be refined while CI runs. Within US1, read-only historical comparisons and current version checks can run together; within US2, link tests and prose inspection can run together; within US3, independent root/Python/site checks can run together after source readiness. No concurrent edits to the same files. The first independently reviewable increment is US1 plus the clean US2 capture bootstrap, followed by genuine captures and final qualification.
+
+## Phase 7: Convergence
+
+- [x] T019 Repair fresh post-squash screenshot provenance in site/lib/screenshots.mjs per FR-003, SC-001 and plan decision 3 (partial): reproduce a capture followed by further PR fixes in an actual fresh single-branch clone; retrieve only its exact pinned original commit through bounded noninteractive Git when absent; verify its version and complete recorded source hashes; preserve original capture bytes, tracked checkout identity and the shared deadline; reject unavailable or mismatched proof.

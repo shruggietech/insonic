@@ -9,7 +9,7 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 function capturedSources(repositoryRoot, receipt, changed) {
   const revision = receipt.source.revision;
   const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^GIT_|TOKEN|SECRET|PASSWORD|CREDENTIAL|ASKPASS/i.test(name)));
-  Object.assign(env, {GIT_TERMINAL_PROMPT:'0',GIT_CONFIG_NOSYSTEM:'1'});
+  Object.assign(env, {GIT_TERMINAL_PROMPT:'0',GIT_CONFIG_NOSYSTEM:'1',GCM_INTERACTIVE:'Never',GH_PROMPT_DISABLED:'1'});
   const options = {cwd:repositoryRoot,env,windowsHide:true,shell:false,maxBuffer:64 << 20};
   // All history observations share one deadline, rather than permitting each
   // of up to 64 candidates to consume a separate command timeout.
@@ -40,16 +40,17 @@ function capturedSources(repositoryRoot, receipt, changed) {
   }
   const paths=['VERSION',...receipt.source.files.map(item=>item.path)];
   const matches=files=>files[0]?.toString('utf8').trim()===receipt.schema_version&&receipt.source.files.every((item,index)=>files[index+1]&&hash(files[index+1])===item.sha256);
-  const ancestry=observe(['merge-base','--is-ancestor',revision,'HEAD']);
-  if(ancestry.status===0){
+  function exactCapture(){
+    if(observe(['cat-file','-e',revision+'^{commit}']).status!==0)return false;
     const files=blobs(paths.map(name=>revision+':'+name));
     if(files[0]?.toString('utf8').trim()!==receipt.schema_version)throw new Error('Screenshot source differs from its captured version.');
     if(!matches(files))throw new Error('Screenshot source differs from its recorded capture.');
-    return;
+    return true;
   }
+  if(exactCapture())return;
   // Squash merges do not retain the CI test-merge commit in main's ancestry.
-  // Accept only one coherent ancestral snapshot with every recorded byte hash
-  // and version. Preserve the original capture revision and receipt unchanged.
+  // When the exact commit is absent, accept only one coherent ancestral snapshot
+  // with every recorded byte hash and version. Keep original receipts unchanged.
   // A coherent capture can be newer than the last change to the anchor file.
   // Search actual ancestors, including commits that changed only other files.
   const history=observe(['log','--format=%H','--max-count=64','HEAD']);
@@ -65,6 +66,17 @@ function capturedSources(repositoryRoot, receipt, changed) {
       if(matches(files))return;
     }
   }
+  // An intermediate capture followed by further PR corrections has no equal
+  // snapshot on squashed main. Retrieve only the immutable original commit,
+  // without changing HEAD, refs, FETCH_HEAD or any tracked source. Its entire
+  // recorded inventory and version still have to match. Never execute a remote
+  // helper or prompt for credentials; HTTPS and local fixture origins suffice.
+  const fetched=observe(['-c','credential.helper=','-c','core.askPass=',
+    '-c','credential.interactive=never','-c','protocol.allow=never',
+    '-c','protocol.https.allow=always','-c','protocol.file.allow=always',
+    'fetch','--no-tags','--no-write-fetch-head','--no-recurse-submodules',
+    '--no-auto-maintenance','origin',revision]);
+  if(fetched.status===0&&exactCapture())return;
   throw new Error('Screenshot source differs; no matching complete snapshot exists in bounded repository history. Refresh the capture or fetch complete history.');
 }
 
