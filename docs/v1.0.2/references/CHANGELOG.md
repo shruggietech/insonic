@@ -43,6 +43,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Update the maintained JSON Schema URI parser to fast-uri 3.1.9 in root and desktop tooling to resolve URI normalization and host/scheme confusion advisories.
+
+- Release preparation retains v1.0.1 workspace, model, preset, setup-draft and verified worker-receipt authority across the v1.0.2 upgrade. Current IPC and installed package identities remain exact, and retained documents keep field, credential and complete hash validation. The embedded worker catalog envelope advances without changing its resource pins or independently versioned licensed-media provenance.
+
 - Restored CPU acceptance requires explicit canonical recording identities unique across all source cases and positive integer source revisions. Missing authority, duplicate enrollment identities and malformed revisions are refused without inventing a baseline; existing destination lineage checks and historical source-only receipt behavior remain intact.
 
 - Worker environment snapshots resolve and enumerate declared dependency directories once, preserving file-link/reparse and Windows alias handling, full inventories and complete SHA-256 checks. Snapshot hashing and native receipt verification reuse bounded buffers across files. This removes repeated path work and buffer allocation exposed during managed diarization preparation while preserving the sixty-second probe deadline and all verification boundaries.

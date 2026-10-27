@@ -68,3 +68,16 @@ func TestSpeakerWorkFailuresRetainDistinctRecoveryOutcomes(t *testing.T) {
 		}
 	}
 }
+
+func TestRetainedDocumentVersions(t *testing.T) {
+	for _, version := range []string{Version, "1.0.0", "1.0.1"} {
+		if !SupportedDocumentVersion(version) {
+			t.Fatalf("retained document version rejected: %s", version)
+		}
+	}
+	for _, version := range []string{"", "0.0.0", "1.0.99", "9.9.9"} {
+		if SupportedDocumentVersion(version) {
+			t.Fatalf("unknown document version accepted: %s", version)
+		}
+	}
+}

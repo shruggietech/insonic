@@ -24,9 +24,9 @@ Independent test: current public/offline pages render matching verified captures
 
 - [x] T008 [US2] Cover the complete six-asset release link contract in tests/site-release.test.mjs, including setup EXE and MSI.
 - [x] T009 [US2] Correct package-count and host-count descriptions in docs/v1.0.2/releases.md and roadmap.md; temporarily omit new-version screenshot sections for a clean capture bootstrap.
-- [ ] T010 [US2] Commit and push the clean bootstrap, open the official PR, and collect genuine application/density and disposable Windows installer captures via .github/workflows/native-qualification.yml.
-- [ ] T011 [US2] Validate capture hashes/source authority, import unchanged images/receipts into docs/screenshots/v1.0.2/ and restore all 20 embeds in docs/v1.0.2/desktop.md and windows-installation.md.
-- [ ] T012 [US2] Run site tests/build/export and inspect current and historical documentation through site/lib/docs.mjs and maintained validators.
+- [x] T010 [US2] Commit and push the clean bootstrap, open the official PR, and collect genuine application/density and disposable Windows installer captures via .github/workflows/native-qualification.yml.
+- [x] T011 [US2] Validate capture hashes/source authority, import unchanged images/receipts into docs/screenshots/v1.0.2/ and restore all 20 embeds in docs/v1.0.2/desktop.md and windows-installation.md.
+- [x] T012 [US2] Run site tests/build/export and inspect current and historical documentation through site/lib/docs.mjs and maintained validators.
 
 ## Phase 5: US3 - Qualified owner handoff
 
@@ -34,7 +34,7 @@ Independent test: the final PR head has terminal passing elected checks, zero un
 
 - [ ] T013 [US3] Complete root check/test, affected Python suites and final Windows/Linux source/native/package/installer CI; retain separate phase accounting in specs/053-v102-release/verification.md.
 - [ ] T014 [US3] Resolve every review comment, request at most one second Codex round, and retain review receipts through the official PR.
-- [ ] T015 [US3] Finalize executable post-merge exact-main CPU/restore/publication guidance in specs/053-v102-release/quickstart.md and concise highlights.md.
+- [x] T015 [US3] Finalize executable post-merge exact-main CPU/restore/publication guidance in specs/053-v102-release/quickstart.md and concise highlights.md.
 
 ## Phase 6: Polish and delivery
 

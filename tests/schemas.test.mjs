@@ -428,6 +428,21 @@ test('current portable snapshots retain strict immutable historical model docume
   assert.equal(master(snapshot), false, 'historical manifests retain strict credential and field constraints');
 });
 
+test('current portable snapshots retain original v1.0.1 model authority', () => {
+  const historical = name => JSON.parse(readFileSync(new URL('../schemas/v1.0.1/' + name + '.schema.json', import.meta.url), 'utf8')).examples[0];
+  const base = historical('base-model-manifest');
+  const speaker = historical('speaker-model');
+  const snapshot = example('catalog-snapshot');
+  snapshot.catalog_schema = 9;
+  snapshot.records.base_models = [{id:'33333333-3333-4333-8333-333333333333',name:base.name,version:base.model_version,digest:'a'.repeat(64),manifest:base,publication_ids:[],state:'registered',revision:1}];
+  snapshot.records.speaker_outputs = [{id:speaker.model_version_id,model_id:speaker.model_family_id,speaker_id:speaker.originating_speaker_id,dataset_id:speaker.training.dataset.dataset_snapshot_id,work_id:speaker.training.job_id,kind:speaker.compatibility.model_kind,name:speaker.display_name,metadata:speaker,publication_ids:[speaker.model_version_id]}];
+  const original = JSON.stringify({base, speaker});
+  assert.equal(master(snapshot), true, 'original published model documents must remain admissible');
+  assert.equal(JSON.stringify({base, speaker}), original);
+  speaker.token = 'fixture-secret';
+  assert.equal(master(snapshot), false, 'historical documents retain field and credential constraints');
+});
+
 test('managed worker closure validates and publishes both document alternatives',()=>{
  const closure=JSON.parse(readFileSync(new URL('../internal/workers/assets/catalog.json',import.meta.url),'utf8'));
  assert.equal(master(closure),true,JSON.stringify(master.errors));

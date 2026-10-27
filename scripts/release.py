@@ -158,6 +158,12 @@ def prepare_schema(value, filename, old, version):
     if filename == 'common.schema.json':
         value['description'] = re.sub(r'^Shared logical types for the v' + VERSION_PATTERN + r' contract(?: baseline)?\.',
                                       f'Shared logical types for the v{version} contract.', value['description'])
+    if filename == 'catalog-snapshot.schema.json':
+        for collection, field, schema in [('base_models', 'manifest', 'base-model-manifest'),
+                                          ('speaker_outputs', 'metadata', 'speaker-model')]:
+            alternatives = value['properties']['records']['properties'][collection]['items']['properties'][field]['anyOf']
+            historical = {'$ref': f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/{schema}.schema.json'}
+            if historical not in alternatives: alternatives.append(historical)
     return value
 
 
@@ -209,6 +215,13 @@ def prepare(version, date, highlights, root=ROOT):
             # Advance owned envelopes and asset/routes; independent upstream identities stay unchanged.
             rewritten = text.replace('"' + old + '"', '"' + version + '"').replace("'" + old + "'", "'" + version + "'").replace(f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/', f'https://raw.githubusercontent.com/{REPOSITORY}/v{version}/schemas/v{version}/').replace('schemas/v' + old + '/', 'schemas/v' + version + '/').replace('docs/v' + old + '/', 'docs/v' + version + '/').replace('insonic_' + old + '_', 'insonic_' + version + '_').replace("'v" + old + "'", "'v" + version + "'").replace('"v' + old + '"', '"v' + version + '"').replace('"v' + old + '/', '"v' + version + '/').replace("'v" + old + '/', "'v" + version + '/')
             if rewritten != text: changes[path] = rewritten
+    # Retained document authority survives the current envelope advancing.
+    contract_path = root / 'internal/contracts/contracts.go'
+    contract_text = changes.get(contract_path, contract_path.read_text(encoding='utf-8'))
+    supported = re.search(r'func SupportedDocumentVersion\(version string\) bool \{[^}]+\}', contract_text)
+    if supported and 'version == "' + old + '"' not in supported[0]:
+        retained = supported[0].replace('return version == Version', f'return version == Version || version == "{old}"', 1)
+        changes[contract_path] = contract_text.replace(supported[0], retained, 1)
     # The embedded resource catalog has an owned release envelope, while all
     # dependency versions and hashes inside its profiles retain their identity.
     worker_catalog_path = root / 'internal/workers/assets/catalog.json'

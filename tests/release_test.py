@@ -395,6 +395,15 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertEqual(candidate['properties']['tag']['const'], 'v' + VERSION)
         self.assertEqual(candidate['properties']['packages']['items']['properties']['product_version']['const'], VERSION)
 
+    def test_preparation_retains_previous_model_document_authority(self):
+        contracts = (self.root / 'internal/contracts/contracts.go').read_text(encoding='utf-8')
+        self.assertIn('version == "' + CURRENT + '"', contracts)
+        snapshot = release.read_json(self.root / f'schemas/v{VERSION}/catalog-snapshot.schema.json')
+        for collection, field, schema in [('base_models', 'manifest', 'base-model-manifest'),
+                                          ('speaker_outputs', 'metadata', 'speaker-model')]:
+            alternatives = snapshot['properties']['records']['properties'][collection]['items']['properties'][field]['anyOf']
+            self.assertIn({'$ref': f'https://raw.githubusercontent.com/{release.REPOSITORY}/v{CURRENT}/schemas/v{CURRENT}/{schema}.schema.json'}, alternatives)
+
     def test_preparation_preserves_independent_licensed_media_provenance(self):
         self.assertEqual((self.root / 'tests/fixtures/media/manifest.json').read_bytes(),
                          (ROOT / 'tests/fixtures/media/manifest.json').read_bytes())

@@ -247,7 +247,7 @@ func (s Store) read() (storedDraft, error) {
 	if e != nil || decode(raw, &out) != nil {
 		return out, contracts.Fail("unavailable")
 	}
-	if out.Draft.Kind != "setup-bootstrap" || out.Draft.Version != contracts.Version || out.Draft.Revision < 1 || len(out.Receipts) > 64 || out.Draft.Plan == nil {
+	if out.Draft.Kind != "setup-bootstrap" || !contracts.SupportedDocumentVersion(out.Draft.Version) || out.Draft.Revision < 1 || len(out.Receipts) > 64 || out.Draft.Plan == nil {
 		return out, contracts.Fail("invalid_request")
 	}
 	if out.Draft.CredentialBackend == "" {

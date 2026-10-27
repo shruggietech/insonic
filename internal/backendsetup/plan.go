@@ -30,7 +30,7 @@ func Build(raw []byte) (workspace.Config, error) {
 	if c.Version == "" {
 		c.Version = contracts.Version
 	}
-	if c.Version != contracts.Version {
+	if !contracts.SupportedDocumentVersion(c.Version) {
 		return c, contracts.Fail("incompatible_version")
 	}
 	if c.Kind != "" && c.Kind != "backend-plan" && c.Kind != "workspace-config" {

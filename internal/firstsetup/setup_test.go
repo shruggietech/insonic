@@ -317,3 +317,34 @@ func TestBootstrapAcceptanceWaitsForPublicationBarrierAndReplaysFailure(t *testi
 		t.Fatalf("barrier replay %+v %v calls=%d", replayed, e, calls)
 	}
 }
+
+func TestPreviousReleaseDraftResumesWithoutRewritingAuthority(t *testing.T) {
+	s := Store{Directory: privateStoreDirectory(t)}
+	first, err := s.Save(context.Background(), contracts.ID(), draftInput(t, filepath.Join(t.TempDir(), "existing library"), 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(s.Directory, "setup-draft.json")
+	raw, _ := os.ReadFile(file)
+	var saved storedDraft
+	if err = json.Unmarshal(raw, &saved); err != nil {
+		t.Fatal(err)
+	}
+	saved.Draft.Version = "1.0.1"
+	saved.Draft.Plan.Version = "1.0.1"
+	saved.Draft.Plan.Profiles.Storage.Version = "1.0.1"
+	saved.Draft.Plan.Profiles.Catalog.Version = "1.0.1"
+	saved.Draft.Plan.Profiles.Graph.Version = "1.0.1"
+	raw, _ = json.Marshal(saved)
+	if err = os.WriteFile(file, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	resumed, err := s.Show()
+	if err != nil || resumed.Plan == nil || resumed.Plan.WorkspaceID != first.Plan.WorkspaceID || resumed.Revision != first.Revision {
+		t.Fatalf("old draft did not resume: %+v %v", resumed, err)
+	}
+	after, _ := os.ReadFile(file)
+	if string(after) != string(raw) {
+		t.Fatal("resuming rewrote original draft")
+	}
+}

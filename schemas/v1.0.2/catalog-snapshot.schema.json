@@ -1472,6 +1472,9 @@
                   },
                   {
                     "$ref": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/base-model-manifest.schema.json"
+                  },
+                  {
+                    "$ref": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.1/schemas/v1.0.1/base-model-manifest.schema.json"
                   }
                 ]
               },
@@ -1976,6 +1979,9 @@
                   },
                   {
                     "$ref": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/speaker-model.schema.json"
+                  },
+                  {
+                    "$ref": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.1/schemas/v1.0.1/speaker-model.schema.json"
                   }
                 ]
               },
