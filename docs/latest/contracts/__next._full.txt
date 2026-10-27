@@ -19,9 +19,9 @@ f:I[75049,["$2"],"$e"]
 8:[["children",{"s":{"n":"slug","t":"d","k":"contracts","s":["references"]},"h":66048,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],"p":false,"v":"$7"},"c":"$Q9"}]]
 6:[["children",{"s":"latest","h":131584,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],"p":false,"v":"$7"},"c":"$Q8"}]]
 5:[["children",{"s":"docs","h":131584,"d":{"r":["$","$1","c",{"children":[null,[["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],"p":false,"v":null},"c":"$Q6"}]]
-0:{"P":null,"c":["","docs","latest","contracts",""],"q":"","i":false,"t":{"t":{"s":"","h":131600,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true,"nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":false,"v":null},"c":"$Q5"},"h":{"r":["$","$1","h",{"children":[null,["$","$Lf",null,{"children":"$L10"}],["$","$L12",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$c",null,{"name":"Next.Metadata","children":"$L13"}]}],null]}],null]}],"p":false,"v":null}},"m":"$undefined","G":["$14",[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]]],"S":true,"r":"$undefined","s":"$undefined","a":"$undefined","l":"$undefined","p":"$undefined","d":"$undefined","b":"HMJ7sFfYDYOhLn9oXjaYS"}
+0:{"P":null,"c":["","docs","latest","contracts",""],"q":"","i":false,"t":{"t":{"s":"","h":131600,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true,"nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":false,"v":null},"c":"$Q5"},"h":{"r":["$","$1","h",{"children":[null,["$","$Lf",null,{"children":"$L10"}],["$","$L12",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$c",null,{"name":"Next.Metadata","children":"$L13"}]}],null]}],null]}],"p":false,"v":null}},"m":"$undefined","G":["$14",[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]]],"S":true,"r":"$undefined","s":"$undefined","a":"$undefined","l":"$undefined","p":"$undefined","d":"$undefined","b":"6F-9QnixupVklo6s5p_Qa"}
 7:C
-a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"960","children":[["$","summary",null,{"children":"Documentation"}],["$","nav",null,{"aria-label":"Documentation topics v1.0.1","children":[["$","p",null,{"className":"version-label","children":["v","1.0.1"," · ","released"]}],["$","ul",null,{"children":[[["$","li","index",{"children":["$","a",null,{"href":"/docs/v1.0.1/index/","aria-current":"$undefined","children":"Start here"}]}],["$","li","cli",{"children":["$","a",null,{"href":"/docs/v1.0.1/cli/","aria-current":"$undefined","children":"CLI invocation and results"}]}],["$","li","setup",{"children":["$","a",null,{"href":"/docs/v1.0.1/setup/","aria-current":"$undefined","children":"Optional first-run setup"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v1.0.1/product/","aria-current":"$undefined","children":"Product and requirements"}]}],["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v1.0.1/architecture/","aria-current":"$undefined","children":"System architecture"}]}],["$","li","technology",{"children":["$","a",null,{"href":"/docs/v1.0.1/technology/","aria-current":"$undefined","children":"Technology decisions"}]}],["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v1.0.1/ingestion/","aria-current":"$undefined","children":"Import, metadata and dates"}]}],["$","li","media",{"children":["$","a",null,{"href":"/docs/v1.0.1/media/","aria-current":"$undefined","children":"Media and provenance"}]}],["$","li","processing-setup",{"children":["$","a",null,{"href":"/docs/v1.0.1/processing-setup/","aria-current":"$undefined","children":"Local processing setup"}]}],["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v1.0.1/pipelines/","aria-current":"$undefined","children":"Pipelines and adapters"}]}],["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v1.0.1/subtitles/","aria-current":"$undefined","children":"Cueson and subtitles"}]}],["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v1.0.1/speakers/","aria-current":"$undefined","children":"Speakers and terminology"}]}],["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v1.0.1/voice-models/","aria-current":"$undefined","children":"Speaker audio and voice models"}]}],["$","li","graph",{"children":["$","a",null,{"href":"/docs/v1.0.1/graph/","aria-current":"$undefined","children":"Queries, timeline and graph"}]}],["$","li","storage",{"children":["$","a",null,{"href":"/docs/v1.0.1/storage/","aria-current":"$undefined","children":"Installation and storage"}]}],["$","li","schema",{"children":["$","a",null,{"href":"/docs/v1.0.1/schema/","aria-current":"$undefined","children":"Storage and catalog schema"}]}],["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v1.0.1/contracts/","aria-current":"page","children":"JSON contracts"}]}],["$","li","security",{"children":["$","a",null,{"href":"/docs/v1.0.1/security/","aria-current":"$undefined","children":"Credentials and data access"}]}],["$","li","secrets",{"children":["$","a",null,{"href":"/docs/v1.0.1/secrets/","aria-current":"$undefined","children":"Credential commands"}]}],["$","li","models",{"children":["$","a",null,{"href":"/docs/v1.0.1/models/","aria-current":"$undefined","children":"Downloaded models"}]}],["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v1.0.1/desktop/","aria-current":"$undefined","children":"CLI and desktop experience"}]}],["$","li","windows-installation",{"children":["$","a",null,{"href":"/docs/v1.0.1/windows-installation/","aria-current":"$undefined","children":"Windows installation, updates and removal"}]}],["$","li","development",{"children":["$","a",null,{"href":"/docs/v1.0.1/development/","aria-current":"$undefined","children":"Development workflow"}]}],["$","li","releases",{"children":["$","a",null,{"href":"/docs/v1.0.1/releases/","aria-current":"$undefined","children":"Brand, docs and releases"}]}],["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v1.0.1/roadmap/","aria-current":"$undefined","children":"Delivery outcomes"}]}],["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v1.0.1/glossary/","aria-current":"$undefined","children":"Glossary"}]}],["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v1.0.1/changelog/","aria-current":"$undefined","children":"Changelog"}]}]],null]}]]}]]}]}],["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","one-versioned-system-schema",{"children":["$","a",null,{"href":"#one-versioned-system-schema","children":"One versioned system schema"}]}],"$L15","$L16","$L17","$L18","$L19","$L1a","$L1b","$L1c","$L1d","$L1e","$L1f","$L20","$L21","$L22","$L23","$L24","$L25","$L26","$L27","$L28","$L29","$L2a","$L2b","$L2c","$L2d","$L2e","$L2f"]}]}]]}]}],"$L30"]}]
+a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"960","children":[["$","summary",null,{"children":"Documentation"}],["$","nav",null,{"aria-label":"Documentation topics v1.0.2","children":[["$","p",null,{"className":"version-label","children":["v","1.0.2"," · ","released"]}],["$","ul",null,{"children":[[["$","li","index",{"children":["$","a",null,{"href":"/docs/v1.0.2/index/","aria-current":"$undefined","children":"Start here"}]}],["$","li","cli",{"children":["$","a",null,{"href":"/docs/v1.0.2/cli/","aria-current":"$undefined","children":"CLI invocation and results"}]}],["$","li","setup",{"children":["$","a",null,{"href":"/docs/v1.0.2/setup/","aria-current":"$undefined","children":"Optional first-run setup"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v1.0.2/product/","aria-current":"$undefined","children":"Product and requirements"}]}],["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v1.0.2/architecture/","aria-current":"$undefined","children":"System architecture"}]}],["$","li","technology",{"children":["$","a",null,{"href":"/docs/v1.0.2/technology/","aria-current":"$undefined","children":"Technology decisions"}]}],["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v1.0.2/ingestion/","aria-current":"$undefined","children":"Import, metadata and dates"}]}],["$","li","media",{"children":["$","a",null,{"href":"/docs/v1.0.2/media/","aria-current":"$undefined","children":"Media and provenance"}]}],["$","li","processing-setup",{"children":["$","a",null,{"href":"/docs/v1.0.2/processing-setup/","aria-current":"$undefined","children":"Local processing setup"}]}],["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v1.0.2/pipelines/","aria-current":"$undefined","children":"Pipelines and adapters"}]}],["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v1.0.2/subtitles/","aria-current":"$undefined","children":"Cueson and subtitles"}]}],["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v1.0.2/speakers/","aria-current":"$undefined","children":"Speakers and terminology"}]}],["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v1.0.2/voice-models/","aria-current":"$undefined","children":"Speaker audio and voice models"}]}],["$","li","graph",{"children":["$","a",null,{"href":"/docs/v1.0.2/graph/","aria-current":"$undefined","children":"Queries, timeline and graph"}]}],["$","li","storage",{"children":["$","a",null,{"href":"/docs/v1.0.2/storage/","aria-current":"$undefined","children":"Installation and storage"}]}],["$","li","schema",{"children":["$","a",null,{"href":"/docs/v1.0.2/schema/","aria-current":"$undefined","children":"Storage and catalog schema"}]}],["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v1.0.2/contracts/","aria-current":"page","children":"JSON contracts"}]}],["$","li","security",{"children":["$","a",null,{"href":"/docs/v1.0.2/security/","aria-current":"$undefined","children":"Credentials and data access"}]}],["$","li","secrets",{"children":["$","a",null,{"href":"/docs/v1.0.2/secrets/","aria-current":"$undefined","children":"Credential commands"}]}],["$","li","models",{"children":["$","a",null,{"href":"/docs/v1.0.2/models/","aria-current":"$undefined","children":"Downloaded models"}]}],["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v1.0.2/desktop/","aria-current":"$undefined","children":"CLI and desktop experience"}]}],["$","li","windows-installation",{"children":["$","a",null,{"href":"/docs/v1.0.2/windows-installation/","aria-current":"$undefined","children":"Windows installation, updates and removal"}]}],["$","li","development",{"children":["$","a",null,{"href":"/docs/v1.0.2/development/","aria-current":"$undefined","children":"Development workflow"}]}],["$","li","releases",{"children":["$","a",null,{"href":"/docs/v1.0.2/releases/","aria-current":"$undefined","children":"Brand, docs and releases"}]}],["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v1.0.2/roadmap/","aria-current":"$undefined","children":"Delivery outcomes"}]}],["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v1.0.2/glossary/","aria-current":"$undefined","children":"Glossary"}]}],["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v1.0.2/changelog/","aria-current":"$undefined","children":"Changelog"}]}]],null]}]]}]]}]}],["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","one-versioned-system-schema",{"children":["$","a",null,{"href":"#one-versioned-system-schema","children":"One versioned system schema"}]}],"$L15","$L16","$L17","$L18","$L19","$L1a","$L1b","$L1c","$L1d","$L1e","$L1f","$L20","$L21","$L22","$L23","$L24","$L25","$L26","$L27","$L28","$L29","$L2a","$L2b","$L2c","$L2d","$L2e","$L2f"]}]}]]}]}],"$L30"]}]
 15:["$","li","compatibility-and-evolution",{"children":["$","a",null,{"href":"#compatibility-and-evolution","children":"Compatibility and evolution"}]}]
 16:["$","li","validation-and-documentation",{"children":["$","a",null,{"href":"#validation-and-documentation","children":"Validation and documentation"}]}]
 17:["$","li","contract-reference",{"children":["$","a",null,{"href":"#contract-reference","children":"Contract reference"}]}]
@@ -49,28 +49,28 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 2d:["$","li","portable-workspace-backup",{"children":["$","a",null,{"href":"#portable-workspace-backup","children":"Portable workspace backup"}]}]
 2e:["$","li","insonic-workspace-configuration",{"children":["$","a",null,{"href":"#insonic-workspace-configuration","children":"insonic workspace configuration"}]}]
 2f:["$","li","shared-definitions",{"children":["$","a",null,{"href":"#shared-definitions","children":"Shared definitions"}]}]
-31:Tcbd09,<h1 id="json-contracts">JSON contracts</h1>
+31:Td3391,<h1 id="json-contracts">JSON contracts</h1>
 <h2 id="one-versioned-system-schema">One versioned system schema</h2>
 <p>insonic uses <a href="https://json-schema.org/draft/2020-12">JSON Schema Draft 2020-12</a> for configuration, import, artifact/metadata interchange, portable catalog snapshots, durable job events, graph queries and speaker-training/model manifests. A system-wide master schema contains a registry of all insonic-owned contracts and selects documents through their <code>kind</code>. Shared definitions provide consistent identifiers, digests, revisions and artifact references. Cueson retains its own immutable upstream subtitle schema; the master recording embeds its validated current document without redefining that format. Its UUID assignments appear only there; external speaker mappings and other contracts carry current document/cue references, without another assignment list. Local packaged upstream schema bytes provide offline validation.</p>
 <p>The master and child schemas live in <code>schemas/v&lt;version&gt;/</code>. Every release has the same software, documentation and master-schema version. A document declares <code>schema_version</code> and <code>kind</code>; the registry resolves its exact child contract. Tagged canonical schema IDs identify release resources, and the packaged registry resolves them offline. Schema files carry descriptions and examples for fields and complete documents. The documentation build reads those fields to produce the contract reference below and packages the JSON files beside it.</p>
 <h2 id="compatibility-and-evolution">Compatibility and evolution</h2>
-<p>Portable workspace backups use the registered <code>workspace-backup</code> contract. Its manifest binds a consistent logical catalog proof to exact current/durable artifact publications, verified copied bytes or explicit original-store dependency, and accepted-evidence graph rebuilding. Structural validation does not substitute for byte hashes, source receipt validation, destination ownership checks or retention lifetime. See <a href="/docs/v1.0.1/storage/#portable-backup-commands">backup commands</a>.</p>
-<p>Release candidates use the registered <code>release-candidate</code> contract. The manifest records all four Windows/Linux platform/variant packages, corresponding-source and signing dispositions, exact source revision and documentation archives. Release tooling verifies the embedded package inventories, byte hashes and source identity before publication. See <a href="/docs/v1.0.1/releases/">release preparation</a>.</p>
-<p>Model selection separates revisioned convenience aliases and configured source catalogs from immutable elected identities. Runtime requests expose alias/source CRUD, discovery and resolution; processing/import payloads freeze selected bundle manifests and acquisition dependencies. Optional compatibility metadata augments base manifests without rewriting accepted older digests. Portable catalog records retain alias/source revisions and trained/hosted target distinctions. Structural schema validation complements runtime checks for target ownership, complete bundle compatibility and job fences. See <a href="/docs/v1.0.1/models/">models</a> for executable commands and lifecycle.</p>
-<p>Recording replacement is a targeted media election with explicit transcript keep, clear or replace and declared-roster retain or clear policies. Keep requires an applicability assertion and validates known source-clock bounds and selected track/channel compatibility. A retained older managed subtitle can become the validated embedded current document during that same acceptance. Failure preserves previous accepted state. Roster read and edit requests carry independent optimistic revision authority; intentional membership remains distinct from document attribution and training evidence. The runtime request and <a href="/docs/v1.0.1/ingestion/">import rules</a> expose these elections consistently.</p>
+<p>Portable workspace backups use the registered <code>workspace-backup</code> contract. Its manifest binds a consistent logical catalog proof to exact current/durable artifact publications, verified copied bytes or explicit original-store dependency, and accepted-evidence graph rebuilding. Structural validation does not substitute for byte hashes, source receipt validation, destination ownership checks or retention lifetime. See <a href="/docs/v1.0.2/storage/#portable-backup-commands">backup commands</a>.</p>
+<p>Release candidates use the registered <code>release-candidate</code> contract. The manifest records all four Windows/Linux platform/variant packages, corresponding-source and signing dispositions, exact source revision and documentation archives. Release tooling verifies the embedded package inventories, byte hashes and source identity before publication. See <a href="/docs/v1.0.2/releases/">release preparation</a>.</p>
+<p>Model selection separates revisioned convenience aliases and configured source catalogs from immutable elected identities. Runtime requests expose alias/source CRUD, discovery and resolution; processing/import payloads freeze selected bundle manifests and acquisition dependencies. Optional compatibility metadata augments base manifests without rewriting accepted older digests. Portable catalog records retain alias/source revisions and trained/hosted target distinctions. Structural schema validation complements runtime checks for target ownership, complete bundle compatibility and job fences. See <a href="/docs/v1.0.2/models/">models</a> for executable commands and lifecycle.</p>
+<p>Recording replacement is a targeted media election with explicit transcript keep, clear or replace and declared-roster retain or clear policies. Keep requires an applicability assertion and validates known source-clock bounds and selected track/channel compatibility. A retained older managed subtitle can become the validated embedded current document during that same acceptance. Failure preserves previous accepted state. Roster read and edit requests carry independent optimistic revision authority; intentional membership remains distinct from document attribution and training evidence. The runtime request and <a href="/docs/v1.0.2/ingestion/">import rules</a> expose these elections consistently.</p>
 <p>Preserve backward and forward compatibility where practical. Prefer additive optional fields, stable meanings, explicit extension containers and migrations over silently changing existing values. Readers validate against the document's declared version and negotiate adapter capabilities. An unknown version is reported clearly; it is not silently interpreted with whichever schema is newest. Keep supported older registries available for imports and migrations. Unsupported features can remain preserved as opaque extension values where the contract permits them.</p>
 <p>Compatibility is a priority, not an absolute prohibition on useful change. When a change breaks a consumer or persisted contract, describe the affected fields, supported source versions and migration/recovery path in the changelog and the brief release highlights. Release notes retain the final changelog link. A schema revision alone does not prove compatibility; validation and representative import/export/migration fixtures establish the supported combinations.</p>
 <h2 id="validation-and-documentation">Validation and documentation</h2>
-<p>Speaker-work requests distinguish dataset creation/inspection, elected training, exact speaker-version retrieval, profile CAS updates and matching-only work. Public matching input cannot supply server-frozen recording/model digests or replace the declared roster with a cluster-count hint. Zero score thresholds and ambiguity margins are explicit values. Catalog schema 9 carries portable output/profile/checkpoint authority and origin-qualified mappings; model/dataset manifests validate against their exact child contracts.</p>
+<p>Speaker-work requests distinguish dataset creation/inspection, elected training, exact speaker-version retrieval, profile CAS updates and matching-only work. Public matching input cannot supply server-frozen recording/model digests or replace the declared roster with a cluster-count hint. Zero score thresholds and ambiguity margins are explicit values. Catalog schema 10 retains schema-9 portable output/profile/checkpoint authority and origin-qualified mappings, and supports synthetic jobs from 1 through 600000 milliseconds; model/dataset manifests validate against their exact child contracts.</p>
 <p>The repository checks master registration, matching release identities, schema validity, field descriptions and embedded examples. Every document example must validate both against its child schema and the master. Contract checks also reject malformed identities, contradictory inputs and mismatched kinds/versions. Structural validation is complemented by application checks for source ownership, time bounds, permissions, revision ordering and backend capabilities; JSON Schema cannot prove those relationships by itself.</p>
-<p>The generated reference is read-only output. Edit descriptions, examples and field constraints in the authoritative JSON files, then rebuild documentation. The same packaged definitions serve CLI validation, adapter interchange and offline help. <a href="/docs/v1.0.1/schema/">Catalog relationships</a>, <a href="/docs/v1.0.1/ingestion/">import behavior</a> and <a href="/docs/v1.0.1/voice-models/">speaker model lineage</a> explain the domain rules around these payloads.</p>
+<p>The generated reference is read-only output. Edit descriptions, examples and field constraints in the authoritative JSON files, then rebuild documentation. The same packaged definitions serve CLI validation, adapter interchange and offline help. <a href="/docs/v1.0.2/schema/">Catalog relationships</a>, <a href="/docs/v1.0.2/ingestion/">import behavior</a> and <a href="/docs/v1.0.2/voice-models/">speaker model lineage</a> explain the domain rules around these payloads.</p>
 <h2 id="contract-reference">Contract reference</h2>
 <p>The versioned root of all insonic-owned interchange contracts. Each document identifies its kind and system schema version. Software, documentation and this registry share the same release version. Stable required fields define each operation while documented extension containers support adapter-specific values. Cueson documents retain their separate immutable upstream schema rather than being rewritten as an insonic format.</p>
-<p><a href="/schemas/v1.0.1/master.schema.json">Download the master schema</a> · <a href="/schemas/v1.0.1/common.schema.json">Download shared definitions</a></p>
+<p><a href="/schemas/v1.0.2/master.schema.json">Download the master schema</a> · <a href="/schemas/v1.0.2/common.schema.json">Download shared definitions</a></p>
 <p>The following definitions, descriptions and examples are generated from the versioned JSON Schema files during the documentation build.</p>
 <h2 id="insonic-immutable-artifact-manifest">insonic immutable artifact manifest</h2>
 <p>Portable inventory of complete immutable bytes. Hosted model handles without downloadable bytes belong in the speaker-model contract and are not invented digest entries here.</p>
-<p><a href="/schemas/v1.0.1/artifact-manifest.schema.json">Download artifact-manifest.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/artifact-manifest.schema.json">Download artifact-manifest.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -85,7 +85,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of the insonic document contract.</td>
 <td></td>
 </tr>
@@ -292,7 +292,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <p>Disallowed combination: has <code>bucket</code>.</p>
 <h3 id="example">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;artifact-manifest&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;manifest_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;44444444-4444-4444-8444-444444444444&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span><span class="hljs-punctuation">,</span>
@@ -325,7 +325,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="insonic-backend-configuration-plan">insonic backend configuration plan</h2>
 <p>Complete nonsecret initial backend selection. Omitted identities and local defaults are generated by workspace plan. Submit its generated configuration unchanged to reconcile retries.</p>
-<p><a href="/schemas/v1.0.1/backend-plan.schema.json">Download backend-plan.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/backend-plan.schema.json">Download backend-plan.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -340,7 +340,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of this public insonic contract.</td>
 <td></td>
 </tr>
@@ -803,7 +803,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </div>
 <h3 id="example-1">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;backend-plan&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;display_name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Example library&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;profiles&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
@@ -830,7 +830,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="insonic-downloaded-base-model-manifest">insonic downloaded base model manifest</h2>
 <p>Exact downloaded model identity, upstream revision, declared capabilities/license and ordered file digests. Registration does not claim local availability. Acquisition verifies every declared file before an available installation is committed. Credentials remain opaque references and never appear in URLs.</p>
-<p><a href="/schemas/v1.0.1/base-model-manifest.schema.json">Download base-model-manifest.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/base-model-manifest.schema.json">Download base-model-manifest.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -852,7 +852,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Insonic contract release version.</td>
 <td></td>
 </tr>
@@ -977,7 +977,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <h3 id="example-2">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;base-model-manifest&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;example-recognizer&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;model_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.0&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;upstream_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;immutable-revision-1&quot;</span><span class="hljs-punctuation">,</span>
@@ -997,7 +997,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="portable-catalog-snapshot">Portable catalog snapshot</h2>
 <p>Consistent logical catalog export with typed provenance and ordered operational rows. Restoration verifies digest, workspace, supported migration version and all relationships, admits only an empty destination and expires imported authority. It does not copy artifact bytes or activate a different profile.</p>
-<p><a href="/schemas/v1.0.1/catalog-snapshot.schema.json">Download catalog-snapshot.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/catalog-snapshot.schema.json">Download catalog-snapshot.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -1012,7 +1012,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>catalog_schema</code></td>
 <td>Yes</td>
-<td>1, 2, 3, 4, 5, 6, 7, 8, 9</td>
+<td>1, 2, 3, 4, 5, 6, 7, 8, 9, 10</td>
 <td>Portable migration schema version supported by this catalog.</td>
 <td></td>
 </tr>
@@ -1047,7 +1047,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Shared software/documentation/contract release version.</td>
 <td></td>
 </tr>
@@ -3157,6 +3157,8 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <p>Value: Reference: base-model-manifest.schema.json.</p>
 <h3 id="recordsbasemodelsmanifest-alternative-2">records.base_models[].manifest: Alternative 2</h3>
 <p>Value: Reference: <a href="https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/base-model-manifest.schema.json">https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/base-model-manifest.schema.json</a>.</p>
+<h3 id="recordsbasemodelsmanifest-alternative-3">records.base_models[].manifest: Alternative 3</h3>
+<p>Value: Reference: <a href="https://raw.githubusercontent.com/shruggietech/insonic/v1.0.1/schemas/v1.0.1/base-model-manifest.schema.json">https://raw.githubusercontent.com/shruggietech/insonic/v1.0.1/schemas/v1.0.1/base-model-manifest.schema.json</a>.</p>
 <h3 id="recordsbasemodelspublicationids">records.base_models[].publication_ids</h3>
 <p>Ordered verified required model-file publication identities.</p>
 <p>Value: array.</p>
@@ -3750,6 +3752,8 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <p>Value: Reference: speaker-model.schema.json.</p>
 <h3 id="recordsspeakeroutputsmetadata-alternative-2">records.speaker_outputs[].metadata: Alternative 2</h3>
 <p>Value: Reference: <a href="https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/speaker-model.schema.json">https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/speaker-model.schema.json</a>.</p>
+<h3 id="recordsspeakeroutputsmetadata-alternative-3">records.speaker_outputs[].metadata: Alternative 3</h3>
+<p>Value: Reference: <a href="https://raw.githubusercontent.com/shruggietech/insonic/v1.0.1/schemas/v1.0.1/speaker-model.schema.json">https://raw.githubusercontent.com/shruggietech/insonic/v1.0.1/schemas/v1.0.1/speaker-model.schema.json</a>.</p>
 <h3 id="recordsspeakeroutputspublicationids">records.speaker_outputs[].publication_ids</h3>
 <p>Available durable output publications.</p>
 <p>Value: array.</p>
@@ -4356,7 +4360,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <h3 id="example-3">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;catalog-snapshot&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;catalog_schema&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;10000000-0000-4000-8000-000000000001&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
@@ -4419,8 +4423,8 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <span class="hljs-punctuation">}</span>
 </code></pre>
 <h2 id="insonic-saved-graph-query">insonic saved graph query</h2>
-<p>Immutable query definitions with typed parameters and declared backend compatibility. Every execution resolves current sources; presentation state is separate from evidence.</p>
-<p><a href="/schemas/v1.0.1/graph-query.schema.json">Download graph-query.schema.json</a></p>
+<p>Immutable query definitions with typed parameters and declared backend compatibility. Every execution resolves current sources; presentation state is separate from evidence. Normalized result pages continue rows and relationships independently through one opaque next_cursor; edges may reference endpoints on other pages. Follow until next_cursor is absent, including edge-only pages. Each stream contains at most the requested limit and the result remains byte bounded.</p>
+<p><a href="/schemas/v1.0.2/graph-query.schema.json">Download graph-query.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -4435,7 +4439,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of this insonic document contract.</td>
 <td></td>
 </tr>
@@ -5348,7 +5352,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </div>
 <h3 id="example-4">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;graph-query&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;query_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;dddddddd-dddd-4ddd-8ddd-dddddddddddd&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
@@ -5381,7 +5385,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="insonic-import-manifest">insonic import manifest</h2>
 <p>Batch import input for the CLI and its GUI wrapper. Syntax validation precedes application validation of source access, calendar values, timezone/DST policy and admission. No approval per item is required for already configured routing.</p>
-<p><a href="/schemas/v1.0.1/import-manifest.schema.json">Download import-manifest.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/import-manifest.schema.json">Download import-manifest.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -5396,7 +5400,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of the insonic document contract.</td>
 <td></td>
 </tr>
@@ -6061,7 +6065,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <p>Value: Reference: common.schema.json#/$defs/uuid.</p>
 <h3 id="example-5">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;import-manifest&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;defaults&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">&quot;copy&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
@@ -6084,7 +6088,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <h3 id="example-6">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;import-manifest&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;items&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
     <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">&quot;source&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;audio/new.flac&quot;</span><span class="hljs-punctuation">,</span>
@@ -6104,7 +6108,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="insonic-durable-job-event">insonic durable job event</h2>
 <p>Versioned ordered event for a durable job/attempt. Event syntax does not establish a committed catalog or graph result: publication receipts/checkpoints and application state transitions retain that authority.</p>
-<p><a href="/schemas/v1.0.1/job-event.schema.json">Download job-event.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/job-event.schema.json">Download job-event.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -6119,7 +6123,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of this insonic document contract.</td>
 <td></td>
 </tr>
@@ -6571,7 +6575,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </div>
 <h3 id="example-7">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;job-event&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;event_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span><span class="hljs-punctuation">,</span>
@@ -6597,7 +6601,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="insonic-metadata-extraction-tools">insonic metadata extraction tools</h2>
 <p>Workspace metadata extractor configuration. Every configured executable has an absolute selected path, exact version and SHA-256. Hash/version qualification happens before extraction, and child processes use hidden noninteractive I/O. Missing or failed extractors record explicit capture outcomes while retaining usable original media.</p>
-<p><a href="/schemas/v1.0.1/media-tools.schema.json">Download media-tools.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/media-tools.schema.json">Download media-tools.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -6619,7 +6623,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Insonic contract release version.</td>
 <td></td>
 </tr>
@@ -6764,7 +6768,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <h3 id="example-8">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;media-tools&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;exiftool&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/opt/insonic/tools/exiftool&quot;</span><span class="hljs-punctuation">,</span>
     <span class="hljs-attr">&quot;sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
@@ -6779,7 +6783,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="insonic-early-media-metadata-snapshot">insonic early media metadata snapshot</h2>
 <p>Immutable capture attempt bound to original media before transformations. It preserves raw extractor reports, qualified normalized observations, MIME interpretations and recording-date precision. Missing metadata differs from unsupported extraction or failure.</p>
-<p><a href="/schemas/v1.0.1/metadata-snapshot.schema.json">Download metadata-snapshot.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/metadata-snapshot.schema.json">Download metadata-snapshot.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -6794,7 +6798,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of this capture contract.</td>
 <td></td>
 </tr>
@@ -7920,7 +7924,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </div>
 <h3 id="example-9">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;metadata-snapshot&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;snapshot_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;77777777-7777-4777-8777-777777777777&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span><span class="hljs-punctuation">,</span>
@@ -8004,7 +8008,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="configured-model-source-catalog">Configured model source catalog</h2>
 <p>Declared bounded metadata catalog.</p>
-<p><a href="/schemas/v1.0.1/model-catalog.schema.json">Download model-catalog.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/model-catalog.schema.json">Download model-catalog.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -8026,7 +8030,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Shared release contract version.</td>
 <td></td>
 </tr>
@@ -8076,13 +8080,13 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <h3 id="example-10">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;model-catalog&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;entries&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">]</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
 <h2 id="insonic-pipeline-configuration">insonic pipeline configuration</h2>
 <p>Saved revision of elected processing stages or speaker-training profile; shared runtime freezes effective adapter/settings identity.</p>
-<p><a href="/schemas/v1.0.1/pipeline-config.schema.json">Download pipeline-config.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/pipeline-config.schema.json">Download pipeline-config.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -8097,7 +8101,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Schema version.</td>
 <td></td>
 </tr>
@@ -9004,7 +9008,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </div>
 <h3 id="example-11">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;pipeline-config&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;66666666-6666-4666-8666-666666666666&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Local transcription and diarization&quot;</span><span class="hljs-punctuation">,</span>
@@ -9029,7 +9033,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="local-processing-tools">Local processing tools</h2>
 <p>Exact local Cueson and optional offline engine configuration. Real inference is maintainer-elected and excluded categorically from CI.</p>
-<p><a href="/schemas/v1.0.1/processing-tools.schema.json">Download processing-tools.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/processing-tools.schema.json">Download processing-tools.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -9051,7 +9055,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Shared release version.</td>
 <td></td>
 </tr>
@@ -9394,7 +9398,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <h3 id="example-12">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;processing-tools&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;cueson&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">&quot;executable&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/opt/insonic/tools/cueson&quot;</span><span class="hljs-punctuation">,</span>
     <span class="hljs-attr">&quot;executable_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span>
@@ -9425,7 +9429,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="query-assistance-configuration">Query assistance configuration</h2>
 <p>Optional elected query assistance and its strict request contract. Secret values and result snapshots are excluded.</p>
-<p><a href="/schemas/v1.0.1/query-assistance.schema.json">Download query-assistance.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/query-assistance.schema.json">Download query-assistance.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -9440,7 +9444,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Shared release version.</td>
 <td></td>
 </tr>
@@ -9752,7 +9756,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </div>
 <h3 id="example-13">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;query-assistance&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;configuration&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">&quot;enabled&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
@@ -9767,7 +9771,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="insonic-current-recording">insonic current recording</h2>
 <p>Current embedded Cueson subtitle and recording-local speaker assignments with revision-fenced external known-speaker correlations. Names, aliases and vocabulary remain independent current catalog domains; assignments are resolved only from the current document. Replacements invalidate dependent corpus and preparation references while preserving originals and noncontent model lineage.</p>
-<p><a href="/schemas/v1.0.1/recording.schema.json">Download recording.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/recording.schema.json">Download recording.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -9789,7 +9793,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Insonic release version.</td>
 <td></td>
 </tr>
@@ -10063,7 +10067,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <h3 id="example-14">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;recording&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;recording&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;10000000-0000-4000-8000-000000000001&quot;</span><span class="hljs-punctuation">,</span>
     <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
@@ -10082,7 +10086,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="verified-native-release-candidate">Verified native release candidate</h2>
 <p>Exact-version complete native package and documentation inventory. Structural validation complements source revision, corresponding-source, signing, checksum and publication readback checks. Synthetic examples illustrate shape and do not represent a shipped release.</p>
-<p><a href="/schemas/v1.0.1/release-candidate.schema.json">Download release-candidate.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/release-candidate.schema.json">Download release-candidate.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -10104,14 +10108,14 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Synchronized contract version.</td>
 <td></td>
 </tr>
 <tr>
 <td><code>version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Software, documentation and master-schema release version.</td>
 <td></td>
 </tr>
@@ -10125,7 +10129,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>tag</code></td>
 <td>Yes</td>
-<td>Constant &quot;v1.0.1&quot;</td>
+<td>Constant &quot;v1.0.2&quot;</td>
 <td>Exact release tag; baseline candidates are never published as a product release.</td>
 <td></td>
 </tr>
@@ -10147,7 +10151,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <td><code>assets</code></td>
 <td>Yes</td>
 <td>array</td>
-<td>Four archive packages, one selectable-client MSI and two documentation archives; checksums and manifest are companion assets.</td>
+<td>Four archive packages, one selectable-client raw MSI, its recommended setup EXE and two documentation archives; checksums and manifest are companion assets.</td>
 <td></td>
 </tr>
 <tr>
@@ -10161,7 +10165,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <td><code>installers</code></td>
 <td>Yes</td>
 <td>array</td>
-<td>Exactly one selectable-client Windows x86-64 MSI; runtime verifies its format, source, payload, maintenance and signing evidence.</td>
+<td>Exactly one selectable-client Windows MSI and its recommended setup EXE; runtime verifies embedded bytes, source, payload, recovery, maintenance and signing evidence.</td>
 <td></td>
 </tr>
 </tbody>
@@ -10192,21 +10196,21 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Release contract version.</td>
 <td></td>
 </tr>
 <tr>
 <td><code>product_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Owned software version.</td>
 <td></td>
 </tr>
 <tr>
 <td><code>documentation_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Packaged documentation version.</td>
 <td></td>
 </tr>
@@ -10417,7 +10421,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </table>
 </div>
 <h3 id="assets">assets</h3>
-<p>Four archive packages, one selectable-client MSI and two documentation archives; checksums and manifest are companion assets.</p>
+<p>Four archive packages, one selectable-client raw MSI, its recommended setup EXE and two documentation archives; checksums and manifest are companion assets.</p>
 <p>Value: array.</p>
 <h3 id="assets-1">assets[]</h3>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
@@ -10515,7 +10519,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <h3 id="capabilitiesadvancedcli-1">capabilities.advanced_cli[]</h3>
 <p>Value: string.</p>
 <h3 id="installers">installers</h3>
-<p>Exactly one selectable-client Windows x86-64 MSI; runtime verifies its format, source, payload, maintenance and signing evidence.</p>
+<p>Exactly one selectable-client Windows MSI and its recommended setup EXE; runtime verifies embedded bytes, source, payload, recovery, maintenance and signing evidence.</p>
 <p>Value: array.</p>
 <h3 id="installers-1">installers[]</h3>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
@@ -10532,21 +10536,21 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Release contract version.</td>
 <td></td>
 </tr>
 <tr>
 <td><code>product_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Owned software version.</td>
 <td></td>
 </tr>
 <tr>
 <td><code>documentation_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Packaged documentation version.</td>
 <td></td>
 </tr>
@@ -10660,6 +10664,13 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <td>Yes</td>
 <td>object</td>
 <td>Real native Windows tests must pass each required lifecycle and capture result.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>setup</code></td>
+<td>Yes</td>
+<td>object</td>
+<td>Recommended setup EXE containing this exact raw MSI and its coordinated recovery evidence.</td>
 <td></td>
 </tr>
 </tbody>
@@ -10832,25 +10843,271 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </tbody>
 </table>
 </div>
+<h3 id="installerssetup">installers[].setup</h3>
+<p>Recommended setup EXE containing this exact raw MSI and its coordinated recovery evidence.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code></td>
+<td>Yes</td>
+<td>Constant &quot;windows-setup-receipt&quot;</td>
+<td>Coordinated per-user setup artifact receipt.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>format</code></td>
+<td>Yes</td>
+<td>Constant &quot;exe&quot;</td>
+<td>Windows GUI setup executable with an exact full MSI payload.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>artifact</code></td>
+<td>Yes</td>
+<td>string</td>
+<td>Exact release setup basename.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>artifact_sha256</code></td>
+<td>Yes</td>
+<td>Reference: common.schema.json#/$defs/sha256</td>
+<td>Final setup byte digest.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>artifact_size_bytes</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Exact setup byte length.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>embedded_msi</code></td>
+<td>Yes</td>
+<td>object</td>
+<td>Bounded full MSI identity, independently compared with the MSI asset.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>manifest</code></td>
+<td>Yes</td>
+<td>Constant &quot;asInvoker&quot;</td>
+<td>Explicit same-user Windows execution level.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>scope</code></td>
+<td>Yes</td>
+<td>Constant &quot;per-user&quot;</td>
+<td>Same ordinary invoking account.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>signing</code></td>
+<td>Yes</td>
+<td>object</td>
+<td>Setup signing is independently unconfigured.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>qualification</code></td>
+<td>Yes</td>
+<td>object</td>
+<td>Native source, restoration, registration and lifecycle proof.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="installerssetupembeddedmsi">installers[].setup.embedded_msi</h3>
+<p>Bounded full MSI identity, independently compared with the MSI asset.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>product_code</code></td>
+<td>Yes</td>
+<td>string</td>
+<td>Embedded per-user MSI ProductCode.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>upgrade_code</code></td>
+<td>Yes</td>
+<td>Constant &quot;{96D72489-3629-52FB-A30D-79CCD4CAE9BC}&quot;</td>
+<td>Production per-user MSI product family.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>Yes</td>
+<td>Constant &quot;1.0.2&quot;</td>
+<td>Embedded MSI release version.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>sha256</code></td>
+<td>Yes</td>
+<td>Reference: common.schema.json#/$defs/sha256</td>
+<td>Exact complete embedded MSI digest.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>size_bytes</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Full embedded MSI byte length.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="installerssetupsigning">installers[].setup.signing</h3>
+<p>Setup signing is independently unconfigured.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>configured</code></td>
+<td>Yes</td>
+<td>Constant false</td>
+<td>No signing identity is configured.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>verified</code></td>
+<td>Yes</td>
+<td>Constant false</td>
+<td>No publisher signature is asserted.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Yes</td>
+<td>Constant &quot;unconfigured&quot;</td>
+<td>Newly authored unsigned setup artifact.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="installerssetupqualification">installers[].setup.qualification</h3>
+<p>Native source, restoration, registration and lifecycle proof.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ordinary_user</code></td>
+<td>Yes</td>
+<td>Constant &quot;passed&quot;</td>
+<td>Required disposable native setup qualification result.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>source_integrity</code></td>
+<td>Yes</td>
+<td>Constant &quot;passed&quot;</td>
+<td>Required disposable native setup qualification result.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>legacy_source</code></td>
+<td>Yes</td>
+<td>Constant &quot;passed&quot;</td>
+<td>Required disposable native setup qualification result.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>failure_recovery</code></td>
+<td>Yes</td>
+<td>Constant &quot;passed&quot;</td>
+<td>Required disposable native setup qualification result.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>cancellation_recovery</code></td>
+<td>Yes</td>
+<td>Constant &quot;passed&quot;</td>
+<td>Required disposable native setup qualification result.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>prior_choices</code></td>
+<td>Yes</td>
+<td>Constant &quot;passed&quot;</td>
+<td>Required disposable native setup qualification result.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>source_cleanup</code></td>
+<td>Yes</td>
+<td>Constant &quot;passed&quot;</td>
+<td>Required disposable native setup qualification result.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>native_entry_point</code></td>
+<td>Yes</td>
+<td>Constant &quot;passed&quot;</td>
+<td>Required disposable native setup qualification result.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
 <h3 id="example-15">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;release-candidate&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;tag&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;v1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;tag&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;v1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;repository&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;shruggietech/insonic&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;packages&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
     <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;native-package-receipt&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;platform&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;windows_amd64&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;variant&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;cli&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;source_dirty&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_windows_amd64_cli.zip&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_cli.zip&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;archive_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;archive_size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;inventory_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc&quot;</span><span class="hljs-punctuation">,</span>
@@ -10867,14 +11124,14 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
     <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
     <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;native-package-receipt&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;platform&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;windows_amd64&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;variant&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;desktop&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;source_dirty&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_windows_amd64_desktop.zip&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_desktop.zip&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;archive_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;archive_size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;inventory_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc&quot;</span><span class="hljs-punctuation">,</span>
@@ -10891,14 +11148,14 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
     <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
     <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;native-package-receipt&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;platform&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;linux_amd64&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;variant&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;cli&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;source_dirty&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_linux_amd64_cli.tar.gz&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_linux_amd64_cli.tar.gz&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;archive_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;archive_size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;inventory_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc&quot;</span><span class="hljs-punctuation">,</span>
@@ -10915,14 +11172,14 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
     <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
     <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;native-package-receipt&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;platform&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;linux_amd64&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;variant&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;desktop&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;source_dirty&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_linux_amd64_desktop.tar.gz&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_linux_amd64_desktop.tar.gz&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;archive_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;archive_size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;inventory_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc&quot;</span><span class="hljs-punctuation">,</span>
@@ -10940,29 +11197,34 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
   <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;assets&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
     <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_windows_amd64_cli.zip&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_cli.zip&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span>
     <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
     <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_windows_amd64_desktop.zip&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_desktop.zip&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span>
     <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
     <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_linux_amd64_cli.tar.gz&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_linux_amd64_cli.tar.gz&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span>
     <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
     <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_linux_amd64_desktop.tar.gz&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_linux_amd64_desktop.tar.gz&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span>
     <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
     <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_windows_amd64_installer.msi&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_installer.msi&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee&quot;</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_setup.exe&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff&quot;</span>
     <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
     <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;documentation.tar.gz&quot;</span><span class="hljs-punctuation">,</span>
@@ -10992,29 +11254,29 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
   <span class="hljs-attr">&quot;installers&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
     <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;windows-installer-receipt&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;source_dirty&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;format&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;msi&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;platform&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;windows_amd64&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;variant&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;selectable&quot;</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;artifact&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_windows_amd64_installer.msi&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;artifact&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_installer.msi&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;artifact_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;artifact_size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">&quot;payload_archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_windows_amd64_desktop.zip&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;payload_archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_desktop.zip&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;payload_archive_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">&quot;payload_receipt&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
         <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;native-package-receipt&quot;</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;product_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;documentation_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">&quot;platform&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;windows_amd64&quot;</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">&quot;variant&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;desktop&quot;</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">&quot;revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">&quot;source_dirty&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.1_windows_amd64_desktop.zip&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;archive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_desktop.zip&quot;</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">&quot;archive_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">&quot;archive_size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">&quot;inventory_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc&quot;</span><span class="hljs-punctuation">,</span>
@@ -11054,6 +11316,39 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
         <span class="hljs-attr">&quot;source_complete&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">&quot;binary_publication&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;eligible&quot;</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">&quot;corresponding_source&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;included&quot;</span>
+      <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;product_code&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;{11111111-1111-5111-8111-111111111111}&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;upgrade_code&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;{96D72489-3629-52FB-A30D-79CCD4CAE9BC}&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;setup&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;windows-setup-receipt&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;format&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;exe&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;artifact&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic_1.0.2_windows_amd64_setup.exe&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;artifact_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;artifact_size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;embedded_msi&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+          <span class="hljs-attr">&quot;product_code&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;{11111111-1111-5111-8111-111111111111}&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;upgrade_code&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;{96D72489-3629-52FB-A30D-79CCD4CAE9BC}&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;size_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span>
+        <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;manifest&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;asInvoker&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;scope&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;per-user&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;signing&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+          <span class="hljs-attr">&quot;configured&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;verified&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;unconfigured&quot;</span>
+        <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;qualification&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+          <span class="hljs-attr">&quot;ordinary_user&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;passed&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;source_integrity&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;passed&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;legacy_source&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;passed&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;failure_recovery&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;passed&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;cancellation_recovery&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;passed&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;prior_choices&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;passed&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;source_cleanup&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;passed&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;native_entry_point&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;passed&quot;</span>
+        <span class="hljs-punctuation">}</span>
       <span class="hljs-punctuation">}</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">]</span>
@@ -11061,7 +11356,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="runtime-request">Runtime request</h2>
 <p>A bounded local runtime operation correlated to a workspace and request. Job operations use durable catalog attempts and idempotent acceptance.</p>
-<p><a href="/schemas/v1.0.1/runtime-request.schema.json">Download runtime-request.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/runtime-request.schema.json">Download runtime-request.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -11076,7 +11371,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Shared software and contract version.</td>
 <td></td>
 </tr>
@@ -12166,7 +12461,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <td><code>after_id</code></td>
 <td>No</td>
 <td>Reference: common.schema.json#/$defs/uuid</td>
-<td>Exclusive local speaker identity cursor.</td>
+<td>Exclusive mapping-row UUID cursor. Reuse the preceding mapping page next_id, not a local speaker identity.</td>
 <td></td>
 </tr>
 <tr>
@@ -13776,8 +14071,8 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>adapter</code></td>
 <td>No</td>
-<td>&quot;cue-statement&quot;, &quot;http&quot;</td>
-<td>Literal source-reference extraction, or elected HTTP assertion adapter.</td>
+<td>&quot;cue-statement&quot;, &quot;insonic-http&quot;, &quot;http&quot;</td>
+<td>Literal source-reference extraction, or canonical insonic-http assertion adapter (legacy http alias accepted).</td>
 <td></td>
 </tr>
 <tr>
@@ -14061,8 +14356,35 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>query</code></td>
 <td>Yes</td>
-<td>Reference: #/$defs/exploreQuery</td>
-<td>New immutable definition.</td>
+<td>All listed constraints</td>
+<td>Saved-query definition with a required nonblank title.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="dataquery">data.query</h3>
+<p>Saved-query definition with a required nonblank title.</p>
+<p>All of the following constraints apply:</p>
+<h3 id="dataquery-alternative-1">data.query: Alternative 1</h3>
+<p>Value: Reference: #/$defs/exploreQuery.</p>
+<h3 id="dataquery-alternative-2">data.query: Alternative 2</h3>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>title</code></td>
+<td>Yes</td>
+<td>string</td>
+<td>Required title with at least one non-whitespace character.</td>
 <td></td>
 </tr>
 </tbody>
@@ -16944,12 +17266,12 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
   <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;pyannote-profile&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;local&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;architecture&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;speaker-embedding&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;architecture&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;pyannote&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;output_kinds&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
-    <span class="hljs-string">&quot;speaker-profile&quot;</span>
+    <span class="hljs-string">&quot;voice-embedding&quot;</span>
   <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;consumers&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
-    <span class="hljs-string">&quot;pyannote&quot;</span>
+    <span class="hljs-string">&quot;voice-matching&quot;</span>
   <span class="hljs-punctuation">]</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
@@ -17315,7 +17637,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Saved preset format version.</td>
 <td></td>
 </tr>
@@ -17634,7 +17956,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </div>
 <h3 id="example-16">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;runtime-request&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;10000000-0000-4000-8000-000000000001&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;request_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;10000000-0000-4000-8000-000000000002&quot;</span><span class="hljs-punctuation">,</span>
@@ -17643,7 +17965,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h3 id="example-17">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;runtime-request&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;request_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;22222222-2222-4222-8222-222222222222&quot;</span><span class="hljs-punctuation">,</span>
@@ -17653,7 +17975,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h3 id="example-18">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;runtime-request&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;request_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;22222222-2222-4222-8222-222222222222&quot;</span><span class="hljs-punctuation">,</span>
@@ -17669,7 +17991,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h3 id="example-19">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;runtime-request&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;request_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;22222222-2222-4222-8222-222222222222&quot;</span><span class="hljs-punctuation">,</span>
@@ -17685,7 +18007,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h3 id="example-20">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;runtime-request&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;request_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;33333333-3333-4333-8333-333333333333&quot;</span><span class="hljs-punctuation">,</span>
@@ -17701,7 +18023,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h3 id="example-21">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;runtime-request&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;request_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;33333333-3333-4333-8333-333333333333&quot;</span><span class="hljs-punctuation">,</span>
@@ -17715,7 +18037,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="runtime-response">Runtime response</h2>
 <p>A versioned operation result or redacted typed error. Early CLI errors omit unavailable identities; runtime replies include the workspace, request and session correlation.</p>
-<p><a href="/schemas/v1.0.1/runtime-response.schema.json">Download runtime-response.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/runtime-response.schema.json">Download runtime-response.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -17730,7 +18052,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Shared software and contract version.</td>
 <td></td>
 </tr>
@@ -17820,6 +18142,34 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <td>Total frozen model/acquisition entries; bounded inspection may show only the first hundred.</td>
 <td></td>
 </tr>
+<tr>
+<td><code>local_assets</code></td>
+<td>No</td>
+<td>Reference: worker-resources.schema.json#/$defs/localAssets</td>
+<td>Offline-only declared local prerequisite observations.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>profile_download_bytes</code></td>
+<td>No</td>
+<td>integer</td>
+<td>Nominal complete worker profile transfer size, independent of the current election.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>credential_state</code></td>
+<td>No</td>
+<td>&quot;not_required&quot;, &quot;available&quot;, &quot;missing&quot;, &quot;locked&quot;, &quot;rejected&quot;, &quot;unavailable&quot;</td>
+<td>Local protected credential resolvability; available does not establish upstream authorization.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>upstream_authorization</code></td>
+<td>No</td>
+<td>Constant &quot;not_checked&quot;</td>
+<td>Preview does not contact upstream services to test authentication or gated access.</td>
+<td></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -17870,10 +18220,24 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <td></td>
 </tr>
 <tr>
+<td><code>validation</code></td>
+<td>No</td>
+<td>object</td>
+<td>Generated schema-owned input location and constraints; excludes submitted values and dynamic map keys.</td>
+<td></td>
+</tr>
+<tr>
 <td><code>reason</code></td>
 <td>No</td>
-<td>&quot;workspace_missing&quot;, &quot;input_missing&quot;, &quot;input_invalid&quot;, &quot;revision_stale&quot;, &quot;credential_duplicate&quot;, &quot;credential_capacity&quot;, &quot;credential_locked&quot;, &quot;credential_bootstrap&quot;, &quot;source_map_incompatible&quot;, &quot;backup_checksum&quot;, &quot;backup_size&quot;, &quot;backup_identity&quot;, &quot;model_not_acquired&quot;, &quot;model_damaged&quot;, &quot;model_storage_unavailable&quot;, &quot;profile_prerequisite&quot;, &quot;runtime_directory&quot;, &quot;runtime_owner&quot;, &quot;runtime_endpoint&quot;, &quot;runtime_catalog&quot;, &quot;startup_launch&quot;, &quot;startup_exit&quot;, &quot;startup_report&quot;, &quot;startup_timeout&quot;, &quot;wait_timeout&quot;, &quot;wait_interrupted&quot;</td>
+<td>&quot;provider_auth&quot;, &quot;provider_missing&quot;, &quot;provider_busy&quot;, &quot;provider_redirect&quot;, &quot;provider_unavailable&quot;, &quot;provider_failure&quot;, &quot;provider_protocol&quot;, &quot;provider_timeout&quot;, &quot;provider_response_limit&quot;, &quot;native_result_limit&quot;, &quot;artifact_materialization_limit&quot;, &quot;native_statement&quot;, &quot;native_function&quot;, &quot;native_syntax&quot;, &quot;native_read_only&quot;, &quot;backend_pending_plan&quot;, &quot;backend_s3_bucket&quot;, &quot;backend_plan&quot;, &quot;backend_local_transport&quot;, &quot;backend_endpoint_tls&quot;, &quot;ollama_endpoint&quot;, &quot;ollama_unavailable&quot;, &quot;ollama_provider&quot;, &quot;ollama_auth&quot;, &quot;ollama_missing&quot;, &quot;ollama_busy&quot;, &quot;ollama_redirect&quot;, &quot;ollama_protocol&quot;, &quot;ollama_capability&quot;, &quot;ollama_route&quot;, &quot;workspace_missing&quot;, &quot;input_missing&quot;, &quot;input_invalid&quot;, &quot;revision_stale&quot;, &quot;credential_duplicate&quot;, &quot;credential_capacity&quot;, &quot;credential_locked&quot;, &quot;credential_bootstrap&quot;, &quot;source_map_incompatible&quot;, &quot;backup_checksum&quot;, &quot;backup_size&quot;, &quot;backup_identity&quot;, &quot;model_not_acquired&quot;, &quot;model_damaged&quot;, &quot;model_storage_unavailable&quot;, &quot;profile_prerequisite&quot;, &quot;runtime_directory&quot;, &quot;runtime_owner&quot;, &quot;runtime_endpoint&quot;, &quot;runtime_catalog&quot;, &quot;startup_launch&quot;, &quot;startup_exit&quot;, &quot;startup_report&quot;, &quot;startup_timeout&quot;, &quot;wait_timeout&quot;, &quot;wait_interrupted&quot;, &quot;documentation_open&quot;, &quot;json_empty&quot;, &quot;json_syntax&quot;, &quot;json_encoding&quot;, &quot;json_duplicate_key&quot;, &quot;json_extra_document&quot;, &quot;input_shape&quot;, &quot;input_unknown_field&quot;, &quot;input_required&quot;, &quot;input_type&quot;, &quot;input_enum&quot;, &quot;input_range&quot;, &quot;input_length&quot;, &quot;input_version&quot;, &quot;input_constraint&quot;, &quot;input_bytes&quot;, &quot;credential_value_limit&quot;, &quot;credential_input_shape&quot;, &quot;output_exists&quot;, &quot;output_parent_missing&quot;, &quot;output_permission&quot;, &quot;output_directory&quot;, &quot;output_space&quot;, &quot;output_write&quot;, &quot;asset_missing&quot;, &quot;asset_unreadable&quot;, &quot;asset_not_regular&quot;, &quot;asset_size&quot;, &quot;asset_hash&quot;, &quot;asset_tool_missing&quot;, &quot;artifact_missing&quot;, &quot;artifact_identity&quot;, &quot;artifact_range&quot;, &quot;model_access_required&quot;, &quot;worker_probe_interpreter_missing&quot;, &quot;worker_probe_interpreter_unreadable&quot;, &quot;worker_probe_home_unavailable&quot;, &quot;worker_probe_launch_failed&quot;, &quot;worker_probe_process_failed&quot;, &quot;worker_probe_deadline&quot;, &quot;worker_probe_cancelled&quot;, &quot;worker_probe_output_invalid&quot;, &quot;worker_probe_output_limit&quot;, &quot;worker_probe_package_missing&quot;, &quot;worker_probe_version_mismatch&quot;, &quot;worker_probe_import_failed&quot;, &quot;worker_probe_cpu_unavailable&quot;, &quot;worker_probe_inventory_limit&quot;, &quot;worker_probe_inventory_unreadable&quot;, &quot;worker_probe_checkpoint_invalid&quot;</td>
 <td>Allowlisted locally generated operation condition; never external text.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>asset</code></td>
+<td>No</td>
+<td>object</td>
+<td>Generated logical asset identity, without local paths or external output.</td>
 <td></td>
 </tr>
 </tbody>
@@ -17925,6 +18289,103 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </tbody>
 </table>
 </div>
+<h3 id="errorvalidation">error.validation</h3>
+<p>Generated schema-owned input location and constraints; excludes submitted values and dynamic map keys.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pointer</code></td>
+<td>No</td>
+<td>string</td>
+<td>Known contract field path; dynamic map keys and array positions are represented by an asterisk.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>offset</code></td>
+<td>No</td>
+<td>integer</td>
+<td>One-based JSON byte position where available; no input bytes are included.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>expected</code></td>
+<td>No</td>
+<td>&quot;object&quot;, &quot;array&quot;, &quot;string&quot;, &quot;number&quot;, &quot;integer&quot;, &quot;boolean&quot;, &quot;null&quot;</td>
+<td>Expected JSON type from the packaged contract.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>constraint</code></td>
+<td>No</td>
+<td>&quot;minimum&quot;, &quot;maximum&quot;, &quot;minLength&quot;, &quot;maxLength&quot;, &quot;minItems&quot;, &quot;maxItems&quot;, &quot;minProperties&quot;, &quot;maxProperties&quot;, &quot;maxBytes&quot;, &quot;maxDepth&quot;</td>
+<td>Packaged constraint keyword; byte ceilings remain distinct from character counts.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>bound</code></td>
+<td>No</td>
+<td>integer</td>
+<td>Exact integer bound declared by the packaged contract.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="errorasset">error.asset</h3>
+<p>Generated logical asset identity, without local paths or external output.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>role</code></td>
+<td>Yes</td>
+<td>&quot;worker_runtime&quot;, &quot;worker_installer&quot;, &quot;worker_wheel&quot;, &quot;model_file&quot;, &quot;trainer_executable&quot;, &quot;trainer_support&quot;, &quot;trainer_output&quot;, &quot;artifact&quot;</td>
+<td>Fixed elected asset role.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>Yes</td>
+<td>string</td>
+<td>ASCII slash-relative logical name. Absolute, traversal, control and Windows device names are rejected by the shared runtime.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="errorassetname">error.asset.name</h3>
+<p>ASCII slash-relative logical name. Absolute, traversal, control and Windows device names are rejected by the shared runtime.</p>
+<p>Value: string.</p>
+<p>All of the following constraints apply:</p>
+<h3 id="errorassetname-alternative-1">error.asset.name: Alternative 1</h3>
+<p>Disallowed combination: the condition matches.</p>
+<h3 id="errorassetname-alternative-2">error.asset.name: Alternative 2</h3>
+<p>Disallowed combination: the condition matches.</p>
+<h3 id="errorassetname-alternative-3">error.asset.name: Alternative 3</h3>
+<p>Disallowed combination: the condition matches.</p>
+<h3 id="errorassetname-alternative-4">error.asset.name: Alternative 4</h3>
+<p>Disallowed combination: the condition matches.</p>
+<h3 id="errorassetname-alternative-5">error.asset.name: Alternative 5</h3>
+<p>Disallowed combination: the condition matches.</p>
+<h3 id="errorassetname-alternative-6">error.asset.name: Alternative 6</h3>
+<p>Disallowed combination: the condition matches.</p>
 <p>At least one of the following alternatives must match:</p>
 <h3 id="alternative-1">Alternative 1</h3>
 <p>Required fields: <code>result</code>.</p>
@@ -17932,7 +18393,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <p>Required fields: <code>error</code>.</p>
 <h3 id="example-22">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;runtime-response&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;error&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">&quot;code&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;unavailable&quot;</span><span class="hljs-punctuation">,</span>
@@ -17942,7 +18403,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="speaker-training-dataset-snapshot">Speaker training dataset snapshot</h2>
 <p>Frozen ordered membership in current embedded recording evidence. A current-document or known-speaker mapping correction invalidates dependent membership and retires assignment-bearing manifests/preparations while retaining noncontent lineage.</p>
-<p><a href="/schemas/v1.0.1/speaker-dataset.schema.json">Download speaker-dataset.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/speaker-dataset.schema.json">Download speaker-dataset.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -17957,7 +18418,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of this portable document contract.</td>
 <td></td>
 </tr>
@@ -18617,7 +19078,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <p>Value: string.</p>
 <h3 id="example-23">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;speaker-dataset&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-00000000000a&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;dataset_snapshot_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-00000000000b&quot;</span><span class="hljs-punctuation">,</span>
@@ -18682,7 +19143,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="speaker-model-version-manifest">Speaker model version manifest</h2>
 <p>Exact model artifact identity and noncontent training lineage. Source authority corrections invalidate and retire assignment-bearing manifests/preparations; retained weights do not authorize obsolete subtitle or person assignments.</p>
-<p><a href="/schemas/v1.0.1/speaker-model.schema.json">Download speaker-model.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/speaker-model.schema.json">Download speaker-model.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -18697,7 +19158,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of this portable model-version document contract.</td>
 <td></td>
 </tr>
@@ -20110,7 +20571,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <p>Value: null.</p>
 <h3 id="example-24">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;speaker-model&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-00000000000a&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;model_family_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-000000000014&quot;</span><span class="hljs-punctuation">,</span>
@@ -20227,7 +20688,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h3 id="example-25">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;speaker-model&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-00000000000a&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;model_family_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-000000000014&quot;</span><span class="hljs-punctuation">,</span>
@@ -20341,7 +20802,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="speaker-audio-segment-catalog">Speaker audio segment catalog</h2>
 <p>Portable current speaker-evidence references across the workspace library. Embedded Cueson owns cue timing and local attribution; current catalog mappings own optional known-person identity.</p>
-<p><a href="/schemas/v1.0.1/speaker-segments.schema.json">Download speaker-segments.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/speaker-segments.schema.json">Download speaker-segments.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -20356,7 +20817,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of this portable document contract.</td>
 <td></td>
 </tr>
@@ -20665,7 +21126,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <p>Value: null.</p>
 <h3 id="example-26">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;speaker-segments&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-00000000000a&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;catalog_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
@@ -20690,7 +21151,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="local-worker-resources">Local worker resources</h2>
 <p>Optional managed engine profiles and verified environment receipts, separate from model execution evidence.</p>
-<p><a href="/schemas/v1.0.1/worker-resources.schema.json">Download worker-resources.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/worker-resources.schema.json">Download worker-resources.schema.json</a></p>
 <p>Exactly one of the following alternatives must match:</p>
 <h3 id="alternative-1-1">Alternative 1</h3>
 <p>Value: Reference: #/$defs/catalog.</p>
@@ -20912,6 +21373,13 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <td>No</td>
 <td>array</td>
 <td>Frozen dependency file byte identities.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>probe</code></td>
+<td>No</td>
+<td>Reference: #/$defs/probe</td>
+<td>Optional bounded generated verification facts; absence in a legacy receipt does not alter its original integrity checks.</td>
 <td></td>
 </tr>
 </tbody>
@@ -21402,7 +21870,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Synchronized system release version.</td>
 <td></td>
 </tr>
@@ -21443,7 +21911,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Synchronized system release version.</td>
 <td></td>
 </tr>
@@ -21471,16 +21939,249 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </tbody>
 </table>
 </div>
+<h3 id="definition-localassets">Definition: localAssets</h3>
+<p>Read-only observations of the elected offline profile files; no directory scan or network acquisition.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>required_bytes</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Total expected byte sizes of declared local assets.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>verified_bytes</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Expected bytes whose exact size and SHA-256 were verified.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>missing_bytes</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Expected bytes of missing or unusable assets; required minus verified bytes.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>failures</code></td>
+<td>Yes</td>
+<td>array</td>
+<td>One generated observation per missing or unusable declared asset.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="definition-localassetsfailures">Definition: localAssets.failures</h3>
+<p>One generated observation per missing or unusable declared asset.</p>
+<p>Value: array.</p>
+<h3 id="definition-localassetsfailures-1">Definition: localAssets.failures[]</h3>
+<p>Value: Reference: runtime-response.schema.json#/properties/error.</p>
+<h3 id="definition-probecheckpoint">Definition: probeCheckpoint</h3>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stage</code></td>
+<td>Yes</td>
+<td>&quot;package_versions&quot;, &quot;library_import&quot;, &quot;cpu_prerequisites&quot;, &quot;cuda_prerequisites&quot;, &quot;dependency_inventory&quot;, &quot;dependency_hashing&quot;, &quot;complete&quot;</td>
+<td>Allowlisted most recently observed verification stage.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>elapsed_ms</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Elapsed milliseconds from this observation clock origin.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>files</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Number of unique dependency files observed for the snapshot.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>hashed_files</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Number of dependency files completely hashed so far.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>hashed_bytes</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Number of dependency bytes completely hashed so far.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="definition-probeprogress">Definition: probeProgress</h3>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stage</code></td>
+<td>Yes</td>
+<td>&quot;package_versions&quot;, &quot;library_import&quot;, &quot;cpu_prerequisites&quot;, &quot;cuda_prerequisites&quot;, &quot;dependency_inventory&quot;, &quot;dependency_hashing&quot;, &quot;complete&quot;</td>
+<td>Allowlisted most recently observed verification stage.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>elapsed_ms</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Child elapsed milliseconds from entry to the Python probe; independent of native elapsed time.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>files</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Number of unique dependency files observed for the snapshot.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>hashed_files</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Number of dependency files completely hashed so far.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>hashed_bytes</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Number of dependency bytes completely hashed so far.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td>Yes</td>
+<td>&quot;inspect&quot;, &quot;snapshot&quot;</td>
+<td>Inspection workload: imports only, or imports plus a frozen dependency snapshot.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>Yes</td>
+<td>&quot;running&quot;, &quot;success&quot;, &quot;interpreter_missing&quot;, &quot;interpreter_unreadable&quot;, &quot;home_unavailable&quot;, &quot;launch_failed&quot;, &quot;process_failed&quot;, &quot;deadline&quot;, &quot;cancelled&quot;, &quot;output_invalid&quot;, &quot;output_limit&quot;, &quot;package_missing&quot;, &quot;version_mismatch&quot;, &quot;import_failed&quot;, &quot;cpu_unavailable&quot;, &quot;inventory_limit&quot;, &quot;inventory_unreadable&quot;, &quot;checkpoint_invalid&quot;</td>
+<td>Allowlisted generated outcome category, excluding raw exceptions and tool output.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>checkpoints</code></td>
+<td>Yes</td>
+<td>array</td>
+<td>Bounded ordered stage observations sharing the child monotonic clock origin.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="definition-probeprogresscheckpoints">Definition: probeProgress.checkpoints</h3>
+<p>Bounded ordered stage observations sharing the child monotonic clock origin.</p>
+<p>Value: array.</p>
+<h3 id="definition-probeprogresscheckpoints-1">Definition: probeProgress.checkpoints[]</h3>
+<p>Value: Reference: #/$defs/probeCheckpoint.</p>
+<h3 id="definition-probe">Definition: probe</h3>
+<p>Optional bounded generated worker observation. Native elapsed_ms and child elapsed_ms have independent monotonic origins; diagnostics do not establish environment integrity.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Field</th>
+<th scope="col">Required</th>
+<th scope="col">Value</th>
+<th scope="col">Description</th>
+<th scope="col">Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mode</code></td>
+<td>Yes</td>
+<td>&quot;inspect&quot;, &quot;snapshot&quot;</td>
+<td>Inspection workload: imports only, or imports plus a frozen dependency snapshot.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>stage</code></td>
+<td>Yes</td>
+<td>&quot;interpreter_hash&quot;, &quot;private_home&quot;, &quot;process_start&quot;, &quot;output_validation&quot;, &quot;receipt_verification&quot;, &quot;not_started&quot;, &quot;package_versions&quot;, &quot;library_import&quot;, &quot;cpu_prerequisites&quot;, &quot;cuda_prerequisites&quot;, &quot;dependency_inventory&quot;, &quot;dependency_hashing&quot;, &quot;complete&quot;</td>
+<td>Allowlisted most recently observed verification stage.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>Yes</td>
+<td>&quot;success&quot;, &quot;interpreter_missing&quot;, &quot;interpreter_unreadable&quot;, &quot;home_unavailable&quot;, &quot;launch_failed&quot;, &quot;process_failed&quot;, &quot;deadline&quot;, &quot;cancelled&quot;, &quot;output_invalid&quot;, &quot;output_limit&quot;, &quot;package_missing&quot;, &quot;version_mismatch&quot;, &quot;import_failed&quot;, &quot;cpu_unavailable&quot;, &quot;inventory_limit&quot;, &quot;inventory_unreadable&quot;, &quot;checkpoint_invalid&quot;</td>
+<td>Allowlisted generated outcome category, excluding raw exceptions and tool output.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>elapsed_ms</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Native elapsed milliseconds from entry to worker inspection, including prerequisite verification and owned-child cleanup.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>budget_ms</code></td>
+<td>Yes</td>
+<td>integer</td>
+<td>Effective original enclosing inspection allowance in milliseconds; zero means already expired.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>child</code></td>
+<td>No</td>
+<td>Reference: #/$defs/probeProgress</td>
+<td>Validated Python probe observations with a clock origin independent of native elapsed time.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
 <h3 id="example-27">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;worker-catalog&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;profiles&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">]</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
 <h2 id="portable-workspace-backup">Portable workspace backup</h2>
 <p>Completed portable authority bundle with consistent catalog proof, current immutable byte inventory and explicit retention dependencies. Runtime validates digests, relations and store availability in addition to this structural contract.</p>
-<p><a href="/schemas/v1.0.1/workspace-backup.schema.json">Download workspace-backup.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/workspace-backup.schema.json">Download workspace-backup.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -21502,7 +22203,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Synchronized software/documentation/schema release.</td>
 <td></td>
 </tr>
@@ -21997,7 +22698,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <h3 id="example-28">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;workspace-backup&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-000000000001&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;self-contained&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-000000000002&quot;</span><span class="hljs-punctuation">,</span>
@@ -22005,7 +22706,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
   <span class="hljs-attr">&quot;catalog_digest&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;catalog_sha256&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-    <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
     <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;workspace-config&quot;</span><span class="hljs-punctuation">,</span>
     <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;00000000-0000-4000-8000-000000000002&quot;</span><span class="hljs-punctuation">,</span>
     <span class="hljs-attr">&quot;display_name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;My library&quot;</span><span class="hljs-punctuation">,</span>
@@ -22052,7 +22753,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </code></pre>
 <h2 id="insonic-workspace-configuration">insonic workspace configuration</h2>
 <p>Versioned nonsecret configuration selecting artifact, catalog and graph adapters independently. Filesystem/SQLite/LadybugDB are defaults, while S3/PostgreSQL/ArcadeDB have full planned application support.</p>
-<p><a href="/schemas/v1.0.1/workspace-config.schema.json">Download workspace-config.schema.json</a></p>
+<p><a href="/schemas/v1.0.2/workspace-config.schema.json">Download workspace-config.schema.json</a></p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>
@@ -22067,7 +22768,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <tr>
 <td><code>schema_version</code></td>
 <td>Yes</td>
-<td>Constant &quot;1.0.1&quot;</td>
+<td>Constant &quot;1.0.2&quot;</td>
 <td>Version of this public insonic contract.</td>
 <td></td>
 </tr>
@@ -22821,7 +23522,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </div>
 <h3 id="example-29">Example</h3>
 <pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;schema_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.0.2&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;workspace-config&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;workspace_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;display_name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;My library&quot;</span><span class="hljs-punctuation">,</span>
@@ -22859,7 +23560,7 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 <span class="hljs-punctuation">}</span>
 </code></pre>
 <h2 id="shared-definitions">Shared definitions</h2>
-<p>Shared logical types for the v1.0.1 contract. This resource defines reusable values and is not a standalone application document envelope. Format annotations require a format-aware validator; semantic comparisons and timezone resolution remain application validation.</p>
+<p>Shared logical types for the v1.0.2 contract. This resource defines reusable values and is not a standalone application document envelope. Format annotations require a format-aware validator; semantic comparisons and timezone resolution remain application validation.</p>
 <h3 id="definition-uuid">Definition: uuid</h3>
 <p>Stable application-generated UUID identity. UUIDs identify logical records, not database row IDs or filesystem locations.</p>
 <p>Value: string.</p>
@@ -23817,10 +24518,10 @@ a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"cla
 </tbody>
 </table>
 </div>
-<p>The current runtime-response contract permits a structured result alongside an error, so failed waits retain terminal work details. All CLI machine routes use this envelope, fixed stream/exit rules and exact integer serialization. Persisted 1.0.0 workspace/tool/document readers select their historical packaged contracts; runtime IPC and installed-package identities remain current-version contracts. Historical accepted bytes and hashes are retained. See <a href="/docs/v1.0.1/cli/">CLI invocation and results</a>.</p>
+<p>The current runtime-response contract permits a structured result alongside an error, so failed waits retain terminal work details. All CLI machine routes use this envelope, fixed stream/exit rules and exact integer serialization. Persisted 1.0.0 workspace/tool/document readers select their historical packaged contracts; runtime IPC and installed-package identities remain current-version contracts. Historical accepted bytes and hashes are retained. See <a href="/docs/v1.0.2/cli/">CLI invocation and results</a>.</p>
 <p>The registered backend-plan contract describes nonsecret initial selection for all six backends. Shared bootstrap generates workspace/profile identities and revisions; generated workspace configuration is accepted unchanged for idempotent retries. The query-assistance contract includes native Ollama configuration, metadata discovery and elected synthetic testing. Provider contract version 1 identifies insonic's translation contract. Secrets remain in separate protected input.</p>
-30:["$","main",null,{"id":"main","className":"docs-main","tabIndex":-1,"children":[["$","div",null,{"className":"docs-version-context","children":[["$","p",null,{"children":["insonic"," · v","1.0.1"," · ","released"," · Current documentation"]}],["$","a",null,{"href":"/docs/versions/","children":"All versions"}],false]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$31"}}],"$L32"]}]
-32:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v1.0.1/schema/","rel":"prev","children":[["$","span",null,{"children":"Previous"}],"Storage and catalog schema"]}],["$","a",null,{"href":"/docs/v1.0.1/security/","rel":"next","children":[["$","span",null,{"children":"Next"}],"Credentials and data access"]}]]}]
+30:["$","main",null,{"id":"main","className":"docs-main","tabIndex":-1,"children":[["$","div",null,{"className":"docs-version-context","children":[["$","p",null,{"children":["insonic"," · v","1.0.2"," · ","released"," · Current documentation"]}],["$","a",null,{"href":"/docs/versions/","children":"All versions"}],false]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$31"}}],"$L32"]}]
+32:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v1.0.2/schema/","rel":"prev","children":[["$","span",null,{"children":"Previous"}],"Storage and catalog schema"]}],["$","a",null,{"href":"/docs/v1.0.2/security/","rel":"next","children":[["$","span",null,{"children":"Next"}],"Credentials and data access"]}]]}]
 10:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
 d:null
-13:[["$","title","0",{"children":"JSON contracts (current v1.0.1) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}],["$","link","2",{"rel":"canonical","href":"https://insonic.io/docs/v1.0.1/contracts/"}]]
+13:[["$","title","0",{"children":"JSON contracts (current v1.0.2) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}],["$","link","2",{"rel":"canonical","href":"https://insonic.io/docs/v1.0.2/contracts/"}]]

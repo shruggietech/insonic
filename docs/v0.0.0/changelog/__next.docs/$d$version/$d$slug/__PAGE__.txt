@@ -19,7 +19,7 @@ e:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$1","c",{"children":[["$",
 c:[["children",{"s":{"n":"slug","t":"d","k":"changelog","s":["references"]},"h":65632,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@d","v":"$b","s":"$6"},"c":"$Qe"}]]
 9:[["children",{"s":{"n":"version","t":"d","k":"v0.0.0","s":["latest","versions"]},"h":196704,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@a","v":"$b","s":"$6"},"c":"$Qc"}]]
 7:[["children",{"s":"docs","h":131168,"d":{"r":["$","$1","c",{"children":[null,[["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],"p":"$@8","v":null,"s":"$6"},"c":"$Q9"}]]
-0:{"t":{"t":{"s":"","h":131152,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":"$@5","v":null,"s":"$6"},"c":"$Q7"},"h":{"r":["$","$1","h",{"children":[null,["$","$L28",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L2a",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$2b",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Changelog (v0.0.0) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]}]}],null]}],null]}],"p":"$@2c","v":null,"s":"$6"}},"a":"$@2d","u":"$@2e","b":"HMJ7sFfYDYOhLn9oXjaYS"}
+0:{"t":{"t":{"s":"","h":131152,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":"$@5","v":null,"s":"$6"},"c":"$Q7"},"h":{"r":["$","$1","h",{"children":[null,["$","$L28",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L2a",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$2b",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Changelog (v0.0.0) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]}]}],null]}],null]}],"p":"$@2c","v":null,"s":"$6"}},"a":"$@2d","u":"$@2e","b":"6F-9QnixupVklo6s5p_Qa"}
 31:I[75049,["$2"],"OutletBoundary"]
 f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisions"}]
 10:["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v0.0.0/ingestion/","children":"Import, metadata and dates"}]}]
@@ -41,12 +41,58 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 20:["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v0.0.0/roadmap/","children":"Delivery outcomes"}]}]
 21:["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v0.0.0/glossary/","children":"Glossary"}]}]
 22:["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v0.0.0/changelog/","aria-current":"page","children":"Changelog"}]}]
-23:["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","unreleased",{"children":["$","a",null,{"href":"#unreleased","children":"[Unreleased]"}]}],["$","li","101---2026-10-15",{"children":["$","a",null,{"href":"#101---2026-10-15","children":"[1.0.1] - 2026-10-15"}]}],["$","li","100---2026-10-11",{"children":["$","a",null,{"href":"#100---2026-10-11","children":"[1.0.0] - 2026-10-11"}]}],["$","li","decisions-2026-10-08",{"children":["$","a",null,{"href":"#decisions-2026-10-08","children":"Decisions (2026-10-08)"}]}],["$","li","decisions-2026-10-09",{"children":["$","a",null,{"href":"#decisions-2026-10-09","children":"Decisions (2026-10-09)"}]}]]}]}]]}]}]
-2f:Tcd20,<h1 id="changelog">Changelog</h1>
+23:["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","unreleased",{"children":["$","a",null,{"href":"#unreleased","children":"[Unreleased]"}]}],["$","li","102---2026-10-27",{"children":["$","a",null,{"href":"#102---2026-10-27","children":"[1.0.2] - 2026-10-27"}]}],["$","li","101---2026-10-15",{"children":["$","a",null,{"href":"#101---2026-10-15","children":"[1.0.1] - 2026-10-15"}]}],["$","li","100---2026-10-11",{"children":["$","a",null,{"href":"#100---2026-10-11","children":"[1.0.0] - 2026-10-11"}]}],["$","li","decisions-2026-10-08",{"children":["$","a",null,{"href":"#decisions-2026-10-08","children":"Decisions (2026-10-08)"}]}],["$","li","decisions-2026-10-09",{"children":["$","a",null,{"href":"#decisions-2026-10-09","children":"Decisions (2026-10-09)"}]}]]}]}]]}]}]
+2f:T1420e,<h1 id="changelog">Changelog</h1>
 <p>All notable changes to this project will be documented here. The format follows <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>, and releases use <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
-<h2 id="unreleased"><a href="https://github.com/shruggietech/insonic/compare/v1.0.1...HEAD">Unreleased</a></h2>
+<h2 id="unreleased"><a href="https://github.com/shruggietech/insonic/compare/v1.0.2...HEAD">Unreleased</a></h2>
+<h2 id="102---2026-10-27"><a href="https://github.com/shruggietech/insonic/compare/v1.0.1...v1.0.2">1.0.2</a> - 2026-10-27</h2>
+<h3 id="changed">Changed</h3>
+<ul>
+<li>
+<p>2026-10-27: Maintained source and extracted-package CLI qualification now uses owned headless Windows/Linux terminals for progress and Ctrl+C, with an independent durable runtime, bounded capture and explicit cleanup. Release qualification requires the nested terminal receipt to match its package and executable identity. Ordinary product deadlines and wait/cancel semantics are unchanged.</p>
+</li>
+<li>
+<p>2026-10-22: Refresh Playwright maintainer tooling, Windows IPC/Linux credential and S3 client dependencies, and static-documentation renderer dependencies. Capture tooling follows the root exact Playwright pin; maintained desktop source checks retain independently verified pristine upstream checksums after Go graph refresh and enforce both archive and module-file entries without conflicts.</p>
+</li>
+<li>
+<p>2026-10-24: Expand maintained test and qualification allowances through native/frontend, package/installer, CLI, source preparation, browser, release and diagnostic paths. Qualification now targets thirty minutes with a sixty-minute hard limit after verified readiness and a sixty-second provisional finalization reserve; outer job watchdogs retain cleanup headroom. Constitution 5.0.0 explicitly redefines the previous timing policy. Required functional/security/provenance checks, ordinary product deadlines and intentionally short failure fixtures retain their meanings. Help qualification records bounded monotonic progress for delayed-completion diagnosis.</p>
+</li>
+<li>
+<p>2026-10-25: Keep the existing sixty-second worker/readiness deadlines and record fixed bounded progress inside each private probe directory. Native and child clocks remain separate, receipt observations are optional for backward compatibility, and only ephemeral worker observation requests gain disconnect cancellation. Diagnostic additions do not relax environment hashes, version checks or real processing acceptance. The bounded durable history uses <code>checkpoints</code>, preserving the catalog prohibition on raw <code>observations</code> payloads. Real Arcade functional qualification uses the maintained test request allowance while keeping the production transport cutoff and earlier caller cancellation unchanged. Maintained connected qualification waits for correlated owned-runtime readiness before issuing commands and retains bounded startup receipts.</p>
+</li>
+</ul>
 <h3 id="added">Added</h3>
 <ul>
+<li>
+<p>Actual-terminal wait acceptance verifies running/count progress, client interruption with continued durable work, explicit cancellation, timeout and failed work, plus JSON/quiet/redirected output controls. Compact platform receipts record natural exits and owned resource release without claiming installed-desktop or acoustic-quality coverage.</p>
+</li>
+<li>
+<p>Maintained packaged CPU acceptance now prepares destination workers after self-contained restore, runs fresh held-out recognition/diarization and speaker matching, and verifies retained canonical media, profiles and completed work history. Versioned internal receipts distinguish this coverage from earlier recovery-only evidence and retain separate source/destination provenance, terminal work identities and unchanged qualification timing.</p>
+</li>
+<li>
+<p>Worker inspection and failed setup now expose bounded stage, reason and timing facts through shared JSON, CLI and desktop summaries. Readiness retains observed role facts when its enclosing budget expires, and interrupted hashing preserves cancellation or deadline identity. Ephemeral inspection disconnects stop owned probes; managed receipts retain their original integrity checks. Maintained CPU qualification records fresh snapshot and repeated inspection measurements separately.</p>
+</li>
+<li>
+<p>Reference-backed packaged Windows CPU qualification prepares managed workers through the normal CLI, measures real transcription and two-reader speaker-profile matching against frozen licensed references, and verifies query, timeline, playback and model recovery after source withdrawal. Compact receipts separate functional acceptance, measured quality limits, preparation and qualification; deterministic integrity and cleanup regressions run without inference in CI.</p>
+</li>
+<li>
+<p>Maintained CLI fixture provenance and a bounded command/option coverage ledger derived from the executed binary, with image/package identity and explicit semantic, invocation, refusal and unverified dispositions. Installed qualification exercises spaces and non-Latin library/program destinations.</p>
+</li>
+<li>
+<p>Windows native qualification records owned desktop/input conditions, completion timings and created-environment runtime identity separately from loader availability. Its show/focus join now allows ten seconds within unchanged outer deadlines, with real input and natural release still required.</p>
+</li>
+<li>
+<p>Initial CI queue accounting reads the verified workflow creation record separately from attempt-record creation, which can occur after attempt start.</p>
+</li>
+<li>
+<p>Desktop File &gt; Exit uses the normal window shutdown lifecycle, works before library selection and preserves independently owned background work. Windows retains Alt+F, X and Alt+F4 behavior.</p>
+</li>
+<li>
+<p>Windows setup EXE coordinates the native per-user MSI and retains full local package sources for failed-upgrade recovery. The raw MSI remains available with explicit engine recovery limits. Trusted release verification independently rebuilds the setup executable from reviewed source and compares its complete code/resource prefix.</p>
+</li>
+<li>
+<p>Successful full-UI fresh Windows installation offers an independent, initially unchecked Open documentation choice alongside the existing checked client-launch option. It uses the invoking user’s HTML association and reports opening failures without changing the committed installation result.</p>
+</li>
 <li>
 <p>Dedicated current-main website publication preserves original product releases and records separate site/product source identities, exact Pages/live-byte proof, five package-link checks and eight hosted landing screenshots.</p>
 </li>
@@ -57,6 +103,156 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <h3 id="fixed">Fixed</h3>
 <ul>
 <li>
+<p>Frozen screenshot source verification retrieves the exact pinned capture commit when later branch corrections and a squash merge leave no matching main ancestor. Complete version/source hashes, original PNG/receipt bytes and the shared Git deadline remain mandatory; retrieval disables prompts and leaves checkout and branch identities unchanged.</p>
+</li>
+<li>
+<p>Terminal qualification drains final buffered output when child termination races the reader snapshot, retaining bounded exit/output diagnostics for a genuine missing observation or incorrect outcome. Required progress, exit semantics, natural cleanup and existing deadlines remain unchanged.</p>
+</li>
+<li>
+<p>Update the maintained JSON Schema URI parser to fast-uri 3.1.9 in root and desktop tooling to resolve URI normalization and host/scheme confusion advisories.</p>
+</li>
+<li>
+<p>Release preparation retains v1.0.1 workspace, model, preset, setup-draft and verified worker-receipt authority across the v1.0.2 upgrade. Current IPC and installed package identities remain exact, and retained documents keep field, credential and complete hash validation. The embedded worker catalog envelope advances without changing its resource pins or independently versioned licensed-media provenance.</p>
+</li>
+<li>
+<p>Restored CPU acceptance requires explicit canonical recording identities unique across all source cases and positive integer source revisions. Missing authority, duplicate enrollment identities and malformed revisions are refused without inventing a baseline; existing destination lineage checks and historical source-only receipt behavior remain intact.</p>
+</li>
+<li>
+<p>Worker environment snapshots resolve and enumerate declared dependency directories once, preserving file-link/reparse and Windows alias handling, full inventories and complete SHA-256 checks. Snapshot hashing and native receipt verification reuse bounded buffers across files. This removes repeated path work and buffer allocation exposed during managed diarization preparation while preserving the sixty-second probe deadline and all verification boundaries.</p>
+</li>
+<li>
+<p>Fetched-profile qualification compares canonical destination and file identities, accepting equivalent Windows short/long path spellings while retaining owned-file, link, byte and digest checks.</p>
+</li>
+<li>
+<p>Resolve the documentation renderer's DOMPurify advisories with a Mermaid-scoped 3.4.17 patch override, preserving rendering modes. Failed CPU qualification retains bounded operator reasons, invocation/runtime observations and cleanup disposition without retaining freeform messages or replacing its first failure.</p>
+</li>
+<li>
+<p>Reference-backed election pins the committed corpus manifest before execution. Corpus admission enforces archive size/SHA-256 under optimized Python and uses one private verified snapshot for both parsing passes. Linux qualification tracks the owned session across nested worker groups, terminates exact process identities and verifies exit before reporting cleanup.</p>
+</li>
+<li>
+<p>Community-1 padding-only turns with no decoded-source overlap are discarded and diagnosed before checking overlapping boundary overhang. A padding prediction no longer rejects otherwise valid activity; the overlapping 250 ms guard and strict generic timing validation remain in place. CPU acceptance retains numeric quality diagnostics and checks their exact recovery with processing provenance.</p>
+</li>
+<li>
+<p>Cold credential-bootstrap qualification separates owned-launch overhead from its two-second CLI classification check and retains both in the invocation total. Reference-backed CPU acceptance rejects source drift and includes owned cleanup in phase timing.</p>
+</li>
+<li>
+<p>Packaged qualification continues a recoverable pending work wait for the same work ID within its original 180-second operation bound. It retains 30-second wait requests and refuses failed, foreign or late results without restarting the deadline.</p>
+</li>
+<li>
+<p>CI documentation and package-input installs retain npm advisory audits with bounded request/retry time inside existing operation limits, preventing a five-minute advisory request from exhausting a 180-second input stage.</p>
+</li>
+<li>
+<p>Native Windows CLI/desktop executables declare a process-local UTF-8 code page so LadybugDB opens the selected non-Latin library path. Qualification and packaging apply the same manifest before signing, and independent current-source package verification requires it.</p>
+</li>
+<li>
+<p>Windows packaged ExifTool locates its Perl runtime in non-Latin installation directories through a reproducible process-local UTF-8 manifest. Packages retain the original pinned launcher, exact unsigned transformation hashes and portable recipes for independent verification before signing.</p>
+</li>
+<li>
+<p>Windows ExifTool capture sends UTF-8 filename arguments over stdin so non-Latin library paths survive system code-page conversion. Extraction retains redacted provenance and the original operation deadline. Package failure diagnostics close their SQLite connection before owned-directory cleanup.</p>
+</li>
+<li>
+<p>Artifact corruption, truncation and missing stored objects report byte-integrity failures separately from revision conflicts. Trainer output must match its declared bytes before publication admission. Worker/model prerequisites retain bounded logical asset details through human, JSON and durable failure reporting.</p>
+</li>
+<li>
+<p>Newly created worker directories normalize Windows default ownership before private-directory verification; existing directories retain their ownership checks.</p>
+</li>
+<li>
+<p>Offline worker plans separate zero network transfer from nominal and verified local byte totals. Model previews check local protected-reference resolvability without contacting upstream services. Custom local trainer readiness verifies pinned files without invocation, and training-only pipelines check their elected tasks.</p>
+</li>
+<li>
+<p>Work waiting retains one caller budget across readiness and polling. Caller expiry produces neutral continuation advice and preserves only observed work state, while independently reported startup failures retain their diagnosis.</p>
+</li>
+<li>
+<p>Windows browser startup returns loader, asynchronous environment/controller and scoped setup errors without fatal callback termination or success fall-through. Failed frontend setup skips the ordinary development/production application loop; owning-thread cleanup waits for native callbacks and calls to return. Qualification verifies a controlled failed launch followed by a valid launch using the same disposable profile path, retaining the original native cases and deadlines.</p>
+</li>
+<li>
+<p>Returned desktop startup failures preserve the underlying cause, show native GUI feedback and attempt bounded private events without allowing diagnostic storage failure to replace the startup error. Windows diagnostic files in ordinary inherited-Modify directories no longer require unnecessary ownership-changing access. New files with a different default owner receive the required private DACL before requesting ownership normalization; owner, identity, reparse, rotation and writer checks remain enforced.</p>
+</li>
+<li>
+<p>CI qualification uses an eleven-minute advisory target and fifteen-minute hard limit after verified readiness. Receipts report target overruns without rejecting otherwise valid delivery; fixed input deadlines and applicable watchdogs share the hard limit. Native operation allowances, prerequisite accounting and required integrity checks remain unchanged.</p>
+</li>
+<li>
+<p>Windows package consumers wait for explicit verified source, foundation and documentation readiness. Windows prepares dependency libraries through a verified same-attempt handoff before product builds and checks. Cold source preparation no longer races the 180-second transfer wait. Explicit cold-source campaigns isolate compiled caches without evicting ordinary CI inputs. An always-running elected acceptance aggregate rejects missing, failed, cancelled or unexpectedly skipped delivery results and over-budget qualification. First-attempt preparation and combined totals include initial queue time while qualification remains measured from verified readiness.</p>
+</li>
+<li>
+<p>Windows startup diagnostics verify live process identity through the owned process handle and precise integral UTC timestamps, rejecting failed or inconsistent observations without relying on undefined exit-time data. The private wait-query helper authenticates the inherited input pipe and its live parent executable before accepting diagnostic targets.</p>
+</li>
+<li>
+<p>Windows archive CI allocates concurrent CLI workload trees to three of its four CPUs, preserving the complete workload, native Exit cases and existing deadlines while keeping one CPU outside that workload's affinity mask.</p>
+</li>
+<li>
+<p>Windows WebView convenience calls release their temporary settings and controller interfaces on success and failure, preserving caller-owned getter results and native error values.</p>
+</li>
+<li>
+<p>Windows accelerator registration writes its event token into the caller's output value while preserving native error results.</p>
+</li>
+<li>
+<p>Windows WebView callbacks return valid COM interfaces, retain native-owned targets until their final release and reject delivery into a closed desktop. Unused desktop objects remain collectible; late controllers close without reopening the destroyed owner.</p>
+</li>
+<li>
+<p>Windows WebView controller initialization passes its monitor-scale setting as a native Boolean value instead of a pointer, adopting the upstream binding correction while retaining the maintained ownership and native-input fixes.</p>
+</li>
+<li>
+<p>Windows WebView resource deferrals release their acquired COM references after completion instead of incrementing the reference count.</p>
+</li>
+<li>
+<p>Release candidate collection verifies independent archives and copied bytes with bounded parallel workers, retaining every integrity check and writing its completion manifest only after all checks succeed.</p>
+</li>
+<li>
+<p>Windows Alt+F forwards its original native system-key context to the File menu while the WebView owns focus, including inside offline help. Claimed keys retain their handled disposition. The native menu keeps keyboard input in its host while active and restores the prior child focus on cancellation.</p>
+</li>
+<li>
+<p>Windows native desktop qualification uses disposable WebView profiles and observes normal owned-browser shutdown before reuse or removal. Failed fixtures retain their profiles for diagnosis. Cold and warm menu, close and Alt+F4 checks retain playback cleanup, background-work survival and exact-package proof gates.</p>
+</li>
+<li>
+<p>Windows closes its WebView controller during owned-window destruction, releases retained COM interfaces and finalizes its owning COM apartment on normal exit. The pinned browser binding includes a maintained source patch with verified upstream and patched-tree checksums and explicit license notices. Native menu, process-job and installer calls retain pointer buffers for their complete native lifetime; installer source inspection errors preserve their original cause.</p>
+</li>
+<li>
+<p>CLI help describes command purpose, option and operand meaning, defaults, dependencies and executable examples. Positional JSON and protected-input templates, maintenance operands, cursor instructions and training examples agree with execution.</p>
+</li>
+<li>
+<p>Malformed and unsupported inputs retain generated reasons, known field locations and constraint bounds without repeating private values. Credential bootstrap and failed inspections no longer emit invented success states or zero receipts. Export destination errors explain filesystem corrections separately from revision conflicts.</p>
+</li>
+<li>
+<p>Human output leads with identities, revisions, digests, task conclusions and valid continuation before optional detail. Capture metadata, facts and dates display readable UTF-8 interiors with exact byte-page authority. Model identities retain their original text and display ambiguous whitespace/control content explicitly.</p>
+</li>
+<li>
+<p>Public text limits count Unicode code points consistently. Synthetic jobs support the advertised 1..600000 millisecond interval throughout parser, schema and catalog; catalog schema 10 widens the constraint while preserving historical migration identities and schema-9 snapshots.</p>
+</li>
+<li>
+<p>Documentation capture verification finds complete matching ancestral snapshots even when the first changed file was unchanged in the capture's squash merge. Original images and capture receipts retain their recorded identity.</p>
+</li>
+<li>
+<p>Native desktop Exit qualification retains separate bounded output streams, native child results and startup/action checkpoints, preserving controller errors that previously disappeared from CI failures.</p>
+</li>
+<li>
+<p>Desktop selection controls keep square native glyphs inside full label targets. Compact form/card spacing and content-sized buttons reduce wasted space; wrapped headers and wide tables retain contained scrolling at the minimum window size and enlarged text.</p>
+</li>
+<li>
+<p>Windows Installer repair restores files, registry and shortcuts without unnecessarily recaching its open package. Removal can also clean an advertised product without repeating the fresh-install license requirement. Windows Installer displays engine-driven execution progress, confirms cancellation and reports operation-specific success, cancellation and failure with terminal Finish/Close controls. Desktop Offline help uses one compact button and a controlled local documentation view, with actual native activation and local navigation checks on Windows and Linux.</p>
+</li>
+<li>
+<p>Single-table catalog lists and model-name lookups read committed rows without reserving the SQLite writer, allowing imports and model downloads to continue while those reads run. Multi-table snapshots retain transactional consistency.</p>
+</li>
+<li>
+<p>HTTP assertion extraction accepts canonical <code>insonic-http</code> and legacy <code>http</code> inputs, rejects ambiguous or spoofed responses, and retains current cue citations and original source clocks. Query assistance distinguishes provider authentication, missing routes/models, busy services, transport/protocol failures, deadlines and cancellation. Output limits explain artifact materialization, native results and provider responses without exposing external details.</p>
+</li>
+<li>
+<p>Windows package qualification joins CLI and GUI activity before the runtime idle allowance, then observes executable-image release with bounded failure and owner diagnostics before fixture cleanup.</p>
+</li>
+<li>
+<p>Graph and search continuation retrieves cross-page relationships and large result sets within bounded responses, binds the effective page limit, and distinguishes stale results from malformed offsets. Query/calendar filters share bundled timezone rules; saved-query examples require titles, native parameter files reject duplicate members, and native reads accept one trailing terminator with actionable grammar guidance. Function validation distinguishes read-clause grouping from calls and rejects qualified calls outside the declared pure subset.</p>
+</li>
+<li>
+<p>Metadata refresh succeeds after acceptance when readers retain old report leases. Durable cleanup remains pending until retention clears; genuine cleanup failures take precedence and accepted retries retain their selected revision.</p>
+</li>
+<li>
+<p>Playback MIME identifies canonical audio or preview bytes while preserving original-source observations. Embedded SubRip extraction uses the encoder present in the exact packaged FFmpeg build.</p>
+</li>
+<li>
+<p>Manifest-only transcript import uses per-item recording targets and rejects media-replacement items before queueing work. HTTP transcript deadlines, byte ceilings and cancellation retain distinct durable causes, with literal corrective flags in human and JSON item notices.</p>
+</li>
+<li>
 <p>Native query and explain RPCs use one bounded 25-second budget around projection publication and the engine's query deadline. Socket and caller deadlines report cancellation instead of malformed input.</p>
 </li>
 <li>
@@ -66,7 +262,7 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <p>Versioned screenshots retain their original capture-time provenance when backend source changes. Frozen-source verification uses bounded ancestral Git blobs, while image-byte checks and current native UI capture qualification remain mandatory.</p>
 </li>
 <li>
-<p>CI overlaps conservative scope selection with foundation, shares source/run/attempt/hash-bound documentation exports across native jobs, and overlaps Windows package setup with its verified source producer. Documentation browser, native and installer checks remain mandatory; only restricted-session capture initialization can retry once after its exact startup timeout.</p>
+<p>CI shares source/run/attempt/hash-bound documentation exports across native jobs after verified prerequisite readiness. Documentation browser, native and installer checks remain mandatory; only restricted-session capture initialization can retry once after its exact startup timeout.</p>
 </li>
 <li>
 <p>Landing-page downloads separate Windows MSI installation, portable Windows ZIPs and Linux tar.gz choices with explicit client/format labels, accurate platform guidance and spaced subordinate actions.</p>
@@ -80,6 +276,10 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <li>
 <p>Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.</p>
 </li>
+</ul>
+<h3 id="changed-1">Changed</h3>
+<ul>
+<li>Opening an older catalog with this source upgrades it to schema 10. Binaries limited to schema 9 cannot open the upgraded catalog; retain a prior backup when an older binary must remain usable. Current restoration still accepts schema-9 snapshots without changing their recorded identities.</li>
 </ul>
 <h3 id="decisions">Decisions</h3>
 <ul>
@@ -98,6 +298,55 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <li>
 <p>2026-10-15: Verify landing choices in both publication states from the same product component, retaining candidate truth and all five official package destinations. Extend the isolated hosted-Linux browser verifier for full-page captures, target geometry, reflow and intercepted native link activation; do not launch an owner-desktop browser or claim these checks certify assistive technology.</p>
 </li>
+<li>
+<p>2026-10-15: Reuse catalog retirement rows and runtime sweeps for retained media reports. Mark only proven retention deferrals internally, preserve real conflict/storage failures, and carry transcript corrections in existing durable notices so published versioned schema bytes remain unchanged.</p>
+</li>
+<li>
+<p>2026-10-17: Use native Windows Installer progress subscriptions and operation-specific terminal dialogs. Share installed-help manifest validation between a controlled local-only desktop view and same-user Windows HTML association dispatch. Exercise real full-UI transactions and independent completion elections in a disposable ordinary-user Windows CI session; retain all silent, inventory and ownership gates within the 660-second job budget. Assemble the Windows ZIP/MSI/setup tuple once, qualify archive, interactive, maintenance and setup behavior on isolated hosts, then join exact asset hashes and complete evidence before candidate eligibility.</p>
+</li>
+<li>
+<p>2026-10-17: Extracted Windows/Linux package checks exercise deterministic loopback HTTP extraction, provider diagnostics and operation-specific output bounds in the existing isolated fixture workspace. Production CI inference refusal remains in place. Canonical extraction configuration retains the legacy input alias, and strict JSON validation is shared below the catalog to avoid dependency cycles.</p>
+</li>
+<li>
+<p>2026-10-17: Installed-package qualification adds generated query/graph continuation, timezone, save-example and native-parameter cases on Windows and Linux. Separate row/relationship continuation preserves existing response budgets, and old pagination-policy cursors conflict instead of mixing results.</p>
+</li>
+<li>
+<p>2026-10-17: Add an owner-selected ordinary-user setup EXE around the exact MSI. The coordinator declares asInvoker, validates retained full MSI sources and prior installation choices before destructive upgrade work, and waits for supported public recovery in a fresh hidden process before returning the original failure/cancellation result. Embedded MSI containers and in-transaction recovery are rejected by focused native comparisons; raw MSI remains available with documented engine limits.</p>
+</li>
+<li>
+<p>2026-10-19: Manual native-startup incident replay selects a statically pinned run/source/attempt and independently verifies its assets and ZIP inventory. This diagnostic cannot confer publication authority; production artifact attempts and all native gates remain mandatory.</p>
+</li>
+<li>
+<p>2026-10-19: Preserve the advertised ten-minute synthetic-job capability with a forward catalog constraint migration, freezing historical schema-9 authority and retaining schema-9 snapshot restoration. Generate bounded input constraints from packaged contracts and preserve exact identity text without normalization. Separate cold native compilation from full acceptance while retaining the complete package/tag matrix, 180-second child bounds and eleven-minute hosted job cap. Prepare independent Windows proof consumers alongside assembly, then require its successful exact-run artifact before consumption and retain every final proof gate. Prepare the candidate reader and qualified Linux/docs inputs while Windows finishes, then require both successful Windows package producers before final collection.</p>
+</li>
+<li>
+<p>2026-10-19: Maintain the pinned Windows WebView binding as verified repository source so owned-window destruction explicitly closes its controller. Preserve original upstream checksums and licenses, verify the exact patch tree and allow only its declared local replacement through package notice verification. Real native release, original deadlines and every exact-source delivery gate remain required.</p>
+</li>
+<li>
+<p>2026-10-19: Native asset preparation reuses checksum-verified atomic acquisition with bounded transient retries. Candidate collection overlaps independent verification and copy/hash work with four workers while retaining deterministic metadata, private verifier scratch directories, all producer/proof gates and final completion authority.</p>
+</li>
+<li>
+<p>2026-10-19: Correct the pinned WebView resource-deferral Release dispatch with a native reference-count regression and checksum-bound source allowlist. Keep unresolved startup observations separate from demonstrated ownership corrections.</p>
+</li>
+<li>
+<p>2026-10-19: Adopt the verified go-webview2 v1.0.23 native Boolean ABI correction, preserve the explicit maintained lifecycle patch and checksum-bound corresponding source, and keep unresolved startup/process-release observations separate from the demonstrated argument correction.</p>
+</li>
+<li>
+<p>2026-10-20: At the owner’s direction, constitution 3.1.0 separates verified source prerequisite preparation from the 660-second qualification phase, reports preparation/qualification/combined elapsed time and counts phase queue time. All elected checks start after readiness. A provisional aggregate retains fifteen seconds for finalization; terminal timestamps remain required for final timing claims. The bootstrap declares the elected acceptance check without implying live protection has already changed.</p>
+</li>
+<li>
+<p>2026-10-21: At the owner’s direction, constitution 4.0.0 changes qualification to a 660-second advisory target and 900-second hard limit, retaining verified readiness, phase/queue reporting, terminal timestamp authority, the fifteen-second provisional reserve and all mandatory elected checks. Align active qualification watchdogs and shared input validation; retain native operation and unrelated preparation/release/deployment limits. Preserve old-policy failed receipts and obtain fresh normal-workflow acceptance.</p>
+</li>
+<li>
+<p>2026-10-21: Derive CLI coverage from executed help and reuse the existing installed qualification helpers and verified package identity. Index reusable fixture owners instead of preserving ad hoc audit transcripts. Keep semantic assertions distinct from successful invocation and observed refusal; include spaces/non-Latin installed destinations without adding another test matrix or changing qualification deadlines.</p>
+</li>
+<li>
+<p>2026-10-22: Correct the pinned Windows ExifTool launcher's ANSI install-path handling through a deterministic packaged-copy manifest transformation before signing and inventory. Preserve upstream cached bytes, original resource contents and source reproduction evidence; retain mandatory Unicode capture checks and existing timing limits. Apply the same process-local code-page contract to native CLI/desktop executables after demonstrating the later LadybugDB parent-path failure.</p>
+</li>
+</ul>
+<h3 id="fixed-1">Fixed</h3>
+<ul>
+<li>2026-10-25: Confine application-capture and documentation-browser fixtures beneath designated temporary or ignored build parents on Windows and Linux. Public application captures choose scratch outside both home and program directories, resolving aliases before selecting actual temp or ignored repository build scratch. Reject volume/share roots and root aliases, retain cleanup responsibility through marker/profile initialization failures, verify allocation identity before removal, and report residual locations when child release or removal fails. Browser qualification now exercises both tools on both supported platforms with retained location and post-run absence evidence.</li>
 </ul>
 <h2 id="101---2026-10-15"><a href="https://github.com/shruggietech/insonic/compare/v1.0.0...v1.0.1">1.0.1</a> - 2026-10-15</h2>
 <ul>
@@ -186,7 +435,7 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <p>Finalize the 1.0.1 release cut, correct historical release labels and require publication-target site, diagram and browser qualification before documentation archival.</p>
 </li>
 </ul>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-2">Fixed</h3>
 <ul>
 <li>Read every page of exact-source GitHub checks before publication, retaining required checks, external failure/pending rejection and verified current-workflow suite exclusion. Reject incomplete, duplicate or changing inventories before release writes.</li>
 </ul>
@@ -367,7 +616,7 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <p>2026-10-11: Publish the first official 1.0.0 release and matching documentation through the existing exact-source qualification, verified asset publication and original-archive Pages promotion. Provide concise release highlights with a full changelog link; publisher-signing setup and acoustic accuracy checks are excluded.</p>
 </li>
 </ul>
-<h3 id="changed">Changed</h3>
+<h3 id="changed-2">Changed</h3>
 <ul>
 <li>Share independent engine, desktop/credential and package lanes between PR and release qualification, with separate runtime caches and standalone native CLI preparation for desktop checks. Keep all acceptance, source and inventory checks.</li>
 <li>Add verified original-release promotion to the existing <code>insonic.io</code> GitHub Pages source, with read-only preflight, nonforced parented ref updates and exact-commit build completion. Retain separately configured generic hosting.</li>
@@ -490,7 +739,7 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <p>Sun/moon documentation toggle with an operating-system default, remembered light/dark choice and matching logos and diagram colors in offline help.</p>
 </li>
 </ul>
-<h3 id="changed-1">Changed</h3>
+<h3 id="changed-3">Changed</h3>
 <ul>
 <li>2026-10-04: Adopt Apache 2.0 for original source/documentation and Go for CLI-first shared orchestration, with Wails as the desktop baseline subject to native packaging qualification. Require the official Cueson executable/schema boundary and a rebuildable LadybugDB graph projection.</li>
 <li>2026-10-04: Amend constitution to 2.0.0 for GUI core parity with documented advanced/experimental lag, early metadata/date provenance, full filesystem/S3, SQLite/PostgreSQL and LadybugDB/ArcadeDB support, and configured automation without mandatory per-item review. Add optional speaker-model delivery under S015/M5.</li>
@@ -521,7 +770,7 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <li>Load a small shared theme/tab script and confine the Mermaid runtime to documentation routes.</li>
 <li>Keep specification status in the documentation index, replace generic landing copy with concrete outcomes, and remove conversation-specific instructions from public prose.</li>
 </ul>
-<h3 id="fixed-2">Fixed</h3>
+<h3 id="fixed-3">Fixed</h3>
 <ul>
 <li>
 <p>Preserve accepted speaker-dataset retries after evidence invalidation, enforce inline hosted model/checkpoint outputs, send declared hosted cancellation after adapter deadlines and use one complete-corpus reference limit. Retry elected playback seeks when native decoder data becomes ready without rewinding subsequent playback.</p>
