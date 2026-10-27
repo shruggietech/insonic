@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
+from contextlib import contextmanager
 from pathlib import Path
 import sys
 import tempfile
 import unittest
 import uuid
+from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
@@ -35,6 +37,37 @@ def package_contract_fixture(receipt):
 
 
 class TerminalReceiptTests(unittest.TestCase):
+    def test_runtime_failure_observer_runs_before_owned_kill(self):
+        from cli_terminal_qualification import owned_runtime
+        from terminal_failure_evidence import FailureEvidence
+        calls = []
+        owner = SimpleNamespace(process=SimpleNamespace(communicate=lambda **_k: calls.append('reap')),
+                                kill=lambda: calls.append('kill'), wait_for_descendants=lambda _t: True)
+        @contextmanager
+        def factory(*_a, **_k):
+            yield owner
+            calls.append('close')
+        evidence = FailureEvidence('a' * 64, {})
+        with patch.object(evidence, 'capture', side_effect=lambda actual: calls.append('capture') if actual is owner else None):
+            with self.assertRaisesRegex(ValueError, 'original failure'):
+                with owned_runtime([], None, {}, {}, factory=factory, failure_evidence=evidence):
+                    raise ValueError('original failure')
+        self.assertEqual(calls[:3], ['capture', 'kill', 'reap'])
+
+    def test_ci_startup_election_does_not_modify_caller_environment(self):
+        import cli_terminal_qualification as campaign
+        for ci in ('true', 'false'):
+            original = {'GITHUB_ACTIONS': ci}
+            environments = []
+            def invoke(*_args, **options):
+                environments.append(options['execution_environment'])
+                return {}
+            with tempfile.TemporaryDirectory() as root, patch.object(campaign, 'ProcessTree', side_effect=RuntimeError('owned launch refused')):
+                with self.assertRaisesRegex(RuntimeError, 'owned launch refused'):
+                    qualify(invoke, root, '1.0.2', executable=sys.executable, environment=original)
+            self.assertEqual(original, {'GITHUB_ACTIONS': ci})
+            self.assertEqual(environments[0].get('INSONIC_PROCESS_STARTUP_DIAGNOSTICS'), '1' if ci == 'true' else None)
+
     def test_complete_evidence_and_both_platforms(self):
         for platform, kind in [('windows', 'conpty'), ('linux', 'linux-pty')]:
             self.assertIsNone(validate_receipt(receipt_fixture(platform=platform, transport=kind), 'a' * 64, platform))

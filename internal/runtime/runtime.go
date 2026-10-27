@@ -286,6 +286,26 @@ func ensureInput(ctx context.Context, w *workspace.Workspace, executable string,
 			}
 			return contracts.Condition("unavailable", "startup_timeout")
 		}
+		// A readiness miss is not permission to replace a live owner. A busy
+		// owner can outlast the short probe; wait on its existing authority
+		// before attempting a detached launch (which a terminal job may forbid).
+		lock, lockErr := w.Lock()
+		if lockErr != nil {
+			var condition *contracts.Error
+			if !errors.As(lockErr, &condition) || condition.Reason != "runtime_owner" {
+				return lockErr
+			}
+			if probeReady() {
+				return load()
+			}
+			select {
+			case <-ctx.Done():
+				continue // The enclosing context remains the single startup clock.
+			case <-ticker.C:
+				continue
+			}
+		}
+		lock.Unlock()
 		startupID := contracts.ID()
 		args := []string{"--workspace", w.Root, "runtime", "serve", "--startup-id", startupID}
 		if len(input) > 0 {

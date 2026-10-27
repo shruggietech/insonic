@@ -446,6 +446,7 @@
       "files": [
         "scripts/cli_terminal_qualification.py",
         "scripts/terminal_transport.py",
+      "scripts/terminal_failure_evidence.py",
         "tests/cli_invocation_timing_test.py",
         "tests/terminal_transport_test.py"
       ],

@@ -20,6 +20,7 @@ from cli_corpus import finish_server
 from process_tree import ProcessTree
 import qualification_timing as bounds
 from terminal_transport import Terminal
+from terminal_failure_evidence import FailureEvidence, diagnostic_environment
 
 
 REQUIRED = {
@@ -98,10 +99,14 @@ def owned_directory(workspace):
 
 
 @contextmanager
-def owned_runtime(argv, cwd, env, gates, factory=ProcessTree):
+def owned_runtime(argv, cwd, env, gates, factory=ProcessTree, failure_evidence=None):
     with factory(argv, cwd=cwd, env=env) as owner:
         try:
-            yield owner
+            if failure_evidence is None:
+                yield owner
+            else:
+                with failure_evidence.watch(owner):
+                    yield owner
         finally:
             primary = sys.exception()
             for gate in gates.values():
@@ -183,10 +188,11 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
         # existing 100-byte endpoint bound, as on an ordinary user profile.
         private = Path(resources.enter_context(tempfile.TemporaryDirectory(
             prefix='it-', dir='/tmp' if sys.platform == 'linux' else None)))
-        selected = dict(environment)
+        selected = diagnostic_environment(environment)
         for name in ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME']:
             selected[name] = str(private)
         library = directory / 'owned library'
+        evidence = FailureEvidence(digest, selected)
 
         def call(args, **options):
             options.setdefault('timeout_seconds', remaining())
@@ -254,6 +260,11 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
                     '--log-file', str(directory / (request_id + '.jsonl')), *flags, 'work', 'wait', identity,
                     '--timeout-ms', str(timeout if timeout is not None else bounds.DURABLE_WORK_SECONDS * 1000)]
             child = stack.enter_context(terminal_factory([str(executable), *args], cwd=directory, env=selected, deadline=deadline))
+            evidence.identities['work_id'] = identity
+            evidence.track(child, request_id, flags[0][2:] if flags else 'human', directory / (request_id + '.jsonl'), work_id=identity)
+            # Register after each child so the newest observer runs before any
+            # terminal teardown and can see every live correlated client.
+            stack.enter_context(evidence.watch(owner))
             return child, args, request_id
 
         def running_barrier(request_id, label, child=None):
@@ -270,7 +281,17 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
                             and event.get('state') == 'running'):
                         return
                 if child is not None and child.owner.process.poll() is not None:
-                    raise ValueError('Terminal ' + label + ' exited before its running barrier: ' + child.text()[:2048])
+                    # Retain failure evidence while handles still exist, then
+                    # drain final bytes before classifying the running miss.
+                    primary = ValueError('Terminal ' + label + ' exited before its running barrier')
+                    evidence.preserve(owner, primary)
+                    try:
+                        result = child.finish()
+                    except BaseException as error:
+                        primary.add_note('Terminal final drain or cleanup failed')
+                        raise primary from error
+                    primary.args = (str(primary) + ': ' + result['text'][:2048],)
+                    raise primary
                 try:
                     time.sleep(min(.02, remaining()))
                 except TimeoutError as error:
@@ -325,9 +346,10 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
 
         call(['workspace', 'init', library], scoped=False)
         startup_id = str(uuid.uuid4())
+        evidence.identities['startup_id'] = startup_id
         with owned_runtime([str(executable), '--workspace', str(library), '--startup-id', startup_id,
                           '--json', 'runtime', 'serve'], cwd=directory, env=selected, gates=gates,
-                          factory=process_factory or ProcessTree) as owner:
+                          factory=process_factory or ProcessTree, failure_evidence=evidence) as owner:
             mailbox = queue.Queue(maxsize=1)
             ready_reader = threading.Thread(target=lambda: mailbox.put(owner.process.stdout.readline()), daemon=True)
             ready_reader.start()
@@ -341,6 +363,7 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
                 if ready_reader.is_alive():
                     raise RuntimeError('Runtime startup reader did not release')
             session = call(['workspace', 'show'])
+            evidence.identities.update(workspace_id=session.get('workspace_id'), runtime_session_id=session.get('runtime_session_id'))
             if (report.get('startup_id') != startup_id or report.get('state') != 'ready'
                     or report.get('workspace_id') != session.get('workspace_id') or not session.get('runtime_session_id')):
                 raise ValueError('Owned runtime readiness identity differs')
@@ -356,6 +379,8 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
                 redirected = pool.submit(call, ['--log-level', 'debug', '--log-file',
                     str(directory / (redirected_request + '.jsonl')), 'work', 'wait', identity], request_id=redirected_request,
                                          machine=False, timing=redirected_timing)
+                evidence.track(None, redirected_request, 'redirected', directory / (redirected_request + '.jsonl'), work_id=identity)
+                stack.enter_context(evidence.watch(owner))
                 for request_id, label, child in ((machine_request, 'json', machine),
                                                  (quiet_request, 'quiet', quiet),
                                                  (redirected_request, 'redirected', None)):
