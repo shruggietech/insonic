@@ -27,8 +27,8 @@ Independent test: unchanged legacy v1 and hash-verified actual v2 pass; dated S0
 ## Phase 5: Verification and delivery
 
 - [x] T007 Run root and affected Python/site checks, update CHANGELOG.md and specs/051-restored-receipt-authority/verification.md, and complete Spec Kit convergence against both slices' bounded implementation requirements (FR-007,008, SC-003).
-- [ ] T008 Commit/push/open official PR for #180, monitor elected final-head CI and resolve all review threads within two Codex rounds; retain compact receipts outside runs before full reruns using specs/051-restored-receipt-authority/verification.md (FR-008, SC-003).
-- [ ] T009 Verify final source/check/review/tracking state, retain evidence, remove owned scratch and provide the unmerged owner handoff recorded in specs/051-restored-receipt-authority/tasks.md (FR-006,008, SC-003).
+- [x] T008 Commit/push/open official PR for #180, monitor elected final-head CI and resolve all review threads within two Codex rounds; retain compact receipts outside runs before full reruns using specs/051-restored-receipt-authority/verification.md (FR-008, SC-003).
+- [x] T009 Verify final source/check/review/tracking state, retain evidence, remove owned scratch and provide the unmerged owner handoff recorded in specs/051-restored-receipt-authority/tasks.md (FR-006,008, SC-003).
 
 ## Dependencies and execution
 
