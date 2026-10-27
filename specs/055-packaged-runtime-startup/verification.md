@@ -11,8 +11,8 @@
 
 ## Delivery acceptance
 
-- Exact-head CI and independent terminal timing/artifact validation pending.
-- Codex review rounds used: 0 of 2. All actionable external findings must be resolved.
+- Implementation head 42c797e passed exact-head CI and independent terminal audit; final delivery-record head is rechecked through the PR.
+- Both authorized Codex rounds completed without findings; zero unresolved inline threads. No further round is authorized.
 - Owner merge reserved. No tag, release, deployment or merged-main acceptance is claimed.
 
 ## 2026-10-27: First CI attempt and correction
@@ -28,3 +28,12 @@
 - Overall acceptance still failed: setup stopped before product work in wait-inputs with an incomplete job inventory; join/candidate/aggregate correctly failed downstream. Its exact page counts are unknown.
 - [Second complete retained audit](https://github.com/shruggietech/insonic/pull/192#issuecomment-6454665442): 258 s preparation + 556 s qualification = 814 s combined; eight original ZIP sizes/digests verified and durable payload recovered byte-for-byte before another run.
 - Four new inventory regressions failed before the bounded resnapshot repair. All 24 acceptance-helper tests and all 210 root tests passed afterward, along with repository/schema checks. Strict final inventories, attempt/readiness identity, fixed deadline, duplicate refusal and finite retry bounds remain enforced.
+
+## 2026-10-27: Accepted implementation and review closeout
+
+- Head 42c797e and tested merge 4fa7288 have identical tracked trees. CI 40591442805: 30 successful jobs, 18 intentional skips. Independent terminal timing: 223 s preparation + 687 s qualification = 910 s combined.
+- All seven original receipt ZIP sizes/digests verified, including the complete 154177570-byte installer diagnostic ZIP. Six exact source/package terminal receipts and all 48 cases passed; all four package source revisions match the tested revision.
+- Both authorized Codex rounds completed cleanly, including the full corrected implementation on 42c797e. No review threads or actionable security-bot comments remain. No separate security review is claimed.
+- [Complete accepted implementation and both review receipts](https://github.com/shruggietech/insonic/pull/192#issuecomment-6455013568) recovered byte-for-byte. Original rejected audits remain independently retained at the links above.
+- Spec Kit convergence: all buildable requirements, acceptance scenarios and eighteen tasks satisfied. All product clocks, eight cases, hidden ownership, integrity and privacy boundaries remain intact. UTF-8/LF integrity checks pass. Audited s055-work staging was removed.
+- This final internal record update changes no product/test/workflow behavior. Its fresh exact-head CI and terminal audit are recorded in the PR conversation to avoid recursive source-only evidence commits. Owner retains the merge; merged-main and installed-release behavior remain unverified.

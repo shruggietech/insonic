@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Specified
+**Status**: Implemented
 
 **Input**: S055 for #191, autonomous implementation, push, PR, CI repair and up to two Codex review rounds. Stop before merging.
 
