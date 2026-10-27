@@ -43,6 +43,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Terminal qualification drains final buffered output when child termination races the reader snapshot, retaining bounded exit/output diagnostics for a genuine missing observation or incorrect outcome. Required progress, exit semantics, natural cleanup and existing deadlines remain unchanged.
+
 - Update the maintained JSON Schema URI parser to fast-uri 3.1.9 in root and desktop tooling to resolve URI normalization and host/scheme confusion advisories.
 
 - Release preparation retains v1.0.1 workspace, model, preset, setup-draft and verified worker-receipt authority across the v1.0.2 upgrade. Current IPC and installed package identities remain exact, and retained documents keep field, credential and complete hash validation. The embedded worker catalog envelope advances without changing its resource pins or independently versioned licensed-media provenance.

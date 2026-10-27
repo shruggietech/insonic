@@ -284,7 +284,8 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
             prefix = f'Work {identity}:'
             shown = result['text']
             if result['exit_code'] != code or not result['natural_exit'] or not result['cleanup']:
-                raise ValueError('Terminal outcome differs: ' + name)
+                raise ValueError('Terminal outcome differs: ' + name
+                                 + f" (exit {result['exit_code']}, expected {code}, output {shown[:2048]!r})")
             actual_progress = prefix in shown
             count = ', 1 verified files' in shown
             if name in ('human', 'interrupt', 'cancelled', 'failed') and not (actual_progress and count):

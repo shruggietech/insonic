@@ -1,0 +1,48 @@
+{
+  "format": "insonic-ci-acceptance-v1",
+  "identity": {
+    "repository": "shruggietech/insonic",
+    "run": "40525976329",
+    "attempt": "1",
+    "head": "41872ab1999358d48155e8d4696c5d77e2f960c4",
+    "revision": "753000b4b6972b8a2adfa730d3e7abf4bcc3e0eb"
+  },
+  "terminal": true,
+  "accepted": false,
+  "evaluation": null,
+  "timing": {
+    "preparation_seconds": 280,
+    "qualification_seconds": 584,
+    "combined_seconds": 864,
+    "qualification_target_seconds": 1800,
+    "qualification_limit_seconds": 3600,
+    "target_exceeded": false,
+    "target_overrun_seconds": 0,
+    "finalization_reserve_seconds": 0,
+    "terminal": true,
+    "accepted": true,
+    "failures": [
+      "Job package-windows / windows-desktop / Qualify Windows desktop (archive) did not succeed.",
+      "Job package-windows / windows-desktop / Join exact-byte Windows desktop qualification did not succeed.",
+      "Job candidate did not succeed.",
+      "Job elected acceptance did not succeed.",
+      "Workflow attempt is not terminal success."
+    ],
+    "attempt_started_at": "2026-10-27T14:56:15Z",
+    "attempt_record_created_at": "2026-10-27T14:56:15Z",
+    "preparation_started_at": "2026-10-27T14:56:15Z",
+    "readiness_at": "2026-10-27T15:00:55Z",
+    "evaluated_through": "2026-10-27T15:10:39.000Z",
+    "worker_terminal_at": "2026-10-27T15:10:38.000Z",
+    "metadata_updated_at": "2026-10-27T15:10:39Z",
+    "initial_queue_seconds": 0
+  },
+  "failures": [
+    "Required package-windows must be success, got failure.",
+    "Job package-windows / windows-desktop / Qualify Windows desktop (archive) did not succeed.",
+    "Job package-windows / windows-desktop / Join exact-byte Windows desktop qualification did not succeed.",
+    "Job candidate did not succeed.",
+    "Job elected acceptance did not succeed.",
+    "Workflow attempt is not terminal success."
+  ]
+}
