@@ -36,6 +36,19 @@ func parseWorkWait(args []string) (string, time.Duration, error) {
 
 type workCaller func(context.Context, *workspace.Workspace, contracts.Request) (contracts.Response, error)
 
+func workWaitBudgetError(ctx context.Context) error {
+	if errors.Is(ctx.Err(), context.Canceled) {
+		return contracts.Condition("cancelled", "wait_interrupted")
+	}
+	deadline, bounded := ctx.Deadline()
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) || bounded && !time.Now().Before(deadline) {
+		// Socket deadlines and the context timer share this instant, but the
+		// socket can wake first. Do not relabel that expiry as user cancellation.
+		return contracts.Condition("unavailable", "wait_timeout")
+	}
+	return nil
+}
+
 // waitForWork reuses the current process and the existing shared work.show
 // contract. It neither starts polling subprocesses nor changes durable work.
 func waitForWork(ctx context.Context, w *workspace.Workspace, id, requestID string, interval time.Duration, call workCaller, observers ...func(catalog.Work) error) (contracts.Response, error) {
@@ -44,22 +57,19 @@ func waitForWork(ctx context.Context, w *workspace.Workspace, id, requestID stri
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 	for {
+		if err := workWaitBudgetError(ctx); err != nil {
+			return last, err
+		}
 		select {
 		case <-ctx.Done():
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				return last, contracts.Condition("unavailable", "wait_timeout")
-			}
-			return last, contracts.Condition("cancelled", "wait_interrupted")
+			return last, workWaitBudgetError(ctx)
 		case <-timer.C:
 		}
 		req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: requestID, Operation: "work.show", ItemID: id}
 		current, e := call(ctx, w, req)
 		if e != nil {
-			if ctx.Err() != nil {
-				if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-					return last, contracts.Condition("unavailable", "wait_timeout")
-				}
-				return last, contracts.Condition("cancelled", "wait_interrupted")
+			if err := workWaitBudgetError(ctx); err != nil {
+				return last, err
 			}
 			return last, e
 		}
@@ -112,7 +122,8 @@ func waitForWork(ctx context.Context, w *workspace.Workspace, id, requestID stri
 // concrete startup report remains a startup failure even if cancellation races.
 func ensureWorkWait(ctx context.Context, w *workspace.Workspace, ensure func(context.Context, *workspace.Workspace) error) error {
 	err := ensure(ctx, w)
-	if err == nil || ctx.Err() == nil {
+	budgetErr := workWaitBudgetError(ctx)
+	if err == nil || budgetErr == nil {
 		return err
 	}
 	var typed *contracts.Error
@@ -123,10 +134,7 @@ func ensureWorkWait(ctx context.Context, w *workspace.Workspace, ensure func(con
 	if !budgetFailure {
 		return err
 	}
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return contracts.Condition("unavailable", "wait_timeout")
-	}
-	return contracts.Condition("cancelled", "wait_interrupted")
+	return budgetErr
 }
 
 func workWaitCommand(ctx context.Context, w *workspace.Workspace, args []string, requestID string, machine bool) int {

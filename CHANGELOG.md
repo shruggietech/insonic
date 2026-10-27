@@ -8,6 +8,8 @@ All notable changes to this project will be documented here. The format follows 
 
 - Join an existing runtime after a transient readiness miss while its workspace owner lock remains held, instead of attempting an unnecessary detached launch from the terminal client. Preserve the existing startup deadline, cold-start conflict handling and protected-input loading.
 
+- Preserve `work wait` timeout classification when an IPC deadline expires before the context timer publishes its notification. The unchanged wait budget reports `wait_timeout` with the last observed work state; explicit interruption and concrete startup failures remain distinct.
+
 - Publish complete documentation through bounded incremental Git tree requests, with verified standalone blobs for large text and binary files. Require the complete original path, mode, size and content inventory before advancing Pages; retain historical routes, release authority, non-forced updates and exact build/live verification.
 
 ### Changed

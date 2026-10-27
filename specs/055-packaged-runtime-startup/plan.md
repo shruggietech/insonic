@@ -55,3 +55,7 @@ Pre-research and post-design PASS: CLI/shared runtime boundary; preserve owner a
 ## Complexity Tracking
 
 No constitution exception. Reuse existing lock, probes, native hook and artifact upload conventions; avoid a new service, retry engine or public diagnostic API.
+
+## First CI correction
+
+The observed eight-case acceptance gap also requires cmd/insonic/work_wait.go and work_wait_test.go. Use the existing absolute deadline to classify a context-derived refusal when transport expiry precedes context timer notification. Controlled virtual-time tests reproduce this ordering; ordinary operation bounds, the injected 500 ms timeout, actual terminal cases and concrete startup causes remain unchanged.

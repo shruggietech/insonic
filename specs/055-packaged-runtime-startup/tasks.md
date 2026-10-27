@@ -32,7 +32,7 @@
 **Independent test**: Final head has terminal green applicable checks and resolved findings; PR remains open.
 
 - [x] T010 [US3] Update authoritative docs/v1.0.2/cli.md and docs/v1.0.2/development.md plus CHANGELOG.md; run npm run check, npm test, go test ./... and go vet ./... (FR-008).
-- [ ] T011 [US3] Commit/push codex/055-packaged-runtime-startup, open/attach PR for #191, and update milestone/Project tracking (FR-008).
+- [x] T011 [US3] Commit/push codex/055-packaged-runtime-startup, open/attach PR for #191, and update milestone/Project tracking (FR-008).
 - [ ] T012 [US3] Monitor exact-head CI; retain compact audited failed-attempt evidence before full reruns and correct every relevant failure (FR-006, FR-007, FR-008).
 - [ ] T013 [US3] Resolve all actionable reviews within at most two Codex rounds and verify final SHA/checks/threads; record separate preparation/qualification/combined accounting in verification.md (FR-008).
 
@@ -43,3 +43,8 @@
 ## Dependencies and execution
 
 Setup -> analysis -> US1/US2 focused tests and implementation -> integrated verification -> US3 -> handoff. US1 evidence tests and US2 owner tests can run independently in separate files; each implementation follows its own failing regression. No parallel edits to shared files. MVP diagnostics alone are not slice completion; the demonstrated race repair and final package acceptance remain required.
+
+## Phase 7: Convergence after first CI attempt
+
+- [x] T015 [US2] Reproduce expired transport deadline before context notification in cmd/insonic/work_wait_test.go per FR-005 (partial).
+- [x] T016 [US2] Preserve wait_timeout versus cancellation and concrete startup failures in cmd/insonic/work_wait.go; document unchanged clocks in docs/v1.0.2/cli.md and CHANGELOG.md per FR-005 (partial).

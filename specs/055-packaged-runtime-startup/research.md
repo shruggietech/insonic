@@ -9,3 +9,9 @@
 - Decision: elect the existing CI-only sanitized startup hook for terminal children and retain correlated bounded failure evidence before cleanup. Missing native evidence stays unknown.
 - Alternatives rejected: retaining complete temp trees or raw logs risks private values and creates junk; preserving passing receipts cannot explain failed operation.
 - Verification boundary: a deterministic repaired race and green corrected-source package acceptance do not retroactively establish the historical Windows errno or owner state.
+
+## 2026-10-27: First CI correction
+
+- Exact-head attempt 40586738671 reached the Windows desktop timeout case and returned generic cancellation/exit 1 instead of wait_timeout/exit 4. Captured owner was running, and prior human/JSON/quiet clients exited successfully. This is a distinct failure from the historical startup refusal.
+- Controlled virtual-time regressions reproduce transport expiry before context Err/Done notification. Decision: classify expiry from the existing absolute deadline while retaining explicit caller cancellation and concrete startup reports. No timeout value or acceptance assertion changes.
+- The rejected terminal audit (220 s preparation + 604 s qualification = 824 s total), eight original ZIP identities, five complete terminal receipts and correlated failure are retained on PR #192 comment 6454336247 and recovered byte-for-byte before another run.

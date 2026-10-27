@@ -14,3 +14,10 @@
 - Exact-head CI and independent terminal timing/artifact validation pending.
 - Codex review rounds used: 0 of 2. All actionable external findings must be resolved.
 - Owner merge reserved. No tag, release, deployment or merged-main acceptance is claimed.
+
+## 2026-10-27: First CI attempt and correction
+
+- CI 40586738671 at PR head e31ddda (tested merge 6fd62da) failed the Windows archive timeout case: actual exit 1 / generic cancellation, expected exit 4 / wait_timeout; work and its owner remained running. This is distinct from the original startup refusal.
+- Independent rejected audit: 220 s preparation + 604 s qualification = 824 s combined. Eight original ZIP sizes/digests and five completed terminal receipts / 40 cases verified. [Complete durable evidence](https://github.com/shruggietech/insonic/pull/192#issuecomment-6454336247) was recovered byte-for-byte before another run.
+- Controlled virtual-time regressions failed before the deadline-notification repair and passed afterward. Affected command/runtime tests, vet, repository checks and all 206 root tests passed. Existing clocks and eight-case acceptance are unchanged.
+- First Codex review completed without findings on e31ddda. The deadline correction requires the remaining authorized round; no third round may be requested.
