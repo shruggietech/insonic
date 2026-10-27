@@ -13,6 +13,22 @@ spec.loader.exec_module(cli)
 
 
 class InvocationTimingTests(unittest.TestCase):
+    def test_nested_allowance_includes_launch_and_expiry_still_closes_owner(self):
+        tree = MagicMock()
+        tree.__enter__.return_value = tree
+        tree.process.communicate.return_value = (b'', b'')
+        tree.process.returncode = 0
+        with patch.object(cli.time, 'monotonic', side_effect=[10, 12, 12.5, 12.6]):
+            cli.capture_invocation(Mock(return_value=tree), ['fixture'], cwd=ROOT, env={}, scoped=True,
+                                   input=None, timeout_seconds=5)
+        self.assertEqual(tree.process.communicate.call_args.kwargs['timeout'], 3)
+        tree.reset_mock()
+        with patch.object(cli.time, 'monotonic', side_effect=[10, 16]), self.assertRaises(TimeoutError):
+            cli.capture_invocation(Mock(return_value=tree), ['fixture'], cwd=ROOT, env={}, scoped=True,
+                                   input=None, timeout_seconds=5)
+        tree.process.communicate.assert_not_called()
+        tree.__exit__.assert_called_once()
+
     def test_owned_launch_and_process_wait_both_remain_in_total(self):
         tree = MagicMock()
         tree.__enter__.return_value = tree

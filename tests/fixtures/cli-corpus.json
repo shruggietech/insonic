@@ -159,6 +159,20 @@
       "expectations": [
         "Original hash/sample identity, independent text, source-disjoint roles and frozen matching settings; no DER or broad acoustic accuracy claim."
       ]
+    },
+    {
+      "id": "terminal-work",
+      "owners": [
+        {
+          "path": "scripts/cli_terminal_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Owned two-role loopback acquisition held after one verified file, with an independent runtime and real hidden platform terminal.",
+      "expectations": [
+        "Actual progress/count, Ctrl+C client-only interruption, durable continuation/cancellation, timeout/failure, output-mode controls and verified cleanup."
+      ]
     }
   ],
   "scenarios": [
@@ -267,6 +281,17 @@
       },
       "fixtures": [
         "provider-http"
+      ]
+    },
+    {
+      "id": "terminal",
+      "owner": {
+        "path": "scripts/cli_terminal_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "terminal-work",
+        "model-transfer"
       ]
     }
   ]

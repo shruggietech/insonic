@@ -57,6 +57,11 @@ def candidates(root, platforms=None, version=VERSION):
             entry = release.file_entry(archive)
             receipt = {'kind': 'native-package-receipt', 'schema_version': version, 'product_version': version, 'documentation_version': version, 'platform': platform, 'variant': variant, 'revision': REVISION, 'source_dirty': False, 'archive': archive.name, 'archive_sha256': entry['sha256'], 'archive_size_bytes': entry['size_bytes'], 'distribution': {'binary_publication': 'eligible', 'source_complete': True, 'corresponding_source': 'included'}, 'signing': {'configured': False, 'verified': False, 'status': 'unconfigured'}}
             receipt['inventory_sha256'] = 'c' * 64
+            from cli_terminal_qualification_test import receipt_fixture
+            host = 'windows' if platform == 'windows_amd64' else 'linux'
+            receipt['cli_contract'] = {'coverage': {'identity': {'scope': 'package', 'archive_sha256': receipt['archive_sha256'],
+                'inventory_sha256': receipt['inventory_sha256'], 'executable_sha256': 'd' * 64, 'platform': host}},
+                'terminal_contracts': receipt_fixture('d' * 64, host, 'conpty' if host == 'windows' else 'linux-pty')}
             receipt.update(windows_copy_install='passed', windows_first_use='passed', extracted_inventory='passed', relocation_path_spaces='passed', cli_real_audio_video_import='passed', development_native_libraries='isolated-and-restored', gui_bridge='passed' if variant == 'desktop' else 'not-included', native_webview='passed' if variant == 'desktop' else 'not-included')
             path = root / f'{platform}-{variant}-receipt.json'; release.write_json(path, receipt); receipts.append(path)
     if version != '1.0.0':
@@ -270,6 +275,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
     def test_candidate_rejects_shared_output_names_before_parallel_work(self):
         first=release.read_json(self.receipts[0]);second=release.read_json(self.receipts[1])
         for field in ['archive','archive_sha256','archive_size_bytes']:second[field]=first[field]
+        second['cli_contract']['coverage']['identity']['archive_sha256'] = second['archive_sha256']
         release.write_json(self.receipts[1],second)
         target=self.root/'duplicate-asset'
         with patch.object(release,'verify_selected_package') as verify:
@@ -463,6 +469,26 @@ class ReleaseDeliveryTests(unittest.TestCase):
         release.write_json(self.receipts[0], original)
         self.candidate()
         with self.assertRaisesRegex(ValueError, 'new'): self.candidate()
+
+    def test_current_package_requires_bound_terminal_qualification(self):
+        original = release.read_json(self.receipts[0])
+        for mutation in ('missing', 'forced', 'wrong-image', 'wrong-archive', 'wrong-platform'):
+            receipt = copy.deepcopy(original)
+            if mutation == 'missing':
+                receipt.pop('cli_contract')
+            elif mutation == 'forced':
+                receipt['cli_contract']['terminal_contracts']['cases']['interrupt']['natural_exit'] = False
+            elif mutation == 'wrong-image':
+                receipt['cli_contract']['terminal_contracts']['executable_sha256'] = 'e' * 64
+            elif mutation == 'wrong-archive':
+                receipt['cli_contract']['coverage']['identity']['archive_sha256'] = 'f' * 64
+            else:
+                receipt['cli_contract']['terminal_contracts']['platform'] = 'other'
+            release.write_json(self.receipts[0], receipt)
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, '[Tt]erminal'):
+                self.candidate()
+            self.assertFalse((self.root / 'candidate').exists())
+        release.write_json(self.receipts[0], original)
 
     def test_msi_missing_duplicate_format_source_payload_and_qualification_rejected(self):
         msi_path = self.receipts[-1]; original = release.read_json(msi_path)

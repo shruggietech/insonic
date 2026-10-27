@@ -185,6 +185,16 @@ class ProcessTree:
                 raise c.WinError(c.get_last_error())
         finally:
             self.api.CloseHandle(handle)
+        primary = getattr(self.process, 'primary_thread', None)
+        if primary is not None:
+            # Native terminal creation retains the exact suspended primary
+            # handle. An auxiliary console thread must never substitute for it.
+            suspended = self.api.ResumeThread(primary)
+            if suspended == 0xffffffff:
+                raise c.WinError(c.get_last_error())
+            if suspended != 1:
+                raise RuntimeError('Owned primary thread had unexpected suspend count')
+            return
         snapshot = self.api.CreateToolhelp32Snapshot(4, 0)
         if snapshot == c.c_void_p(-1).value:
             raise c.WinError(c.get_last_error())

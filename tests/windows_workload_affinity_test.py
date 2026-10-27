@@ -24,6 +24,29 @@ def first_available_processor():
 
 
 class WorkloadAffinityTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == 'nt', 'actual hidden Windows terminal affinity')
+    def test_terminal_roots_use_the_elected_mask_and_preserve_parent(self):
+        api=ctypes.WinDLL('kernel32',use_last_error=True)
+        api.GetCurrentProcess.restype=ctypes.c_void_p
+        api.GetProcessAffinityMask.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_size_t),ctypes.POINTER(ctypes.c_size_t)]
+        before,system=ctypes.c_size_t(),ctypes.c_size_t()
+        self.assertTrue(api.GetProcessAffinityMask(api.GetCurrentProcess(),ctypes.byref(before),ctypes.byref(system)))
+        allocation=WorkloadAffinity.__new__(WorkloadAffinity)
+        allocation.permitted=before.value
+        allocation.mask=first_available_processor()
+        allocation.lock=Lock()
+        allocation.started=allocation.verified=allocation.failed=allocation.breakaway=0
+        program="import ctypes as c,os; a=c.WinDLL('kernel32',use_last_error=True); a.GetCurrentProcess.restype=c.c_void_p; a.GetProcessAffinityMask.argtypes=[c.c_void_p,c.POINTER(c.c_size_t),c.POINTER(c.c_size_t)]; p,s=c.c_size_t(),c.c_size_t(); assert a.GetProcessAffinityMask(a.GetCurrentProcess(),c.byref(p),c.byref(s)); print('TTY:'+str(os.isatty(2)),flush=True); print('MASK:'+str(p.value),flush=True)"
+        with allocation.terminal([sys.executable,'-c',program],cwd='.',env=dict(os.environ)) as terminal:
+            result=terminal.finish()
+        self.assertEqual(result['exit_code'],0)
+        self.assertIn('TTY:True',result['text'])
+        self.assertIn('MASK:'+str(allocation.mask),result['text'])
+        after=ctypes.c_size_t()
+        self.assertTrue(api.GetProcessAffinityMask(api.GetCurrentProcess(),ctypes.byref(after),ctypes.byref(system)))
+        self.assertEqual(after.value,before.value)
+        self.assertEqual((allocation.started,allocation.verified,allocation.failed),(1,1,0))
+
     def test_assignment_verifies_after_real_assignment_and_before_resume(self):
         events=[];api=MagicMock()
         api.OpenProcess.return_value=77

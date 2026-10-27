@@ -434,6 +434,23 @@
       ],
       "platform": "Windows and Linux; real CPU campaign outside CI",
       "callers": "worker inspection/setup/readiness and maintained real CPU acceptance"
+    },
+    {
+      "id": "terminal-wait-qualification",
+      "disposition": "shared-expanded-test-budget-and-injected-failure-clocks",
+      "previous": "new actual-terminal acceptance owners",
+      "effective": "600s shared campaign/client ceiling capped by original qualification deadline;30s cleanup reserve;500ms injected wait-timeout;100ms injected terminal deadline;synthetic invocation launch clocks",
+      "origin": "single monotonic campaign start; terminal launch inherits earlier absolute deadline",
+      "parent": "original local/CI qualification deadline; all nested invocations subtract launch elapsed",
+      "reason": "Actual terminal progress, Ctrl+C and natural release use maintained expanded allowances. Short clocks deliberately require timeout and cannot qualify a successful operation. Poll cadence is observation only. Ordinary product wait and runtime idle contracts are unchanged.",
+      "files": [
+        "scripts/cli_terminal_qualification.py",
+        "scripts/terminal_transport.py",
+        "tests/cli_invocation_timing_test.py",
+        "tests/terminal_transport_test.py"
+      ],
+      "platform": "Windows ConPTY and Linux controlling PTY",
+      "callers": "source and extracted-package CLI qualification"
     }
   ],
   "workflow_owners": {
@@ -536,6 +553,18 @@
         1
       ],
       "reason": "Virtual HTTP time proves the ordinary production cutoff remains unchanged while functional fixture requests use the maintained request allowance and earlier caller cancellation still wins."
+    },
+    {
+      "file": "scripts/cli_terminal_qualification.py",
+      "symbol": "terminal timeout=500",
+      "seconds": 0.5,
+      "reason": "Deliberate wait_timeout refusal on held durable work; enclosing successful campaign keeps expanded budget."
+    },
+    {
+      "file": "tests/terminal_transport_test.py",
+      "symbol": "deadline=time.monotonic()+.1",
+      "seconds": 0.1,
+      "reason": "Deliberate inherited deadline expiry requires failure and forced cleanup; not a successful execution allowance."
     }
   ],
   "notes": [

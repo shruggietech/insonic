@@ -137,7 +137,7 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
             launch.assert_called_once()
 
     def test_readiness_regression_is_isolated_and_every_worker_joins_on_failure(self):
-        names = ['operator', 'input', 'text_duration', 'readiness']
+        names = ['operator', 'input', 'text_duration', 'readiness', 'terminal']
         modules = [importlib.import_module('cli_' + name + '_qualification') for name in names]
         barrier = threading.Barrier(4)
         finished, roots = [], []
@@ -147,7 +147,8 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
             def run(invoke, workspace, version, **options):
                 with lock:
                     roots.append(workspace)
-                barrier.wait(timeout=2)
+                if name != 'terminal':
+                    barrier.wait(timeout=2)
                 try:
                     if name == 'readiness':
                         self.assertEqual(options['executable'], 'fixture-cli')
@@ -167,7 +168,7 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
                         '1.0.1', False, {}, 'fixture-cli', {}) as checks:
                     checks['readiness'].result()
         self.assertEqual(set(finished), set(names))
-        self.assertEqual(len(set(roots)), 4)
+        self.assertEqual(len(set(roots)), 5)
 
 if __name__ == '__main__':
     unittest.main()

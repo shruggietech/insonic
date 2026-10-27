@@ -16,6 +16,34 @@ import process_tree
 
 
 class SelectedChildEnvironment(unittest.TestCase):
+    def test_explicit_primary_thread_is_resumed_after_assignment_without_enumeration(self):
+        from types import SimpleNamespace
+        api = Mock()
+        api.OpenProcess.return_value = 77
+        api.ResumeThread.return_value = 1
+        tree = ProcessTree.__new__(ProcessTree)
+        tree.api, tree.ctypes, tree.job = api, __import__('ctypes'), 99
+        tree.process = SimpleNamespace(pid=123, primary_thread=456)
+        tree._assign_and_resume()
+        api.AssignProcessToJobObject.assert_called_once_with(99, 77)
+        api.ResumeThread.assert_called_once_with(456)
+        api.CreateToolhelp32Snapshot.assert_not_called()
+        api.CloseHandle.assert_called_once_with(77)
+
+    def test_explicit_primary_thread_rejects_unexpected_suspend_counts(self):
+        from types import SimpleNamespace
+        for count in (0, 2):
+            with self.subTest(count=count):
+                api = Mock()
+                api.OpenProcess.return_value = 77
+                api.ResumeThread.return_value = count
+                tree = ProcessTree.__new__(ProcessTree)
+                tree.api, tree.ctypes, tree.job = api, __import__('ctypes'), 99
+                tree.process = SimpleNamespace(pid=123, primary_thread=456)
+                with self.assertRaisesRegex(RuntimeError, 'suspend count'):
+                    tree._assign_and_resume()
+                api.CreateToolhelp32Snapshot.assert_not_called()
+
     def test_session_inventory_includes_nested_groups_and_excludes_other_sessions_and_zombies(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
