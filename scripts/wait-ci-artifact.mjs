@@ -20,28 +20,27 @@ const transientTransportCodes = new Set(['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 
   'ENETUNREACH', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT', 'UND_ERR_SOCKET']);
 
 async function inventory(url, token, signal) {
-  let response;
+  let size = 0; const chunks = [];
   try {
-    response = await fetch(url, { signal, redirect: 'error', headers: {
+    const response = await fetch(url, { signal, redirect: 'error', headers: {
       Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
     } });
+    if (!response.ok) {
+      try { await response.body?.cancel(); } catch { /* Keep the HTTP status authoritative. */ }
+      const Failure = [408, 429, 500, 502, 503, 504].includes(response.status) ? TransientInventoryError : Error;
+      throw new Failure(`Source artifact API failed (HTTP ${response.status}).`);
+    }
+    for await (const chunk of response.body) {
+      size += chunk.length;
+      if (size > 1 << 20) throw new Error('Source artifact inventory exceeds its bound.');
+      chunks.push(chunk);
+    }
   } catch (error) {
     signal?.throwIfAborted();
     if (error instanceof TypeError && transientTransportCodes.has(error.cause?.code)) {
       throw new TransientInventoryError('Source artifact API transport failed.');
     }
     throw error;
-  }
-  if (!response.ok) {
-    try { await response.body?.cancel(); } catch { /* Keep the HTTP status authoritative. */ }
-    const Failure = [408, 429, 500, 502, 503, 504].includes(response.status) ? TransientInventoryError : Error;
-    throw new Failure(`Source artifact API failed (HTTP ${response.status}).`);
-  }
-  let size = 0; const chunks = [];
-  for await (const chunk of response.body) {
-    size += chunk.length;
-    if (size > 1 << 20) { throw new Error('Source artifact inventory exceeds its bound.'); }
-    chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }

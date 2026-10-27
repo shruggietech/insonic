@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import http from 'node:http';
 import { waitForArtifact, waitForDesktopProofs, waitForDesktopInput, waitForWindowsPackages } from '../scripts/wait-ci-artifact.mjs';
 
 const options = { repository: 'shruggietech/insonic', run: '123', attempt: '2', os: 'windows-2022', token: 'fixture' };
@@ -378,6 +379,58 @@ test('TLS, refused redirects and unclassified fetch errors are not transient ret
     try {
       await assert.rejects(waitForWindowsPackages({ ...proofOptions,
         sleep: async () => assert.fail('unclassified failure must not retry') }), /fetch failed/);
+      assert.equal(calls, 1);
+    } finally { mocked.mock.restore(); }
+  }
+});
+
+test('a real socket drop after successful headers retries the discarded partial inventory body', async t => {
+  let artifactRequests = 0, partialResponse, headersObserved = false, elapsed = 0;
+  const server = http.createServer((request, reply) => {
+    if (request.url === '/jobs') {
+      reply.setHeader('Content-Type', 'application/json'); reply.end(JSON.stringify(gates));
+    } else if (++artifactRequests === 1) {
+      partialResponse = reply;
+      reply.writeHead(200, { 'Content-Type': 'application/json' });
+      reply.flushHeaders(); reply.write('{"total_count":');
+    } else {
+      reply.setHeader('Content-Type', 'application/json'); reply.end(JSON.stringify(response([artifact])));
+    }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  const nativeFetch = globalThis.fetch;
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    const route = url.includes('/jobs?') ? '/jobs' : '/artifacts';
+    const received = await nativeFetch(`http://127.0.0.1:${server.address().port}${route}`, init);
+    if (route === '/artifacts' && artifactRequests === 1) {
+      assert.equal(received.status, 200); headersObserved = true; partialResponse.destroy();
+    }
+    return received;
+  });
+  assert.equal(await waitForArtifact({ ...options, phaseDeadlineMs: 60000, now: () => elapsed,
+    sleep: async ms => { elapsed += ms; } }), 42);
+  assert.equal(headersObserved, true);
+  assert.equal(artifactRequests, 2);
+  assert.equal(elapsed, 1000);
+});
+
+test('oversized inventory bodies and cancellation during body reads cannot retry', async t => {
+  for (const cancelled of [false, true]) {
+    let calls = 0;
+    const controller = new AbortController();
+    const mocked = t.mock.method(globalThis, 'fetch', async url => {
+      if (url.includes('/jobs?')) return Response.json(gates);
+      calls++;
+      if (!cancelled) return new Response('x'.repeat((1 << 20) + 1));
+      return new Response(new ReadableStream({ pull(stream) {
+        controller.abort(new Error('owner cancelled during body'));
+        stream.error(new TypeError('terminated', { cause: { code: 'UND_ERR_SOCKET' } }));
+      } }));
+    });
+    try {
+      await assert.rejects(waitForArtifact({ ...options, signal: controller.signal,
+        sleep: async () => assert.fail('body refusal cannot retry') }), cancelled ? /owner cancelled/ : /bound/);
       assert.equal(calls, 1);
     } finally { mocked.mock.restore(); }
   }

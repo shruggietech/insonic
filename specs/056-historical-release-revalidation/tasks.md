@@ -48,3 +48,7 @@ Setup -> foundation -> US1 -> US2 -> US3 -> verification/delivery. Tests precede
 ## Phase 7: Convergence
 
 - [x] T016 Repair the observed candidate HTTP 502 metadata-read failure in scripts/wait-ci-artifact.mjs with bounded transient retries under the original deadline; add failure/authentication/malformed-response/deadline/cancellation regressions in tests/ci-artifact.test.mjs, retain rejected CI evidence before corrected CI, and reverify all required checks (SC-004, partial).
+
+## Phase 8: Convergence
+
+- [ ] T017 Classify recognized response-body transport failures in scripts/wait-ci-artifact.mjs per review discussion 4395426521; add an actual HTTP-200 partial-body/socket-disconnect regression plus oversized-body and cancellation refusal checks in tests/ci-artifact.test.mjs, verify the correction and reply/resolve the review after pushing (SC-004, partial).
