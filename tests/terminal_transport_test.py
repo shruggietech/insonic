@@ -9,13 +9,18 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from terminal_transport import Terminal, normalize_terminal
+import qualification_timing as test_timing
 
 
 class TerminalTransportTests(unittest.TestCase):
     def test_actual_terminal_interrupt_and_natural_release(self):
-        # Keep returning to Python so a pending SIGINT cannot remain hidden in a
-        # single long native sleep. Only the terminal input byte delivers it.
+        # A background launcher may pass Windows' ignore-Ctrl+C attribute to
+        # Python. Elect reception in this disposable probe, never in the parent.
+        # Only the terminal input byte delivers the interrupt.
         program = ("import os,signal,sys,time\n"
+                   "if os.name == 'nt':\n"
+                   " import ctypes\n"
+                   " assert ctypes.windll.kernel32.SetConsoleCtrlHandler(None,False)\n"
                    "signal.signal(signal.SIGINT,lambda *_:(print('INTERRUPTED',flush=True),sys.exit(7)))\n"
                    "print('TTY:'+str(all(os.isatty(i) for i in (0,1,2))),flush=True)\n"
                    "while True: time.sleep(.02)\n")
@@ -27,6 +32,24 @@ class TerminalTransportTests(unittest.TestCase):
         self.assertIn('INTERRUPTED', result['text'])
         self.assertTrue(result['natural_exit'])
         self.assertTrue(result['cleanup'])
+
+    @unittest.skipUnless(os.name == 'nt', 'actual Windows Ctrl+C inheritance')
+    def test_interrupt_probe_elects_reception_under_background_group_ancestry(self):
+        from process_tree import ProcessTree
+        import subprocess
+        program = ("import sys,unittest\n"
+                   "sys.path.insert(0,'tests')\n"
+                   "from terminal_transport_test import TerminalTransportTests\n"
+                   "suite=unittest.TestSuite([TerminalTransportTests('test_actual_terminal_interrupt_and_natural_release')])\n"
+                   "result=unittest.TextTestRunner().run(suite)\n"
+                   "sys.exit(not result.wasSuccessful())\n")
+        # The isolated launcher propagates the native ignore flag exactly as a
+        # background Windows host can. Parent console state is never changed.
+        with ProcessTree([sys.executable, '-c', 'import subprocess,sys; p=subprocess.run([sys.executable,"-c",sys.argv[1]],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=0x08000200);sys.stdout.buffer.write(p.stdout);sys.stderr.buffer.write(p.stderr);sys.exit(p.returncode)', program],
+                         cwd=Path.cwd(), env=os.environ.copy()) as owner:
+            output, error = owner.process.communicate(timeout=test_timing.SUBPROCESS_SECONDS)
+            self.assertEqual(owner.process.returncode, 0, error.decode(errors='replace'))
+            self.assertTrue(owner.wait_for_descendants(test_timing.CLEANUP_SECONDS))
 
     def test_output_overflow_is_failure_even_after_natural_exit(self):
         with self.assertRaisesRegex(ValueError, 'capture bound'):

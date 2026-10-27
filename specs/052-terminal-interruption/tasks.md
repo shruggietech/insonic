@@ -48,3 +48,8 @@ T001 -> T002 -> T003 -> T004 -> T005 -> T006 -> T007 -> T008 -> T009 -> T010 -> 
 - [x] T013 Correct the Linux fixture-only host-cache placement and add cleanup/socket-bound regression in scripts/cli_terminal_qualification.py and tests/cli_terminal_qualification_test.py; preserve deep Unicode library paths and the product endpoint bound (FR-005/007; partial).
 
 - [ ] T014 Replace the transport test's single long native sleep with a signal-dispatch cadence and verify the unchanged actual terminal-byte interrupt, natural exit7 and cleanup assertions on Windows/Linux (FR-002/007; partial).
+
+## Phase 8: Convergence
+
+- [x] T015 Clear inherited native Ctrl+C suppression inside the disposable Python probe, reproduce the new-process-group ancestry and retain unchanged actual-terminal natural-exit assertions (FR-002/007; partial).
+- [x] T016 Resume the exact returned primary thread after elected affinity assignment, add a regression refusing thread-enumeration fallback, and surface early terminal/barrier failure diagnostics without weakening the barrier (FR-005/007, Constitution V; partial).

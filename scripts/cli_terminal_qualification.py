@@ -256,7 +256,7 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
             child = stack.enter_context(terminal_factory([str(executable), *args], cwd=directory, env=selected, deadline=deadline))
             return child, args, request_id
 
-        def running_barrier(request_id):
+        def running_barrier(request_id, label, child=None):
             path = directory / (request_id + '.jsonl')
             while True:
                 raw = path.read_bytes() if path.exists() else b''
@@ -269,7 +269,12 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
                     if (event.get('request_id') == request_id and event.get('operation') == 'work.wait'
                             and event.get('state') == 'running'):
                         return
-                time.sleep(min(.02, remaining()))
+                if child is not None and child.owner.process.poll() is not None:
+                    raise ValueError('Terminal ' + label + ' exited before its running barrier: ' + child.text()[:2048])
+                try:
+                    time.sleep(min(.02, remaining()))
+                except TimeoutError as error:
+                    raise TimeoutError('Terminal ' + label + ' running barrier was not observed') from error
 
         def progress(child, identity):
             child.wait_for(f'Work {identity}: running (verified-files), 1 verified files')
@@ -350,8 +355,10 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
                 redirected = pool.submit(call, ['--log-level', 'debug', '--log-file',
                     str(directory / (redirected_request + '.jsonl')), 'work', 'wait', identity], request_id=redirected_request,
                                          machine=False, timing=redirected_timing)
-                for request_id in (machine_request, quiet_request, redirected_request):
-                    running_barrier(request_id)
+                for request_id, label, child in ((machine_request, 'json', machine),
+                                                 (quiet_request, 'quiet', quiet),
+                                                 (redirected_request, 'redirected', None)):
+                    running_barrier(request_id, label, child)
                 gate['release'].set()
                 record('human', identity, human_request, human.finish(), args=human_args)
                 record('json', identity, machine_request, machine.finish(), args=machine_args)

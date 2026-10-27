@@ -216,6 +216,7 @@ class Terminal:
 
             class Process:
                 pid, handle, code = info.pid, info.process, None
+                primary_thread = info.thread
 
                 def poll(self):
                     if self.code is None:
