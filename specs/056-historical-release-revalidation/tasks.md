@@ -38,9 +38,13 @@
 
 - [x] T012 Update docs/v1.0.2/releases.md and CHANGELOG.md with the authoritative historical verification contract and dated maintainer-tooling decision (FR-008).
 - [x] T013 Run focused/full Python suites, npm run check, npm test and affected site tests/build; analyze/converge all requirements and retain compact verification facts in specs/056-historical-release-revalidation/verification.md (FR-001 through FR-008, SC-001 through SC-004).
-- [ ] T014 Create S056 milestone/Project linkage, commit, automatically push and open the official PR linked to #185; attach it to this chat (SC-004).
+- [x] T014 Create S056 milestone/Project linkage, commit, automatically push and open the official PR linked to #185; attach it to this chat (SC-004).
 - [ ] T015 Monitor exact-head CI, audit/retain terminal receipts before any full rerun, resolve all findings through at most two Codex rounds, and stop before merging for owner review (SC-004).
 
 ## Dependencies and Execution Strategy
 
 Setup -> foundation -> US1 -> US2 -> US3 -> verification/delivery. Tests precede related code. Independent read-only source/fixture checks can run together; edits sharing release.py remain sequential. Deliver one coherent PR. No agent delegation is required. The immutable historical profile is the MVP, completed together with negative and modern compatibility boundaries before publication.
+
+## Phase 7: Convergence
+
+- [x] T016 Repair the observed candidate HTTP 502 metadata-read failure in scripts/wait-ci-artifact.mjs with bounded transient retries under the original deadline; add failure/authentication/malformed-response/deadline/cancellation regressions in tests/ci-artifact.test.mjs, retain rejected CI evidence before corrected CI, and reverify all required checks (SC-004, partial).

@@ -37,3 +37,7 @@ Create S056 milestone/Project association for #185, automatically push and open 
 ## Decisions
 
 2026-10-27: Chose immutable manifest/MSI/source anchors over duplicating a legacy MSI author or weakening version-wide rules. This slice repairs verification of one original publication; it does not authorize new historical candidates or release publication.
+
+## Demonstrated CI correction
+
+2026-10-27: CI 40601804325 candidate job 122535066126 failed before candidate validation when the Windows artifact metadata API returned HTTP 502. Extend the existing scripts/wait-ci-artifact.mjs read boundary with at most three attempts for transient transport/HTTP failures, under its original enclosing deadline. Authentication, malformed/bounded inventories, identity/digest failures and failed producers remain failures. Add tests/ci-artifact.test.mjs regressions and retain the terminal rejected run before another CI run. This is a proportional correction within the authorized CI-failure work.

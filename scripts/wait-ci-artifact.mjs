@@ -15,11 +15,28 @@ function requestSignal(deadline, now, signal) {
   return signal ? AbortSignal.any([signal, timer]) : timer;
 }
 
+class TransientInventoryError extends Error {}
+const transientTransportCodes = new Set(['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'EAI_AGAIN',
+  'ENETUNREACH', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT', 'UND_ERR_SOCKET']);
+
 async function inventory(url, token, signal) {
-  const response = await fetch(url, { signal, redirect: 'error', headers: {
-    Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
-  } });
-  if (!response.ok) { await response.body?.cancel(); throw new Error(`Source artifact API failed (HTTP ${response.status}).`); }
+  let response;
+  try {
+    response = await fetch(url, { signal, redirect: 'error', headers: {
+      Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
+    } });
+  } catch (error) {
+    signal?.throwIfAborted();
+    if (error instanceof TypeError && transientTransportCodes.has(error.cause?.code)) {
+      throw new TransientInventoryError('Source artifact API transport failed.');
+    }
+    throw error;
+  }
+  if (!response.ok) {
+    try { await response.body?.cancel(); } catch { /* Keep the HTTP status authoritative. */ }
+    const Failure = [408, 429, 500, 502, 503, 504].includes(response.status) ? TransientInventoryError : Error;
+    throw new Failure(`Source artifact API failed (HTTP ${response.status}).`);
+  }
   let size = 0; const chunks = [];
   for await (const chunk of response.body) {
     size += chunk.length;
@@ -27,6 +44,36 @@ async function inventory(url, token, signal) {
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+async function readInventory(request, url, token, deadline, now, signal, pause) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    requireTime(deadline, now, signal);
+    try {
+      const value = await request(url, token, requestSignal(deadline, now, signal));
+      requireTime(deadline, now, signal);
+      return value;
+    } catch (error) {
+      requireTime(deadline, now, signal);
+      if (!(error instanceof TransientInventoryError) || attempt === 3) throw error;
+      await pause(Math.min(attempt * 1000, deadline - now()), undefined, { signal });
+    }
+  }
+}
+
+async function inventories(request, urls, token, deadline, now, signal, pause) {
+  const controller = new AbortController();
+  const sharedSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
+  let failed = false, failure;
+  const results = await Promise.allSettled(urls.map(async url => {
+    try { return await readInventory(request, url, token, deadline, now, sharedSignal, pause); }
+    catch (error) {
+      if (!failed) { failed = true; failure = error; controller.abort(error); }
+      throw error;
+    }
+  }));
+  if (failed) throw failure;
+  return results.map(result => result.value);
 }
 
 export async function waitForArtifact({ repository, run, attempt, os, token, deadlineMs = milliseconds('artifact_source_seconds'),
@@ -39,8 +86,7 @@ export async function waitForArtifact({ repository, run, attempt, os, token, dea
   const jobsUrl = `https://api.github.com/repos/${repository}/actions/runs/${run}/attempts/${attempt}/jobs?per_page=100`;
   while (now() < deadline) {
     requireTime(deadline, now, signal);
-    const boundedSignal = requestSignal(deadline, now, signal);
-    const [value, gates] = await Promise.all([request(url, token, boundedSignal), request(jobsUrl, token, boundedSignal)]);
+    const [value, gates] = await inventories(request, [url, jobsUrl], token, deadline, now, signal, pause);
     requireTime(deadline, now, signal);
     if (!Array.isArray(gates?.jobs) || gates.total_count !== gates.jobs.length || gates.total_count > 100) throw new Error('Incomplete qualification gate inventory.');
     let ready = true;
@@ -100,8 +146,7 @@ async function waitForWindowsProducers({ role, repository, run, attempt, revisio
   let lastIncomplete = '';
   while (now() < deadline) {
     requireTime(deadline, now, signal);
-    const boundedSignal = requestSignal(deadline, now, signal);
-    const [value, gates] = await Promise.all([request(url, token, boundedSignal), request(jobsUrl, token, boundedSignal)]);
+    const [value, gates] = await inventories(request, [url, jobsUrl], token, deadline, now, signal, pause);
     requireTime(deadline, now, signal);
     for (const [items, count] of [[value?.artifacts, value?.total_count], [gates?.jobs, gates?.total_count]]) {
       if (!Array.isArray(items) || items.length > 100 || !Number.isSafeInteger(count) || count < 0 || count > 100) {

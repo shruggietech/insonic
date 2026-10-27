@@ -145,7 +145,9 @@ Documentation screenshots describe their recorded clean capture revision and ver
 
 The current source implementation gives native query and explain RPCs a 25-second aggregate budget covering current graph publication and execution. The engine retains its twenty-second query ceiling, bounded by the remaining RPC time. An earlier caller deadline or cancellation ends the client wait. Transport timeouts are cancellation conditions, not evidence of malformed query input. Immutable release binaries retain their tagged implementation.
 
-After a transient artifact-service failure, rerun complete qualification so all producers and consumers use one current workflow attempt. Isolated consumer reruns cannot substitute artifacts from an older attempt.
+Source and Windows artifact joins allow at most three attempts per metadata read for recognized transient connection failures and HTTP 408, 429, 500, 502, 503 or 504. Backoff is one second then two seconds, bounded by the original artifact/qualification deadline; each request uses its remaining time. A permanent failure cancels and joins the sibling metadata request before returning its original cause. TLS, refused redirects, unclassified transport errors, authentication errors, malformed or oversized inventories, identity/digest failures and failed producers remain immediate failures. Metadata retries do not rerun product tests or authorize partial/stale inputs.
+
+After an exhausted artifact-service failure, rerun complete qualification so all producers and consumers use one current workflow attempt. Isolated consumer reruns cannot substitute artifacts from an older attempt.
 
 ## Startup error reporting
 

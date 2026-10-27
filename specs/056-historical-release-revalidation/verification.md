@@ -14,3 +14,9 @@
 ## Boundaries
 
 No original tag/release/assets or selected source changed. No historical verifier code or product binaries executed. Original byte/receipt verification does not establish fresh installed-product runtime behavior. Hosted exact-head CI and external reviews remain pending.
+
+## First hosted run and CI correction
+
+[CI 40601804325](https://github.com/shruggietech/insonic/actions/runs/40601804325), head 8d0918f, remains rejected: candidate metadata polling received HTTP 502 before candidate validation, so candidate/elected acceptance failed. All product/native/package/installer lanes passed. Independent terminal accounting: 210 s preparation + 683 s qualification = 893 s combined; 28 successful jobs, 18 intentional skips, two failures. Eight receipt ZIP identities and six terminal receipts/48 cases validated. The [complete rejected audit](https://github.com/shruggietech/insonic/pull/193#issuecomment-6456304453) was recovered byte-for-byte before corrected CI.
+
+Convergence T016 adds at most three transient metadata-read attempts under the original deadline. Seven new root tests demonstrate recovery, bounded exhaustion, original-deadline expiry, caller cancellation, sibling cancellation and refusal to retry authentication, malformed, TLS, redirect or unclassified errors. Forty-three focused artifact/readiness tests and all 217 root tests pass; root/schema checks and the rebuilt 140-page export pass. Original-release verification source hashes are unchanged. First automatic Codex round completed cleanly at 8d0918f; corrected-head CI and the authorized second round remain pending.
