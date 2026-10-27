@@ -51,6 +51,8 @@ class ParallelPackageFixture:
         ]})
         self.completed['development_native_libraries'] = 'isolated-and-restored'
         self.completed['elapsed_seconds'] = .01
+        from cli_terminal_qualification_test import package_contract_fixture
+        self.completed['cli_contract'] = package_contract_fixture(self.completed)
         self.barrier = threading.Barrier(2)
         self.lock = threading.Lock()
         self.active = self.maximum = 0

@@ -43,17 +43,18 @@ class ParallelRegressionTests(unittest.TestCase):
             scoped(['settings', 'show'])
             scoped(['settings', 'show'], workspace_path=root / 'explicit override')
             scoped(['--help'], scoped=False)
-            if root.name != 'isolated examples qualification':
+            if root.name not in ('isolated examples qualification', 'isolated terminal qualification'):
                 barrier.wait(timeout=2)
             return str(root)
         with patch('cli_operator_qualification.qualify', fake), \
              patch('cli_input_qualification.qualify', fake), \
              patch('cli_text_duration_qualification.qualify', fake), \
              patch('cli_readiness_qualification.qualify', fake), \
+             patch('cli_terminal_qualification.qualify', fake), \
              patch('cli_help_examples.qualify', fake):
             with runner.parallel_regressions(invoke, Path('/owned'), '1.0.1', True, {}, '/owned/cli', {}) as futures:
                 roots = {name: Path(future.result()) for name, future in futures.items()}
-        self.assertEqual(len(set(roots.values())), 5)
+        self.assertEqual(len(set(roots.values())), 6)
         self.assertTrue(all(root.parent == Path('/owned') for root in roots.values()))
         for name, root in roots.items():
             scenario=name.replace('_','-')
@@ -74,11 +75,12 @@ class ParallelRegressionTests(unittest.TestCase):
         with patch('cli_operator_qualification.qualify', fail), \
              patch('cli_input_qualification.qualify', complete), \
              patch('cli_text_duration_qualification.qualify', complete), \
-             patch('cli_readiness_qualification.qualify', complete):
+             patch('cli_readiness_qualification.qualify', complete), \
+             patch('cli_terminal_qualification.qualify', complete):
             with self.assertRaisesRegex(ValueError, 'fixture regression'):
                 with runner.parallel_regressions(lambda *a, **k: {}, Path('/owned'), '1.0.1', False, {}, '/owned/cli', {}) as futures:
                     futures['operator'].result()
-        self.assertEqual(len(finished), 3)
+        self.assertEqual(len(finished), 4)
 
 
 if __name__ == '__main__':

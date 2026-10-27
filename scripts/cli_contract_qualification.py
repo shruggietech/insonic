@@ -30,11 +30,16 @@ PARSER_REJECTIONS = [
 ]
 
 
-def capture_invocation(factory, argv, *, cwd, env, scoped, input):
+def capture_invocation(factory, argv, *, cwd, env, scoped, input, timeout_seconds=None):
     started = time.monotonic()
     with factory(argv, cwd=cwd, env=env, allow_detached=scoped, input_pipe=input is not None) as tree:
         launched = time.monotonic()
-        stdout, stderr = tree.process.communicate(input=input, timeout=bounds.SUBPROCESS_SECONDS)
+        allowance = bounds.phase_bound(bounds.SUBPROCESS_SECONDS)
+        if timeout_seconds is not None:
+            allowance = min(allowance, timeout_seconds - (launched - started))
+        if allowance <= 0:
+            raise TimeoutError('CLI invocation enclosing deadline exceeded during launch')
+        stdout, stderr = tree.process.communicate(input=input, timeout=allowance)
         finished = time.monotonic()
         code = tree.process.returncode
     timing = {"owned_launch_seconds": launched - started, "process_wait_seconds": finished - launched,
@@ -108,16 +113,18 @@ def isolated_invoker(invoke, workspace, scenario=None):
 
 
 @contextmanager
-def parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, *, process_factory=None):
+def parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, *, process_factory=None, observe=None):
     """Join every owned regression even when another branch raises."""
     from cli_operator_qualification import qualify as qualify_operator
     from cli_input_qualification import qualify as qualify_inputs
     from cli_text_duration_qualification import qualify as qualify_text_duration
     from cli_readiness_qualification import qualify as qualify_readiness
+    from cli_terminal_qualification import qualify as qualify_terminal
     jobs = [('operator', qualify_operator, {'media': documentation}),
             ('input', qualify_inputs, {'media': documentation}),
             ('text_duration', qualify_text_duration, {}),
-            ('readiness', qualify_readiness, {'executable': executable})]
+            ('readiness', qualify_readiness, {'executable': executable}),
+            ('terminal', qualify_terminal, {'executable': executable, 'environment': environment, 'observe': observe})]
     if documentation:
         from cli_help_examples import qualify as qualify_examples
         jobs.append(('examples', qualify_examples, {}))
@@ -149,8 +156,8 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
     coverage = None
     current_scenario = 'core'
 
-    def invoke(args, *, expected=0, input=None, scoped=True, machine=True, workspace_path=None, execution_environment=None, scenario=None, timing=None):
-        correlation_id = str(uuid.uuid4())
+    def invoke(args, *, expected=0, input=None, scoped=True, machine=True, workspace_path=None, execution_environment=None, scenario=None, timing=None, request_id=None, timeout_seconds=None):
+        correlation_id = request_id or str(uuid.uuid4())
         argv = [str(executable), '--request-id', correlation_id]
         if machine:
             argv.append('--json')
@@ -160,7 +167,8 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         if list(args[:2]) == ['work', 'wait'] and not any(str(a).startswith('--timeout-ms') for a in args):
             argv += ['--timeout-ms', str(bounds.DURABLE_WORK_SECONDS * 1000)]
         stdout, stderr, code, observed = capture_invocation(process_factory or ProcessTree, argv, cwd=cwd or workspace,
-            env=execution_environment if execution_environment is not None else environment, scoped=scoped, input=input)
+            env=execution_environment if execution_environment is not None else environment, scoped=scoped, input=input,
+            timeout_seconds=timeout_seconds)
         if timing is not None:
             timing.update(observed)
         accepted = expected if isinstance(expected, tuple) else (expected,)
@@ -348,7 +356,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         finish_server(server, thread)
     phase('parallel-regressions')
     process_options = {'process_factory': process_factory} if process_factory is not None else {}
-    with parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, **process_options) as regressions:
+    with parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, observe=coverage.observe, **process_options) as regressions:
         lifecycle = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
         if documentation:
             from cli_media_qualification import qualify as qualify_media
@@ -390,6 +398,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         input_contracts = regressions['input'].result()
         text_duration_contracts = regressions['text_duration'].result()
         readiness_contracts = regressions['readiness'].result()
+        terminal_contracts = regressions['terminal'].result()
         if documentation:
             examples = regressions['examples'].result()
     input_file.unlink(missing_ok=True)
@@ -400,10 +409,10 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
     for entry in examples.get('ledger', []):
         coverage.assert_example(entry)
-    ledger = coverage.finish({'core': True, 'operator': True, 'input': True, 'text-duration': True, 'readiness': True,
+    ledger = coverage.finish({'core': True, 'operator': True, 'input': True, 'text-duration': True, 'readiness': True, 'terminal': True,
                               **{name: documentation for name in ['media', 'query', 'provider', 'documented', 'examples']}})
     phase('complete')
-    return {'coverage': ledger, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'coverage': ledger, 'terminal_contracts': terminal_contracts, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'cold_startup_timing': cold_timing, 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

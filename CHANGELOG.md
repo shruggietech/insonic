@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Changed
 
+- 2026-10-27: Maintained source and extracted-package CLI qualification now uses owned headless Windows/Linux terminals for progress and Ctrl+C, with an independent durable runtime, bounded capture and explicit cleanup. Release qualification requires the nested terminal receipt to match its package and executable identity. Ordinary product deadlines and wait/cancel semantics are unchanged.
+
 - 2026-10-22: Refresh Playwright maintainer tooling, Windows IPC/Linux credential and S3 client dependencies, and static-documentation renderer dependencies. Capture tooling follows the root exact Playwright pin; maintained desktop source checks retain independently verified pristine upstream checksums after Go graph refresh and enforce both archive and module-file entries without conflicts.
 
 - 2026-10-24: Expand maintained test and qualification allowances through native/frontend, package/installer, CLI, source preparation, browser, release and diagnostic paths. Qualification now targets thirty minutes with a sixty-minute hard limit after verified readiness and a sixty-second provisional finalization reserve; outer job watchdogs retain cleanup headroom. Constitution 5.0.0 explicitly redefines the previous timing policy. Required functional/security/provenance checks, ordinary product deadlines and intentionally short failure fixtures retain their meanings. Help qualification records bounded monotonic progress for delayed-completion diagnosis.
@@ -13,6 +15,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-25: Keep the existing sixty-second worker/readiness deadlines and record fixed bounded progress inside each private probe directory. Native and child clocks remain separate, receipt observations are optional for backward compatibility, and only ephemeral worker observation requests gain disconnect cancellation. Diagnostic additions do not relax environment hashes, version checks or real processing acceptance. The bounded durable history uses `checkpoints`, preserving the catalog prohibition on raw `observations` payloads. Real Arcade functional qualification uses the maintained test request allowance while keeping the production transport cutoff and earlier caller cancellation unchanged. Maintained connected qualification waits for correlated owned-runtime readiness before issuing commands and retains bounded startup receipts.
 
 ### Added
+
+- Actual-terminal wait acceptance verifies running/count progress, client interruption with continued durable work, explicit cancellation, timeout and failed work, plus JSON/quiet/redirected output controls. Compact platform receipts record natural exits and owned resource release without claiming installed-desktop or acoustic-quality coverage.
 
 - Maintained packaged CPU acceptance now prepares destination workers after self-contained restore, runs fresh held-out recognition/diarization and speaker matching, and verifies retained canonical media, profiles and completed work history. Versioned internal receipts distinguish this coverage from earlier recovery-only evidence and retain separate source/destination provenance, terminal work identities and unchanged qualification timing.
 

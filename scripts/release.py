@@ -286,6 +286,20 @@ def verify_qualification(receipt):
     expected_gui = 'passed' if receipt.get('variant') == 'desktop' else 'not-included'
     required.update(gui_bridge=expected_gui, native_webview=expected_gui)
     if any(receipt.get(field) != expected for field, expected in required.items()): raise ValueError('package relocation and native qualification are incomplete')
+    if receipt.get('schema_version') != '1.0.0':
+        from cli_terminal_qualification import validate_receipt
+        contract = receipt.get('cli_contract', {})
+        coverage = contract.get('coverage') if isinstance(contract, dict) else None
+        identity = coverage.get('identity') if isinstance(coverage, dict) else None
+        if not isinstance(identity, dict):
+            identity = {}
+        platform = {'windows_amd64': 'windows', 'linux_amd64': 'linux'}.get(receipt.get('platform'))
+        if (not platform or identity.get('scope') != 'package'
+                or identity.get('archive_sha256') != receipt.get('archive_sha256')
+                or identity.get('inventory_sha256') != receipt.get('inventory_sha256')
+                or identity.get('platform') != platform):
+            raise ValueError('Terminal qualification archive/inventory/platform identity is incomplete')
+        validate_receipt(contract.get('terminal_contracts'), identity.get('executable_sha256'), platform)
 
 
 def package_module():
