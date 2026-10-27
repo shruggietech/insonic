@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Implemented; final CI/review in progress
+**Status**: Implementation qualified; owner review after final records CI
 
 **Input**: Prepare v1.0.2 using Spec Kit/autopilot, push/open the official PR, resolve CI failures and at most two Codex review rounds, then stop before owner merge. Official publication is a later phase.
 

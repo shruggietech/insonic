@@ -1,0 +1,134 @@
+{
+  "format": "insonic-terminal-independent-audit-v1",
+  "revision": "b098f7610a7789343c543bd1ced8071629032b54",
+  "receipt_count": 6,
+  "executed_cases": 48,
+  "required_outcomes": {
+    "human": {
+      "exit_code": 0,
+      "durable_state": "succeeded",
+      "reason": null
+    },
+    "json": {
+      "exit_code": 0,
+      "durable_state": "succeeded",
+      "reason": null
+    },
+    "quiet": {
+      "exit_code": 0,
+      "durable_state": "succeeded",
+      "reason": null
+    },
+    "redirected": {
+      "exit_code": 0,
+      "durable_state": "succeeded",
+      "reason": null
+    },
+    "interrupt": {
+      "exit_code": 1,
+      "durable_state": "succeeded",
+      "reason": "wait_interrupted"
+    },
+    "timeout": {
+      "exit_code": 4,
+      "durable_state": "succeeded",
+      "reason": "wait_timeout"
+    },
+    "cancelled": {
+      "exit_code": 1,
+      "durable_state": "cancelled",
+      "reason": "cancelled"
+    },
+    "failed": {
+      "exit_code": 1,
+      "durable_state": "failed",
+      "reason": "checksum_mismatch"
+    }
+  },
+  "receipts": [
+    {
+      "artifact_id": 12747242735,
+      "artifact_sha256": "sha256:73f351083385597fe9eb1d94816f1813643ee26071e2a185dc4a653688d99b1a",
+      "parent_receipt_sha256": "90379c11e5e56d19bd1c8ea0cfb5887b2dab17292a47d23df54e781aad9e22c0",
+      "scope": "package",
+      "platform": "windows",
+      "variant": "cli",
+      "archive_sha256": "18cc21b288518b6f32a5e20567a147ac05c4307d25d1aa441b0a54b300977a61",
+      "executable_sha256": "94b53515afc785151a55a4be5b7fd2a65637e3b035a17497ae37e5e44b737b4c",
+      "terminal_receipt_sha256": "4c7e3e3e3ca73e30a480ffd5d020dcfc13c7d297378b2541b1671ce02e7e98a3",
+      "cases_verified": 8,
+      "maximum_case_seconds": 1.6410000000000196,
+      "all_required_outcomes_and_cleanup_verified": true
+    },
+    {
+      "artifact_id": 12747167778,
+      "artifact_sha256": "sha256:2647f5fd56e6255c2610429d58cad83615fccc91014cd43330f8606c6658a830",
+      "parent_receipt_sha256": "00d2e80f5291c75a1ac735138b6f88d60c1884e10ffa726fa0bfb4b2b5765c1e",
+      "scope": "package",
+      "platform": "linux",
+      "variant": "desktop",
+      "archive_sha256": "54cca57290b6a2a9583425ca3664275dbd4efcd051b0a5c46950c503c3f05352",
+      "executable_sha256": "408bbf7615ba0e7213c086136ec04b7a9f38c64f5bcc4a23233d9103f4db9599",
+      "terminal_receipt_sha256": "396f249cf1c09212d8ad50deb6147ded5bb87ba88ea25622acb70be24b24476d",
+      "cases_verified": 8,
+      "maximum_case_seconds": 1.259768495000003,
+      "all_required_outcomes_and_cleanup_verified": true
+    },
+    {
+      "artifact_id": 12746916957,
+      "artifact_sha256": "sha256:e89f6ada0283e03258396680210c23cb643929cc273e5bc0f9b99a11febd071f",
+      "parent_receipt_sha256": "3e92c6beff885e6c9ba80888a47de4d13d5ef3f40d1cd15bd170cb94e3f66b57",
+      "scope": "package",
+      "platform": "linux",
+      "variant": "cli",
+      "archive_sha256": "8b739a5d9dfbfdaff7fecff053169b8b64a548a51c91280665a54e963beeaec1",
+      "executable_sha256": "f697df12593d9cfa86b7c18ee6d91a7971ee645188f231fdd0646ba2236587d6",
+      "terminal_receipt_sha256": "4c490f9a8457853d84d61edae0a90be9cab836653c5d40d299fd99b1374ca047",
+      "cases_verified": 8,
+      "maximum_case_seconds": 1.289672913000004,
+      "all_required_outcomes_and_cleanup_verified": true
+    },
+    {
+      "artifact_id": 12746906962,
+      "artifact_sha256": "sha256:733e6bf6c92358e8b444b63a8406c66d9cd9ac4d4cb02ade8eb0114c860af0f6",
+      "parent_receipt_sha256": "815b4096ad8016335ea0d60443089b861d7b2f39c2a7b6b5bd1c3b2f4f3405b9",
+      "scope": "source",
+      "platform": "linux",
+      "variant": null,
+      "archive_sha256": null,
+      "executable_sha256": "521905e4c45468a593fe8e71351895b030f1ca0c366f6140a6a70441e50e32b8",
+      "terminal_receipt_sha256": "6e591f32f5ca83c4ef77725e961cc3dfafce0a40a721e920bd990dc0b3eafa17",
+      "cases_verified": 8,
+      "maximum_case_seconds": 1.2519050070000048,
+      "all_required_outcomes_and_cleanup_verified": true
+    },
+    {
+      "artifact_id": 12746128238,
+      "artifact_sha256": "sha256:085db5de20723e94562e1f3befe1566ded84c0f5ecdc4e06fdde957579d71afe",
+      "parent_receipt_sha256": "51355fbd1a2b38e545998e17eb1a0c72f5369ed00b7b6b2dd87c13fcd9e9e99b",
+      "scope": "source",
+      "platform": "windows",
+      "variant": null,
+      "archive_sha256": null,
+      "executable_sha256": "d8831c86a38304cab4a489a2c097f63cb0bee3aff80ab1c0dfbd24b48a08ddb1",
+      "terminal_receipt_sha256": "d23f9cf2b417dd0a497f9bf73121ac48399feb2c65efdc993a57ac3fa348d048",
+      "cases_verified": 8,
+      "maximum_case_seconds": 1.405999999999949,
+      "all_required_outcomes_and_cleanup_verified": true
+    },
+    {
+      "artifact_id": 12745854976,
+      "artifact_sha256": "sha256:eac67133a31c31055c8c65fa272d2d64a34bd7628532588ce7561f157ad942eb",
+      "parent_receipt_sha256": "d70ad808c5a182fe1a4f257ef601ff3e886dbc3742da75c4b3aaf98ad0bcc2c7",
+      "scope": "package",
+      "platform": "windows",
+      "variant": "desktop",
+      "archive_sha256": "c4d90674b3f0889ab5fd550b0f5ce8482e6773f02cb664b8772d88b04e81ae0c",
+      "executable_sha256": "4aadb756c09d47e68f31f17bc42ea55ac314d898a10814a2129cc784eafc2d00",
+      "terminal_receipt_sha256": "9cca1b9f317aef9f19510a83a050c6ea35dcc2d235cb5489676b7a839714e1d8",
+      "cases_verified": 8,
+      "maximum_case_seconds": 4.0779999999999745,
+      "all_required_outcomes_and_cleanup_verified": true
+    }
+  ]
+}

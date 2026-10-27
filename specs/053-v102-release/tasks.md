@@ -32,15 +32,15 @@ Independent test: current public/offline pages render matching verified captures
 
 Independent test: the final PR head has terminal passing elected checks, zero unresolved actionable reviews and at most two Codex rounds; no merge/tag/release/deployment occurred.
 
-- [ ] T013 [US3] Complete root check/test, affected Python suites and final Windows/Linux source/native/package/installer CI; retain separate phase accounting in specs/053-v102-release/verification.md.
-- [ ] T014 [US3] Resolve every review comment, request at most one second Codex round, and retain review receipts through the official PR.
+- [x] T013 [US3] Complete root check/test, affected Python suites and final Windows/Linux source/native/package/installer CI; retain separate phase accounting in specs/053-v102-release/verification.md.
+- [x] T014 [US3] Resolve every review comment, request at most one second Codex round, and retain review receipts through the official PR.
 - [x] T015 [US3] Finalize executable post-merge exact-main CPU/restore/publication guidance in specs/053-v102-release/quickstart.md and concise highlights.md.
 
 ## Phase 6: Polish and delivery
 
-- [ ] T016 Converge actual implementation against all requirements and tasks in specs/053-v102-release/.
-- [ ] T017 Retain audited final-head CI/review receipts, update issue #184 and Project 7 to In review, and remove only .local/s053-work after readback.
-- [ ] T018 Verify clean final source, unmerged PR and no publication actions; hand off for owner final review with specs/053-v102-release/verification.md.
+- [x] T016 Converge actual implementation against all requirements and tasks in specs/053-v102-release/.
+- [x] T017 Retain audited final-head CI/review receipts, update issue #184 and Project 7 to In review, and remove only .local/s053-work after readback.
+- [x] T018 Verify clean final source, unmerged PR and no publication actions; hand off for owner final review with specs/053-v102-release/verification.md.
 
 ## Dependencies and execution
 
