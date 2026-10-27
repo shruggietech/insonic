@@ -88,6 +88,57 @@ func TestWorkWaitTimeoutAndCancellationKeepLastObservedState(t *testing.T) {
 	})
 }
 
+// A transport deadline can wake before context's timer publishes Err/Done.
+// Keep the deadline authoritative without depending on scheduler ordering.
+type delayedDeadlineNotification struct {
+	context.Context
+	deadline time.Time
+}
+
+func (c delayedDeadlineNotification) Deadline() (time.Time, bool) { return c.deadline, true }
+
+func TestWorkWaitTransportDeadlineBeforeContextNotification(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		w := &workspace.Workspace{}
+		w.Config.WorkspaceID = contracts.ID()
+		id := contracts.ID()
+		ctx := delayedDeadlineNotification{context.Background(), time.Now().Add(10 * time.Millisecond)}
+		calls := 0
+		call := func(context.Context, *workspace.Workspace, contracts.Request) (contracts.Response, error) {
+			calls++
+			if calls == 1 {
+				return contracts.Response{Result: catalog.Work{ID: id, State: "running"}}, nil
+			}
+			time.Sleep(time.Until(ctx.deadline))
+			if ctx.Err() != nil {
+				t.Fatal("fixture did not preserve the context-notification race")
+			}
+			return contracts.Response{}, contracts.Fail("cancelled")
+		}
+		response, err := waitForWork(ctx, w, id, contracts.ID(), time.Millisecond, call)
+		condition, ok := err.(*contracts.Error)
+		if !ok || condition.Code != "unavailable" || condition.Reason != "wait_timeout" || calls != 2 || response.Result.(catalog.Work).State != "running" {
+			t.Fatalf("transport expiry lost wait cause or last state: calls=%d response=%+v error=%v", calls, response, err)
+		}
+	})
+}
+
+func TestWorkWaitReadinessDeadlineBeforeContextNotification(t *testing.T) {
+	ctx := delayedDeadlineNotification{context.Background(), time.Now().Add(-time.Second)}
+	for _, reason := range []string{"startup_timeout", "startup_launch"} {
+		err := ensureWorkWait(ctx, &workspace.Workspace{}, func(context.Context, *workspace.Workspace) error {
+			return contracts.Condition("unavailable", reason)
+		})
+		want := reason
+		if reason == "startup_timeout" {
+			want = "wait_timeout"
+		}
+		if contracts.SafeError(err).Reason != want {
+			t.Fatalf("want %s, got %v", want, err)
+		}
+	}
+}
+
 func TestWorkWaitReadsPendingAndTerminalThroughActualRuntime(t *testing.T) {
 	ctx, cancel := qt.Context(context.Background(), "durable_work_seconds")
 	defer cancel()

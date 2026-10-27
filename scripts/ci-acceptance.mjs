@@ -141,6 +141,13 @@ async function requestJson(url, token) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
+class IncompleteJobInventory extends Error {
+  constructor(run, jobs, page, expected, stage) {
+    super(`Incomplete job inventory (${stage}; page ${page}; expected ${expected}; observed ${jobs.length}).`);
+    this.partial = { run, jobs };
+  }
+}
+
 export async function attemptMetadata(identity, token, request = requestJson) {
   if (identity.repository !== 'shruggietech/insonic' || !/^[1-9]\d*$/.test(identity.run ?? '')
       || !/^[1-9]\d*$/.test(identity.attempt ?? '') || !token) throw new Error('Invalid metadata request identity.');
@@ -163,20 +170,36 @@ export async function attemptMetadata(identity, token, request = requestJson) {
   for (let page = 1; page <= 4; page++) {
     const value = await request(`${base}/jobs?per_page=100&page=${page}`, token);
     if (!Number.isSafeInteger(value.total_count) || value.total_count < 1 || value.total_count > 400
-        || !Array.isArray(value.jobs) || value.jobs.length > 100
-        || (total !== undefined && value.total_count !== total)) throw new Error('Incomplete job inventory.');
+        || !Array.isArray(value.jobs) || value.jobs.length > 100) throw new Error('Incomplete job inventory.');
+    if (total !== undefined && value.total_count !== total) {
+      throw new IncompleteJobInventory(run, jobs, page, value.total_count, 'count changed');
+    }
     total = value.total_count;
     jobs.push(...value.jobs);
+    if (jobs.some(job => !job || !Number.isSafeInteger(job.id))) throw new Error('Invalid job inventory identifiers.');
+    if (new Set(jobs.map(job => job.id)).size !== jobs.length) {
+      throw new IncompleteJobInventory(run, jobs, page, total, 'duplicate identifiers');
+    }
     if (jobs.length === total) return { run, jobs };
-    if (jobs.length > total || value.jobs.length !== 100) throw new Error('Incomplete job inventory.');
+    if (jobs.length > total || value.jobs.length !== 100) {
+      throw new IncompleteJobInventory(run, jobs, page, total, 'short or excess page');
+    }
   }
   throw new Error('Job inventory exceeds bound.');
 }
 
 export async function waitForQualificationInputs(identity, token, { request = requestJson, now = Date.now, pause = sleep } = {}) {
-  let deadline;
+  let deadline, inventoryRetries = 0;
   for (;;) {
-    const { run, jobs } = await attemptMetadata(identity, token, request);
+    if (deadline !== undefined && now() >= deadline) throw new Error('Original qualification deadline exceeded.');
+    let metadata, incomplete;
+    try { metadata = await attemptMetadata(identity, token, request); }
+    catch (error) {
+      if (!(error instanceof IncompleteJobInventory)) throw error;
+      metadata = error.partial;
+      incomplete = error;
+    }
+    const { run, jobs } = metadata;
     if (run.head_sha !== identity.head || String(run.id) !== identity.run || String(run.run_attempt) !== identity.attempt
         || run.repository?.full_name !== identity.repository || run.path !== '.github/workflows/ci.yml'
         || !['queued', 'in_progress'].includes(run.status) || jobs.some(j => String(j.run_id) !== identity.run || String(j.run_attempt) !== identity.attempt)) {
@@ -195,7 +218,9 @@ export async function waitForQualificationInputs(identity, token, { request = re
     if (deadline !== undefined && bound !== deadline) throw new Error('Qualification readiness boundary changed.');
     deadline = bound;
     if (now() >= deadline) throw new Error('Original qualification deadline exceeded.');
-    let complete = true;
+    // Partial observations may anchor the earlier deadline and reject known
+    // failures, but can never authorize qualification. Resnapshot from page 1.
+    let complete = !incomplete;
     for (const name of ['foundation', 'docs-build']) {
       const matches = jobs.filter(j => j.name === name);
       if (matches.length > 1) throw new Error('Ambiguous qualification input.');
@@ -203,6 +228,7 @@ export async function waitForQualificationInputs(identity, token, { request = re
       if (job?.status === 'completed' && job.conclusion !== 'success') throw new Error('Required qualification input failed.');
       complete &&= job?.status === 'completed' && job.conclusion === 'success';
     }
+    if (incomplete && inventoryRetries++ >= 3) throw incomplete;
     if (complete) return deadline;
     await pause(Math.max(0, Math.min(10000, deadline - now())));
   }

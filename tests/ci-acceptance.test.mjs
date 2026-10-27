@@ -221,6 +221,86 @@ test('overlapped setup waits for slow docs inside the original qualification dea
   await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request: async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : data.run, now: () => clock }), /failed/);
 });
 
+test('transient short job inventories require a complete fresh snapshot before input acceptance', async () => {
+  const data = metadata(); data.run.status = 'in_progress';
+  data.jobs = [data.jobs[0], data.jobs[1], { ...data.jobs[1], id: 4, name: 'docs-build' }];
+  const boundary = Date.parse(data.jobs[0].completed_at);
+  let clock = boundary + 5000, snapshots = 0;
+  const request = async url => {
+    if (!url.includes('/jobs?')) return data.run;
+    snapshots++;
+    return { total_count: 4, jobs: snapshots === 1 ? data.jobs : [...data.jobs, { ...data.jobs[1], id: 5, name: 'scope' }] };
+  };
+  assert.equal(await waitForQualificationInputs(identity, 'test-only', {
+    request, now: () => clock, pause: async ms => { clock += ms; },
+  }), boundary + 3600000);
+  assert.equal(snapshots, 2, 'an incomplete inventory cannot establish successful input acceptance');
+  assert.equal(clock, boundary + 15000);
+});
+
+test('transient pagination count changes restart the whole inventory rather than joining inconsistent pages', async () => {
+  const data = metadata(); data.run.status = 'in_progress';
+  const jobs = [data.jobs[0], data.jobs[1], { ...data.jobs[1], id: 4, name: 'docs-build' },
+    ...Array.from({ length: 99 }, (_, n) => ({ ...data.jobs[1], id: n + 10, name: `fixture-${n}` }))];
+  const boundary = Date.parse(jobs[0].completed_at);
+  let clock = boundary + 5000, snapshots = 0;
+  const pages = [];
+  const request = async url => {
+    if (!url.includes('/jobs?')) return data.run;
+    const page = url.endsWith('page=1') ? 1 : 2;
+    pages.push(page);
+    if (page === 1) snapshots++;
+    return { total_count: snapshots === 1 && page === 1 ? 101 : 102,
+      jobs: page === 1 ? jobs.slice(0, 100) : jobs.slice(100) };
+  };
+  assert.equal(await waitForQualificationInputs(identity, 'test-only', {
+    request, now: () => clock, pause: async ms => { clock += ms; },
+  }), boundary + 3600000);
+  assert.deepEqual(pages, [1, 2, 1, 2]);
+  assert.equal(clock, boundary + 15000);
+});
+
+test('inventory retry remains bounded by both its original deadline and finite resnapshot count', async () => {
+  for (const nearDeadline of [true, false]) {
+    const data = metadata(); data.run.status = 'in_progress';
+    data.jobs = [data.jobs[0], data.jobs[1], { ...data.jobs[1], id: 4, name: 'docs-build' }];
+    const boundary = Date.parse(data.jobs[0].completed_at);
+    let clock = boundary + (nearDeadline ? 3595000 : 5000), snapshots = 0;
+    const request = async url => {
+      if (!url.includes('/jobs?')) return data.run;
+      snapshots++;
+      return { total_count: 4, jobs: data.jobs };
+    };
+    await assert.rejects(waitForQualificationInputs(identity, 'test-only', {
+      request, now: () => clock, pause: async ms => { clock += ms; },
+    }), nearDeadline ? /Original qualification deadline/ : /inventory/);
+    assert.equal(snapshots, nearDeadline ? 1 : 4);
+    assert.equal(clock, boundary + (nearDeadline ? 3600000 : 35000));
+  }
+});
+
+test('partial inventories cannot relax identity or readiness authority and duplicate complete pages are rejected', async () => {
+  for (const mode of ['foreign', 'readiness', 'duplicate']) {
+    const data = metadata(); data.run.status = 'in_progress';
+    data.jobs = [data.jobs[0], data.jobs[1], { ...data.jobs[1], id: 4, name: 'docs-build' }];
+    const boundary = Date.parse(data.jobs[0].completed_at);
+    let clock = boundary + 5000, snapshots = 0;
+    const request = async url => {
+      if (!url.includes('/jobs?')) return data.run;
+      snapshots++;
+      const jobs = structuredClone(data.jobs);
+      if (mode === 'foreign') jobs[1].run_attempt = 999;
+      if (mode === 'readiness' && snapshots > 1) jobs[0].completed_at = new Date(boundary + 1000).toISOString();
+      if (mode === 'duplicate') jobs.push({ ...jobs[1], name: 'scope' });
+      return { total_count: 4, jobs };
+    };
+    await assert.rejects(waitForQualificationInputs(identity, 'test-only', {
+      request, now: () => clock, pause: async ms => { clock += ms; },
+    }), mode === 'foreign' ? /identity differs/ : mode === 'readiness' ? /boundary changed/ : /inventory/);
+    assert.equal(snapshots, mode === 'foreign' ? 1 : mode === 'readiness' ? 2 : 4);
+  }
+});
+
 test('first attempt uses workflow creation while retaining later attempt-record creation', async () => {
   const data = firstAttempt(0), calls = [];
   const attempt = { ...data.run, created_at: new Date(Date.parse(data.run.run_started_at) + 1000).toISOString() };

@@ -6,11 +6,19 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Join an existing runtime after a transient readiness miss while its workspace owner lock remains held, instead of attempting an unnecessary detached launch from the terminal client. Preserve the existing startup deadline, cold-start conflict handling and protected-input loading.
+
+- Preserve `work wait` timeout classification when an IPC deadline expires before the context timer publishes its notification. The unchanged wait budget reports `wait_timeout` with the last observed work state; explicit interruption and concrete startup failures remain distinct.
+
 - Publish complete documentation through bounded incremental Git tree requests, with verified standalone blobs for large text and binary files. Require the complete original path, mode, size and content inventory before advancing Pages; retain historical routes, release authority, non-forced updates and exact build/live verification.
 
 ### Changed
 
 - 2026-10-27: Documentation staging and build requests share the original enclosing deadline, with each network wait bounded by remaining time and serial mutative requests paced at least one second apart. GitHub JSON operations and asset uploads report bounded method, query-free endpoint, status, request size and recognized server explanations without echoing credentials, request bodies or arbitrary server text. This replaces the oversized single-tree request without adding a local Git transport or changing publication authorization.
+
+- 2026-10-27: Actual-terminal CI qualification elects the existing sanitized startup-stage/native-error hook and captures bounded process, request/work/session and generated-event observations before owned teardown. Failure receipts remain distinct from successful terminal acceptance; private paths, arbitrary error text, inputs and environment values are excluded. Terminal containment and all eight acceptance cases remain required.
+
+- 2026-10-27: Overlapping qualification setup can resnapshot a short, count-changing or duplicate job inventory up to three times under its original verified readiness deadline. Partial observations can retain that bound and reject known failures, but never authorize work. Complete unique inventories, attempt identity and terminal audits remain mandatory; clocks and required checks are unchanged.
 
 ## [1.0.2] - 2026-10-27
 

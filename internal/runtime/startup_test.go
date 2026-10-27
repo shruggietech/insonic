@@ -5,17 +5,179 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
 	qt "github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
+	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func TestStartupJoinsHeldOwnerAfterReadinessProbeExpires(t *testing.T) {
+	w, err := workspace.Init(t.TempDir(), "Busy owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lock, err := w.Lock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Unlock()
+	listener, cleanup, err := listen(w)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	ownerDone := make(chan error, 1)
+	session := contracts.ID()
+	go func() {
+		for i := 0; i < 2; i++ {
+			conn, e := listener.Accept()
+			if e != nil {
+				ownerDone <- e
+				return
+			}
+			conn.SetDeadline(time.Now().Add(qt.Duration("readiness_seconds")))
+			raw, e := frame(conn)
+			var request contracts.Request
+			if e == nil {
+				e = decode(raw, &request)
+			}
+			if e != nil {
+				conn.Close()
+				ownerDone <- e
+				return
+			}
+			if i == 0 {
+				// Observe the actual first probe's deadline closing its connection.
+				// The owner remains alive and holds authority throughout that miss.
+				_, e = io.Copy(io.Discard, conn)
+				conn.Close()
+				if e != nil {
+					ownerDone <- e
+					return
+				}
+				continue
+			}
+			response := contracts.Response{Kind: "runtime-response", Version: contracts.Version,
+				WorkspaceID: w.Config.WorkspaceID, SessionID: session, RequestID: request.RequestID}
+			raw, e = json.Marshal(response)
+			if e == nil {
+				_, e = conn.Write(append(raw, '\n'))
+			}
+			conn.Close()
+			ownerDone <- e
+		}
+	}()
+	var launches atomic.Int32
+	err = ensureInput(context.Background(), w, "fixture", nil,
+		func(context.Context, string, []string, []byte, func([]byte) error) ([]byte, error) {
+			launches.Add(1)
+			return nil, contracts.Condition("unavailable", "startup_launch")
+		})
+	cleanup() // Also releases the listener on the intentionally failing old path.
+	select {
+	case ownerErr := <-ownerDone:
+		if err == nil && ownerErr != nil {
+			t.Fatal(ownerErr)
+		}
+	case <-time.After(qt.Duration("cleanup_seconds")):
+		t.Fatal("owned probe listener did not release")
+	}
+	if err != nil || launches.Load() != 0 {
+		t.Fatalf("live owner was unnecessarily relaunched: launches=%d error=%v", launches.Load(), err)
+	}
+}
+
+func TestStartupHeldOwnerHonorsCallerDeadlineAndCancellation(t *testing.T) {
+	for _, cancelled := range []bool{false, true} {
+		t.Run(fmt.Sprint(cancelled), func(t *testing.T) {
+			w, err := workspace.Init(t.TempDir(), "Unavailable held owner")
+			if err != nil {
+				t.Fatal(err)
+			}
+			lock, err := w.Lock()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer lock.Unlock()
+			ctx, finish := context.WithTimeout(context.Background(), 50*time.Millisecond)
+			defer finish()
+			if cancelled {
+				finish()
+			}
+			launches := 0
+			err = ensureInput(ctx, w, "fixture", nil,
+				func(context.Context, string, []string, []byte, func([]byte) error) ([]byte, error) {
+					launches++
+					return nil, contracts.Condition("unavailable", "startup_launch")
+				})
+			condition, ok := err.(*contracts.Error)
+			if !ok || launches != 0 || (!cancelled && condition.Reason != "startup_timeout") || (cancelled && condition.Code != "cancelled") {
+				t.Fatalf("held authority lost caller bound: launches=%d error=%v", launches, err)
+			}
+		})
+	}
+}
+
+func TestStartupLaunchesOnlyAfterUnresponsiveOwnerReleasesAuthority(t *testing.T) {
+	w, err := workspace.Init(t.TempDir(), "Releasing owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lock, err := w.Lock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Unlock()
+	listener, cleanup, err := listen(w)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	done := make(chan error, 1)
+	go func() {
+		conn, e := listener.Accept()
+		if e == nil {
+			conn.SetDeadline(time.Now().Add(qt.Duration("readiness_seconds")))
+			_, e = frame(conn)
+			if e == nil {
+				_, e = io.Copy(io.Discard, conn) // First readiness deadline expires.
+			}
+			conn.Close()
+		}
+		cleanup()
+		lock.Unlock()
+		done <- e
+	}()
+	launches := 0
+	err = ensureInput(context.Background(), w, "fixture", nil,
+		func(context.Context, string, []string, []byte, func([]byte) error) ([]byte, error) {
+			launches++
+			// A genuine replacement bootstrap failure must retain its cause.
+			return nil, contracts.Condition("unavailable", "runtime_catalog")
+		})
+	cleanup()
+	select {
+	case ownerErr := <-done:
+		if ownerErr != nil {
+			t.Fatal(ownerErr)
+		}
+	case <-time.After(qt.Duration("cleanup_seconds")):
+		t.Fatal("releasing owner fixture did not stop")
+	}
+	condition, ok := err.(*contracts.Error)
+	if !ok || condition.Reason != "runtime_catalog" || launches != 1 {
+		t.Fatalf("released owner did not preserve bootstrap outcome: launches=%d error=%v", launches, err)
+	}
+}
 
 func startupID(args []string) string {
 	for i, arg := range args {
@@ -186,7 +348,7 @@ func TestStartupInputDeadlineIsBounded(t *testing.T) {
 	}
 }
 
-func TestStartupRetriesAfterCompetingOwnerFinishesShutdown(t *testing.T) {
+func TestStartupReconcilesOwnerWinningAfterAuthorityCheck(t *testing.T) {
 	w, err := workspace.Init(t.TempDir(), "Closing owner")
 	if err != nil {
 		t.Fatal(err)
@@ -205,7 +367,12 @@ func TestStartupRetriesAfterCompetingOwnerFinishesShutdown(t *testing.T) {
 		launches++
 		report := contracts.StartupReport{Kind: "runtime-startup", Version: contracts.Version, StartupID: startupID(args), WorkspaceID: w.Config.WorkspaceID, State: "failed", Stage: "startup", Code: "conflict", Reason: "runtime_owner"}
 		if launches == 1 {
-			// Release the competing owner only after its conflict was observed.
+			// A competing owner wins after the pre-launch authority observation.
+			lock, err = w.Lock()
+			if err != nil {
+				return nil, err
+			}
+			// Release it only after its conflict was observed.
 			raw, _ := json.Marshal(report)
 			err := validate(raw)
 			lock.Unlock()
@@ -225,6 +392,7 @@ func TestStartupRetriesAfterCompetingOwnerFinishesShutdown(t *testing.T) {
 	}
 	ctx, cancel := qt.Context(context.Background(), "readiness_seconds")
 	defer cancel()
+	lock.Unlock()
 	err = ensureInput(ctx, w, "fixture", nil, start)
 	stop()
 	if launches > 1 {

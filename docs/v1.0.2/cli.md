@@ -57,6 +57,10 @@ Each data file is bounded to 1 MiB, with at most two predecessors (`FILE.1` and 
 
 Hidden runtime startup reports readiness or a fixed classified failure through a bounded 4096-byte internal channel, with a shared ten-second startup deadline. Early child exit and malformed reports fail promptly. Profile/control-directory, ownership, endpoint, credential bootstrap and application/catalog failures give supported corrections without repeating protected input. A competing cold client joins the live owner; the detached owner survives its launching client and retains existing idle/work lifetime.
 
+A missed readiness probe does not authorize replacing a runtime whose workspace owner lock is held. Clients continue observing that owner within the same startup deadline and start a replacement only after authority becomes free. A genuine launch or bootstrap failure retains its existing classified result.
+
+The selected wait deadline remains authoritative when an IPC read expires before the context timer publishes its cancellation notification. Such expiry reports `wait_timeout` and retains the last observed state; explicit caller cancellation remains `wait_interrupted`, and independently observed startup failures retain their actual cause.
+
 ## Machine output
 
 Rejected input carries a stable generated `reason` such as `json_syntax`, `json_duplicate_key`, `input_required`, `input_type`, `input_enum`, `input_range`, `input_length` or `input_version`. Optional `validation` metadata contains the known field `pointer`, a one-based byte `offset` where available, the expected JSON type, or a named constraint and exact integer bound. Dynamic object keys and array positions appear as `*`; submitted values are never repeated. Syntax positions count bytes, string length constraints count Unicode code points, and `maxBytes` constraints explicitly count UTF-8 bytes. Use the same command's `--help` for accepted shapes and enum choices.
