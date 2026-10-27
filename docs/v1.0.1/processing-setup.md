@@ -37,36 +37,11 @@ Select an existing absolute interpreter path with `mode: "reuse"` and `python_pa
 
 For fully offline managed setup, add `offline_assets` with an absolute directory containing every declared archive and wheel under its exact catalog filename. Missing or damaged files fail locally. The installer uses only these files; it does not resolve alternate versions or fetch missing dependencies. Offline model reuse is separate.
 
-An offline plan reports `download_bytes: 0`. `profile_download_bytes` retains the nominal complete profile size. `local_assets` reports required and verified expected byte totals, plus `missing_bytes` for missing or unusable declared files. It checks only the elected runtime, installer and wheels. Each failure identifies a logical filename, fixed role and verification reason with corrective advice; unrelated files do not contribute to these totals. An already verified accepted environment needs no new asset inspection or transfer.
-
-Worker and model file errors distinguish missing, unreadable, nonregular, wrong-size and wrong-hash assets. The optional `error.asset` contains only a generated role and bounded slash-relative logical name. The same reason and correction survive JSON responses, human output and durable work inspection. These errors exclude owner paths, resolved credentials and raw tool output.
-
 Existing explicit processing-tools configurations remain supported under Advanced. Accepted work freezes its interpreter, worker and environment receipt. Package-derived companion defaults are resolved from the current complete installation for future work, preserving relocation; accepted work keeps its original bytes.
-
-## Diagnose worker inspection
-
-Run `insonic --workspace LIBRARY workers inspect --input inspection.json --json` with `{"role":"recognition"}` or `{"role":"diarization"}`. Omit `python_path` to inspect the configured interpreter. Inspection imports the selected engine and checks CPU/CUDA prerequisites without loading a model. Setup additionally inventories and hashes the environment before publishing its receipt.
-
-The optional `probe` reports a fixed `mode`, `stage`, `reason`, native `elapsed_ms` and effective `budget_ms`. Its optional `child` contains an ordered `checkpoints` list and bounded file/hash counts. Native elapsed time begins before interpreter hashing. Child elapsed time begins inside the isolated interpreter; these clocks have different origins and must not be subtracted or added as stage durations. Observations are cumulative checkpoints, rather than independent phase durations. A failed or stopped interpreter may leave its last completed checkpoint; it does not prove later stages ran.
-
-| Reason | Meaning and correction |
-| --- | --- |
-| `interpreter_missing`, `interpreter_unreadable` | Select an existing readable interpreter or prepare the managed role. |
-| `home_unavailable`, `launch_failed`, `process_failed` | Check local workspace access and the selected runtime, then retry the role. |
-| `package_missing`, `version_mismatch`, `import_failed`, `cpu_unavailable` | Prepare the supported environment or correct its required libraries. |
-| `inventory_limit`, `inventory_unreadable` | Use a bounded readable environment; setup does not accept an incomplete snapshot. |
-| `output_invalid`, `output_limit`, `checkpoint_invalid` | Retry a supported runtime; malformed or excessive diagnostics cannot establish readiness. |
-| `deadline`, `cancelled` | The enclosing time allowance expired or the request was canceled. Retry with an available enclosing allowance. |
-
-The standalone probe retains its sixty-second maximum and inherits any earlier caller deadline. Readiness shares one sixty-second allowance across its prerequisites. It retains already observed role facts and labels unattempted or interrupted prerequisites `unknown`; an exhausted allowance does not assert an import failure or changed dependency bytes. Hash verification also distinguishes an interrupted check from an actual checksum mismatch. Disconnecting an ephemeral inspection cancels its owned child. Durable setup retains its work identity and ordinary work cancellation behavior.
-
-Human CLI output and desktop setup show the same bounded summary. Failed setup retains `worker_probe` facts in the durable work result and removes its fresh failed environment without publishing settings. Diagnostics exclude raw exceptions, tool output and host paths. Existing receipts without optional probe facts remain valid after their original byte and compatibility checks. Neither a successful diagnostic nor a warm import replaces receipt hashing, model verification or actual processing acceptance.
 
 ## Acquire exact model bundles
 
 The product provides Whisper Tiny (MIT, 78,203,619 bytes) and Community-1 (CC BY 4.0, 32,821,421 bytes). Each choice has an immutable upstream revision and a complete named-file manifest. Inspect `insonic --workspace LIBRARY models defaults --json` for identities, license, model card and current state.
-
-Community-1 segmentation frames with no overlap against decoded audio are discarded and diagnosed as padding-only predictions. Overlapping boundary extensions retain the 250 ms limit and are intersected with the real source interval with diagnostics. Generic adapter turns remain strictly bounded by decoded audio. Accepted cues never gain source time or samples from model padding.
 
 1. Save `model-preview.json` using the input below, selecting `whisper-tiny` or `community-1`.
 2. Run `insonic --workspace LIBRARY models prepare --input model-preview.json --json`. Inspect verified reuse, download bytes, scratch space and the elected storage profile. Filesystem capacity is observed when available. Colocated scratch and artifact storage use a combined peak budget, including download and staging copies; unknown volume relationships are conservatively treated as shared. S3 capacity remains unknown.
@@ -81,17 +56,13 @@ An absolute `local_directory` reuses a complete existing snapshot after checking
 
 Community-1 downloads require the upstream model access terms and a protected Hugging Face read token. Desktop Settings can register a token through native protected input and generate its opaque credential reference. CLI users register it through the documented [credential commands](secrets.md), then supply only `credential_id` to model preparation. Replace the same protected secret to rotate its token. Omitting the reference when preparing an existing choice retains its previously elected reference. A new gated download without the required protected reference is rejected before enqueueing; previews and local verified reuse need no download token. A supplied reference does not prove upstream authentication or model access. Credential values never enter manifests, work payloads or command arguments.
 
-Preparation previews distinguish `credential_state`: `missing`, `locked`, `rejected`, `unavailable`, locally resolvable `available`, or `not_required`. An indexed reference alone does not establish readiness. The preview resolves required protected references locally and immediately clears the returned bytes; it sends no authentication request. `access_ready` describes this local prerequisite, while `upstream_authorization: "not_checked"` keeps upstream access separate. Complete verified installed or local reuse requires no download credential.
-
-A failed local credential-status check reports `unavailable` without asserting that the reference is missing. Acquisition without its required locally resolvable credential returns `unavailable` with the generated reason `model_access_required`, before work is enqueued.
-
 Pinned Hugging Face resolve requests may follow a bounded set of official model CDN redirects. Cross-origin requests strip credentials and cookies; signed CDN URLs are transient. All model bytes still require declared sizes and hashes. Custom sources retain their original same-origin transport policy.
 
 ## Inspect task readiness and select a pipeline
 
 `insonic --workspace LIBRARY processing readiness --json` reports five independent tasks: import, existing subtitles, transcription, diarization and training. Each includes actual prerequisites, observed availability, identities and corrective actions. `doctor` and `pipelines inspect` expose the same facts. Add `--input FILE` to inspect a specific `pipeline_id`, `pipeline_revision` and optional `dataset_id`.
 
-Readiness verifies tools, environment imports, model bytes, selected storage and the requested device. It establishes prerequisites, rather than successful acoustic inference. Local custom trainer readiness checks the elected executable and support-file hashes without invoking the trainer. `file_verified` proves those prerequisites, without claiming protocol compatibility or model quality. Hosted routes remain `configured_not_probed`; a task with only unprobed prerequisites reports `unknown`, while an observed missing prerequisite reports `needs_attention`. Training additionally requires an elected current nonempty dataset. Pipeline usability combines the elected tasks, so a training-only definition does not require unelected recognition or diarization environments. The pyannote-profile adapter enrolls speaker embeddings; it does not retrain Community-1.
+Readiness verifies tools, environment imports, model bytes, selected storage and the requested device. It establishes prerequisites, rather than successful acoustic inference. Hosted routes and custom training adapters remain explicitly configured/not-probed where no bounded verification has run. Training additionally requires an elected nonempty dataset. The pyannote-profile adapter enrolls speaker embeddings; it does not retrain Community-1.
 
 Desktop Settings can save a Local CPU pipeline with the exact builtin model IDs. Select it in Library when processing media, or inspect/edit it in Pipelines. Pipeline saving does not download weights or begin inference. Existing CLI [pipeline definitions](pipelines.md) provide the same selection.
 

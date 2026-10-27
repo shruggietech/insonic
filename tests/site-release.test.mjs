@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { documentationTarget, publicationManifest, publicationDocument, releaseDownloads } from '../site/lib/release-status.mjs';
 
 test('release rendering is elected and leaves source/baseline publication state intact', () => {
-  const source = { latest: '1.0.1', versions: [{ version: '0.0.0', status: 'specification' }, { version: '1.0.1', status: 'candidate' }] };
+  const source = { latest: '1.0.2', versions: [{ version: '0.0.0', status: 'specification' }, { version: '1.0.2', status: 'candidate' }] };
   assert.equal(documentationTarget({}), 'snapshot');
   assert.throws(() => documentationTarget({ INSONIC_DOCUMENTATION_TARGET: 'published-maybe' }));
   const rendered = publicationManifest(source, 'release');
@@ -15,8 +15,8 @@ test('release rendering is elected and leaves source/baseline publication state 
 });
 
 test('release artifact index removes the candidate assertion while ordinary snapshots preserve it', () => {
-  const source = '# insonic v1.0.1\n\nv1.0.1 documents the prepared release candidate. Official product downloads have not been published.\n';
-  const entry = { version: '1.0.1', status: 'candidate' };
+  const entry = { version: '1.0.2', status: 'candidate' };
+  const source = `# insonic v${entry.version}\n\nv${entry.version} documents the prepared release candidate. Official product downloads have not been published.\n`;
   const manifest = { latest: entry.version, versions: [entry] };
   assert.equal(publicationDocument(source, publicationManifest(manifest, 'snapshot').versions[0], 'index'), source);
   const released = publicationManifest(manifest, 'release').versions[0];
@@ -26,20 +26,26 @@ test('release artifact index removes the candidate assertion while ordinary snap
   assert.doesNotMatch(output, /candidate|unpublished|not been published/);
 });
 
-test('released downloads identify all four current platform/variant assets', () => {
-  const assets = releaseDownloads('1.0.1');
-  assert.equal(assets.length, 2);
-  assert.deepEqual(assets.map(item => item.platform), ["windows_amd64", "linux_amd64"]);
-  assert.equal(releaseDownloads("1.0.0", { historical: true }).length, 3);
-  assert.equal(releaseDownloads("1.0.1", { historical: true }).length, 2);
+test('current release downloads identify all six exact-tag product assets', () => {
+  const assets = releaseDownloads('1.0.2');
+  assert.deepEqual(assets.map(item => item.platform), ['windows_amd64', 'linux_amd64']);
+  const urls = assets.flatMap(item => ['desktop', 'cli', 'setup', 'installer'].filter(key => item[key]).map(key => item[key]));
+  assert.equal(new Set(urls).size, 6);
   for (const item of assets) for (const variant of ['desktop', 'cli'])
-    assert.equal(item[variant], `https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_${item.platform}_${variant}${item.extension}`);
+    assert.equal(item[variant], `https://github.com/shruggietech/insonic/releases/download/v1.0.2/insonic_1.0.2_${item.platform}_${variant}${item.extension}`);
+  assert.equal(assets[0].setup, 'https://github.com/shruggietech/insonic/releases/download/v1.0.2/insonic_1.0.2_windows_amd64_setup.exe');
+  assert.equal(assets[0].installer, 'https://github.com/shruggietech/insonic/releases/download/v1.0.2/insonic_1.0.2_windows_amd64_installer.msi');
+  assert.equal(assets[1].setup, undefined);
+  assert.equal(assets[1].installer, undefined);
 });
 
-test('MSI is an additional current Windows choice while immutable 1.0.0 has no installer link', () => {
-  const current = releaseDownloads('1.0.1');
-  assert.equal(current[0].installer, 'https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_windows_amd64_installer.msi');
-  assert.equal(current[1].installer, undefined);
-  assert.equal(releaseDownloads('1.0.0')[0].installer, undefined);
-  assert.equal(releaseDownloads('1.0.0', { historical: true })[0].installer, undefined);
+test('immutable historical releases retain their original platform and installer choices', () => {
+  const initial = releaseDownloads('1.0.0', { historical: true });
+  assert.equal(initial.length, 3);
+  assert.equal(initial[0].setup, undefined);
+  assert.equal(initial[0].installer, undefined);
+  const previous = releaseDownloads('1.0.1', { historical: true });
+  assert.equal(previous.length, 2);
+  assert.equal(previous[0].setup, undefined);
+  assert.equal(previous[0].installer, 'https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_windows_amd64_installer.msi');
 });

@@ -201,14 +201,21 @@ def prepare(version, date, highlights, root=ROOT):
         paths = [base] if base.is_file() else list(base.rglob('*'))
         for path in paths:
             if not path.is_file() or path.suffix not in ('.go', '.mjs', '.tsx', '.ts', '.py', '.json'): continue
-            if path.relative_to(root).as_posix() in ('tests/check.test.mjs', 'tests/ci-scope.test.mjs', 'tests/brand-sync.test.mjs'): continue
+            if path.relative_to(root).as_posix() in ('tests/check.test.mjs', 'tests/ci-scope.test.mjs', 'tests/brand-sync.test.mjs', 'tests/fixtures/media/manifest.json'): continue
             if path.is_relative_to(root / 'tests/fixtures/cueson') or path.is_relative_to(root / 'internal/subtitles'): continue
             if 'schemas' in path.parts and path.parent.name.startswith('v'): continue
             if path.suffix == '.json' and not path.is_relative_to(root / 'tests'): continue
             text = path.read_text(encoding='utf-8')
-            # Exact quoted version tokens only; upstream versions and git IDs stay unchanged.
-            rewritten = text.replace('"' + old + '"', '"' + version + '"').replace("'" + old + "'", "'" + version + "'").replace(f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/', f'https://raw.githubusercontent.com/{REPOSITORY}/v{version}/schemas/v{version}/').replace('schemas/v' + old + '/', 'schemas/v' + version + '/').replace('"v' + old + '/', '"v' + version + '/').replace("'v" + old + '/', "'v" + version + '/')
+            # Advance owned envelopes and asset/routes; independent upstream identities stay unchanged.
+            rewritten = text.replace('"' + old + '"', '"' + version + '"').replace("'" + old + "'", "'" + version + "'").replace(f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/', f'https://raw.githubusercontent.com/{REPOSITORY}/v{version}/schemas/v{version}/').replace('schemas/v' + old + '/', 'schemas/v' + version + '/').replace('docs/v' + old + '/', 'docs/v' + version + '/').replace('insonic_' + old + '_', 'insonic_' + version + '_').replace("'v" + old + "'", "'v" + version + "'").replace('"v' + old + '"', '"v' + version + '"').replace('"v' + old + '/', '"v' + version + '/').replace("'v" + old + '/', "'v" + version + '/')
             if rewritten != text: changes[path] = rewritten
+    # The embedded resource catalog has an owned release envelope, while all
+    # dependency versions and hashes inside its profiles retain their identity.
+    worker_catalog_path = root / 'internal/workers/assets/catalog.json'
+    if worker_catalog_path.is_file():
+        worker_catalog = read_json(worker_catalog_path)
+        worker_catalog['schema_version'] = version
+        changes[worker_catalog_path] = json.dumps(worker_catalog, indent=2) + '\n'
     manifest = read_json(root / 'docs/versions.json')
     entry = json.loads(json.dumps(next(e for e in manifest['versions'] if e['version'] == old)))
     entry.update(version=version, status='candidate'); manifest['latest'] = version; manifest['versions'].append(entry)

@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 )
 
-const Version = "1.0.1"
+const Version = "1.0.2"
 
 // SupportedDocumentVersion admits retained release documents without changing
 // their bytes, revisions or receipt digests. IPC and installed package identity

@@ -4,14 +4,6 @@ Settings provides shared managed CPU setup, existing-environment inspection, exa
 
 Optional [first-run setup](setup.md) guides workspace location, backend choice, processing, connected services and first import. Skip stages or choose Set up later without blocking normal commands; reopen from Settings with accepted configuration and work intact.
 
-## Startup failures
-
-Windows browser initialization returns synchronous loader errors and asynchronous environment/controller failures through the same desktop startup reporting path. An existing regular file at the intended browser profile path is reported as a directory error before native initialization. A failed startup skips the ordinary application loop, closes its owned window and partial browser resources on the UI thread after native callbacks return, and leaves a later launch free to use the intended profile. There is no automatic retry or profile deletion.
-
-If workspace selection or the desktop host returns a startup error, a native error dialog shows the bounded underlying cause and a correction to check the indicated dependency or directory access. The same message goes to stderr for launches from a terminal. A returned failure releases the desktop-owned playback transport and menu observers.
-
-The application attempts a private startup event under its per-user configuration directory, in `insonic/diagnostics/desktop-startup.jsonl` (on Windows, %APPDATA%\insonic\diagnostics). Events contain a timestamp, generated startup stage and an available unsigned numeric operating-system error or HRESULT. Native stages distinguish environment creation/completion, controller setup, browser access, bootstrap requests, message-loop interruption and owning-window destruction. They exclude arbitrary error text, paths, arguments and provider output. Each file is bounded to 1 MiB with two predecessors. The dialog reports the saved location or that diagnostics could not be saved; a storage failure never replaces the original cause. Windows uses a current-user protected ACL and Linux uses mode 0600. Explicit unattended qualification writes its controlled receipts without opening failure dialogs or writing ordinary per-user startup logs.
-
 ## Shared operations
 
 The application is CLI-first. Every core capability has an automation-ready CLI contract, and the GUI installs the CLI and wraps equivalent shared-runtime operations. Both use the same workspace IDs, job states, pipeline definitions, query parameters and errors. No core behavior lives only in GUI code. Shared capability and release matrices record which client exposes each operation.
@@ -86,8 +78,6 @@ The Library accepts audio and video inputs and retains canonical audio with impo
 
 AI query assistance shows proposed read-only queries by default. An explicit `mode: "auto-run"` request or saved auto-run preference can execute suggestions after parsing, read-only validation and configured limits. This preference avoids repeated confirmation while retaining direct queries when assistance is disabled. Invalid or unsupported suggestions report their error without execution.
 
-The native File menu contains Exit. On Windows, Alt+F opens File and X chooses Exit; Alt+F4 and the window close control retain their ordinary behavior. Exit also works before selecting a library. Closing the desktop releases its playback tickets, materialization handles and loopback playback listener. The shared runtime owns accepted work independently of the window.
-
 Progress distinguishes decoding, model download, inference, subtitle publication and graph indexing. Closing the window does not silently cancel durable jobs. Users can keep work running, cancel selected jobs and retry interrupted durable operations. Runtime restarts show interrupted attempts explicitly and offer resumable work.
 
 Failed or interrupted supplied-turn assembly requires resubmitting its transient inputs through the Library assembly controls. Jobs explains this action; generic retry does not reconstruct unsaved turn inputs. Durable import, processing and model-acquisition work retains its shared retry behavior.
@@ -98,21 +88,9 @@ Implemented Library playback uses private native tickets scoped to the selected 
 
 Unsupported media and nonzero source clocks receive a bounded temporary WAV or MP4 preview made by the configured hash-verified FFmpeg tools. Original bytes remain immutable. Preview responses identify served and source digests separately and carry the measured difference between original and preview timelines used when seeking. Zero-clock compatible originals play directly. Current cue clocks reach JavaScript as exact decimal strings; raw capture pages retain byte-exact JSON rather than rounding nanosecond integers through JavaScript numbers. Cues and speaker intervals always resolve against current embedded Cueson authority.
 
-## Compact controls
-
-Desktop forms use compact spacing and content-sized actions. Checkboxes retain a small square native glyph inside an associated label with a minimum 44 by 44 pixel activation target. Clicking the label or pressing Space on the focused checkbox changes its value. Keyboard focus remains visible.
-
-The window opens at 1200 by 800 and supports a 720 by 600 minimum. Enlarged text can wrap commands; the header and content scroll independently so commands remain reachable. Wide tables keep their own horizontal scrolling region.
-
-![Compact Library controls and workspace navigation](../screenshots/v1.0.1/desktop-library.png)
-
-![Settings at the minimum window size with text enlarged to 200 percent](../screenshots/v1.0.1/desktop-settings-enlarged.png)
-
-These images record a clean source build in an isolated Chromium renderer. The capture receipt records the window, renderer scale, text scale and geometry observations. Renderer scale checks do not establish behavior under every operating-system display setting. Native Windows and Linux qualification separately observes the controls in their application webviews.
-
 ## Native package layouts
 
-insonic supports a recommended unsigned Windows x86-64 setup EXE containing its selectable-client raw MSI, Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. [Windows installation, updates and removal](windows-installation.md) covers MSI controls, first launch, optional setup and conditional download/Windows warnings. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.
+insonic supports an unsigned Windows x86-64 MSI with selectable clients, Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. [Windows installation, updates and removal](windows-installation.md) covers MSI controls, first launch, optional setup and conditional download/Windows warnings. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.
 
 | Package | Included clients | Windows prerequisites | Linux prerequisites |
 | --- | --- | --- | --- |
@@ -214,7 +192,7 @@ Settings displays effective packaged tools read-only. Selecting “Edit explicit
 
 Support keyboard navigation, readable contrast, reduced motion, scalable text, screen-reader labels and tabular alternatives for timeline/graph content. Automatic light/dark styling follows the upstream brand tokens and user preference. Graph physics can be paused and a layout saved.
 
-The compact **Offline help** button opens a controlled documentation view inside the application, including before a workspace is selected. **Close documentation** returns keyboard focus to that button. The view loads the installed version’s documentation-only bundle, styles, fonts and local navigation under a policy that blocks network connections. Local links remain in that view. Activating an external web reference sends its address to the system browser, keeping the offline view open. Missing or incompatible help produces an actionable correction to use the installed `help/index.html` or repair the installation. The bundle is assembled from `site/offline/`. The public product landing page is part of the website export in `site/out/` and is excluded from installed help. It works without a network connection and clearly states the version. Online help offers the matching version first and latest docs as a deliberate navigation choice. The GUI cannot imply that a feature documented for a newer release exists in an older installation.
+Help opens the documentation-only bundle from `site/offline/` for the installed application version. The public product landing page is part of the website export in `site/out/` and is excluded from installed help. It works without a network connection and clearly states the version. Online help offers the matching version first and latest docs as a deliberate navigation choice. The GUI cannot imply that a feature documented for a newer release exists in an older installation.
 
 The documentation website and bundled offline help follow the operating-system theme by default. A sun/moon toggle switches between light and dark mode and remembers the choice when browser storage is available. This setting controls documentation appearance independently of the desktop application's preference.
 

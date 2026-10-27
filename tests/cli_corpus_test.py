@@ -75,7 +75,7 @@ class CoverageTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.exe=Path(self.temp.name)/'insonic';self.exe.write_bytes(b'qualified image')
-    def recorder(self): return Coverage({'media list':HELP},self.exe,'1.0.1')
+    def recorder(self): return Coverage({'media list':HELP},self.exe,'1.0.2')
     def test_derive_authority_and_reject_malformed_help(self):
         flags=installed_authority({'media list':HELP})['media list']
         self.assertTrue(flags['--workspace']['value'])
@@ -101,7 +101,7 @@ class CoverageTests(unittest.TestCase):
         c.observe(['media','list','--','--not-an-option'],0)
         self.assertEqual(c.finish({})['controls']['literal-separator'],1)
     def test_identity_and_outcome_cannot_be_invented(self):
-        with self.assertRaises(ValueError): Coverage({'media list':HELP},self.exe,'1.0.1',{'scope':'package','inventory_sha256':'0'*64})
+        with self.assertRaises(ValueError): Coverage({'media list':HELP},self.exe,'1.0.2',{'scope':'package','inventory_sha256':'0'*64})
         c=self.recorder()
         with self.assertRaises(ValueError): c.assert_example({'command':'unknown','example':[],'outcome':'asserted-success','assertion':'materialized-bytes'})
         c.observe(['media','list','--limit','1'],0,scenario='examples')
@@ -116,9 +116,9 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(row['options']['--limit']['scenarios'],['query'])
         with self.assertRaises(ValueError):c.observe(['media','list'],0,scenario='missing')
         identity={'scope':'package','archive_sha256':'a'*64,'inventory_sha256':'b'*64,'executable_sha256':hashlib.sha256(self.exe.read_bytes()).hexdigest()}
-        self.assertEqual(Coverage({'media list':HELP},self.exe,'1.0.1',identity).finish({})['identity']['archive_sha256'],'a'*64)
+        self.assertEqual(Coverage({'media list':HELP},self.exe,'1.0.2',identity).finish({})['identity']['archive_sha256'],'a'*64)
         identity['executable_sha256']='0'*64
-        with self.assertRaises(ValueError):Coverage({'media list':HELP},self.exe,'1.0.1',identity)
+        with self.assertRaises(ValueError):Coverage({'media list':HELP},self.exe,'1.0.2',identity)
 
     def test_failed_observations_retain_only_schema_categories(self):
         c=self.recorder()
@@ -136,7 +136,7 @@ class CoverageTests(unittest.TestCase):
             if kwargs.get('expected')==2:return {'error':{'code':'invalid_request','message':'not retained'}}
             return {'result':{'help':HELP if len(args)>1 else 'Commands: list'}}
         pages=qualify_read_only(invoke,[['media','list']],self.exe.parent,self.exe.parent/'missing',observations=observations)
-        c=Coverage(pages,self.exe,'1.0.1')
+        c=Coverage(pages,self.exe,'1.0.2')
         for args,code,failure,help_only in observations:c.observe(args,code,failure=failure,help_only=help_only)
         value=c.finish({});row=value['commands'][0]
         self.assertEqual(value['controls']['help-only'],4)
