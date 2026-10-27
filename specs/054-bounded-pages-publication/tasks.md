@@ -36,9 +36,15 @@
 
 - [x] T010 Update current maintainer publication contract and dated unreleased decision in docs/v1.0.2/development.md and CHANGELOG.md (FR-008).
 - [x] T011 Run focused/full maintained Python suites, npm run check, npm test and affected site tests/build, then analyze/converge against all requirements (FR-001 through FR-008, SC-001 through SC-004).
-- [ ] T012 Commit and automatically push/open official PR linked to #189 and S054 milestone/Project; attach the PR to this chat.
-- [ ] T013 Monitor exact-head CI, retain compact audited evidence before any full rerun, resolve every comment through at most two Codex rounds, then stop before merge.
+- [x] T012 Commit and automatically push/open official PR linked to #189 and S054 milestone/Project; attach the PR to this chat.
+- [x] T013 Monitor exact-head CI, retain compact audited evidence before any full rerun, resolve every comment through at most two Codex rounds, then stop before merge.
 
 ## Dependencies and Execution Strategy
 
 Setup -> foundation -> US1 -> US2 -> US3 -> verification/delivery. Tests precede corresponding implementation. A representative-export test and Git oracle can run independently from diagnostic fixtures; source edits in scripts/pages.py and scripts/release.py remain sequential. Deliver the whole slice through one PR. Root and site verification may run concurrently once source is stable. No agent delegation is required.
+
+## Accepted Delivery Checkpoint (2026-10-27)
+
+Implementation head 2b64504 passed [CI 40565048300](https://github.com/shruggietech/insonic/actions/runs/40565048300) and the first automatic Codex round without findings. Independent timing: 338 s preparation + 707 s qualification = 1045 s total. All seven receipt ZIP identities and six terminal receipts/48 cases were validated and [retained outside the run](https://github.com/shruggietech/insonic/pull/190#issuecomment-6451379469). The exact original 1,110-file export replay is separately retained on the PR.
+
+The final record-only commit still requires current-head green CI and the authorized second review before owner handoff. PR #190 is the authoritative delivery record. Auto-merge is not authorized; the owner retains the merge.
