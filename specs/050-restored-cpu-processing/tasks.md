@@ -43,3 +43,7 @@ T001 -> T002 -> T003 -> T004 -> T005 -> T006 -> local-check portion of T008 -> i
 ## Phase 7: Convergence (2026-10-26 actual campaign)
 
 - [ ] T011 Optimize demonstrated worker inventory/path and hash-buffer overhead in internal/workers/probe.py, types.go and probe.go; first add exact inventory/hash/link/failure regressions in tests/worker_probe_test.py and preserve native integrity/cancellation tests per FR-002, FR-006, SC-001 (partial, HIGH). The first real campaign exhausted its unchanged 60-second source diarization snapshot: imports about25s, inventory about32s, hashing incomplete. Retain full coverage, receipt semantics and deadline; rerun affected checks and exact-source campaign after repair. Existing T007-T010 still govern actual acceptance and delivery.
+
+## 2026-10-27 delivery reconciliation (carried into S051)
+
+The original markers above preserve the state recorded before owner merge. T007 actual acceptance and T011 worker repair subsequently completed, with exact receipts/timing/cleanup now recorded in [verification.md](verification.md). T008 local checks and T009 official PR/CI completed; one automatic review had no findings on the initial head. The owner merged #179 before final convergence and the T010 unmerged handoff, so those events cannot be asserted retroactively. #180/S051 addresses the reproduced malformed-authority gap and completes current implementation convergence and evidence reconciliation. Original execution source/timing and review scope remain separately attributed.
