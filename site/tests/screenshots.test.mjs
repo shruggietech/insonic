@@ -96,6 +96,8 @@ test('squashed CI capture sources require one coherent historical version and un
   await fs.writeFile(path.join(root,'implementation.txt'),implementation);await fs.writeFile(path.join(root,'secondary.txt'),secondary);commit('captured');
   const revision=git(['rev-parse','HEAD']);git(['checkout','--quiet',main]);git(['merge','--squash','ci-capture']);commit('owner squash');
   assert.throws(()=>git(['merge-base','--is-ancestor',revision,'HEAD']));
+  git(['branch','-D','ci-capture']);git(['reflog','expire','--expire=now','--all']);git(['gc','--quiet','--prune=now']);
+  assert.throws(()=>git(['cat-file','-e',revision+'^{commit}']));
   await fs.writeFile(path.join(root,'implementation.txt'),'later implementation');await fs.writeFile(path.join(root,'secondary.txt'),'later secondary');commit('later');
   const directory=path.join(root,'docs/screenshots/v1.0.1');await fs.mkdir(directory,{recursive:true});
   const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2uoAAAAASUVORK5CYII=','base64');await fs.writeFile(path.join(directory,'fixture.png'),png);
@@ -126,6 +128,8 @@ test('squashed captures find coherent ancestors whose anchor was unchanged, beyo
   const revision=git(['rev-parse','HEAD']);
   git(['checkout','--quiet',main]);git(['merge','--squash','ci-capture']);commit('owner squash');
   assert.throws(()=>git(['merge-base','--is-ancestor',revision,'HEAD']));
+  git(['branch','-D','ci-capture']);git(['reflog','expire','--expire=now','--all']);git(['gc','--quiet','--prune=now']);
+  assert.throws(()=>git(['cat-file','-e',revision+'^{commit}']));
   // All five newer ancestors retain the anchor, but none match the complete
   // inventory. Candidate truncation would discard the valid owner squash.
   for(let i=0;i<5;i++){
@@ -144,5 +148,46 @@ test('squashed captures find coherent ancestors whose anchor was unchanged, beyo
   // Mixed historical bytes never become an acceptable coherent snapshot.
   receipt.source.files[1].sha256=digest(Buffer.from('never committed secondary'));
   await fs.writeFile(filename,JSON.stringify(receipt));
+  await assert.rejects(prepareScreenshots(root,out),/matching complete snapshot/);
+});
+
+test('fresh squash clones retrieve exact capture proof made before later branch corrections', async t => {
+  const fixture=await fs.mkdtemp(path.join(os.tmpdir(),'insonic-capture-fresh-squash-'));
+  t.after(()=>fs.rm(fixture,{recursive:true,force:true}));
+  const source=path.join(fixture,'source'),remote=path.join(fixture,'remote.git'),root=path.join(fixture,'fresh');
+  await fs.mkdir(source);
+  const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',windowsHide:true,timeout:milliseconds('git_seconds'),stdio:['ignore','pipe','pipe']}).trim();
+  const commit=message=>git(source,['-c','user.name=Fixture','-c','user.email=fixture@example.test','-c','commit.gpgsign=false','commit','--quiet','-am',message]);
+  git(source,['init','--quiet','--initial-branch=main']);
+  await fs.writeFile(path.join(source,'VERSION'),'1.0.1\n');
+  await fs.writeFile(path.join(source,'implementation.txt'),'previous version');
+  git(source,['add','VERSION','implementation.txt']);commit('previous release');
+  git(source,['checkout','--quiet','-b','capture']);
+  await fs.writeFile(path.join(source,'VERSION'),'1.0.2\n');
+  const implementation=Buffer.from('actual captured implementation');
+  await fs.writeFile(path.join(source,'implementation.txt'),implementation);commit('capture source');
+  const revision=git(source,['rev-parse','HEAD']);
+  await fs.writeFile(path.join(source,'implementation.txt'),'corrected after capture');commit('later branch correction');
+  git(source,['checkout','--quiet','main']);git(source,['merge','--squash','capture']);commit('owner squash');
+  git(fixture,['clone','--quiet','--bare','--no-local',source,remote]);
+  git(fixture,['clone','--quiet','--no-local','--single-branch','--branch=main',remote,root]);
+  assert.throws(()=>git(root,['cat-file','-e',revision+'^{commit}']));
+  const head=git(root,['rev-parse','HEAD']);
+  const directory=path.join(root,'docs/screenshots/v1.0.2');await fs.mkdir(directory,{recursive:true});
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2uoAAAAASUVORK5CYII=','base64');
+  await fs.writeFile(path.join(directory,'fixture.png'),png);
+  const receipt={schema_version:'1.0.2',source:{revision,dirty:false,files:[{path:'implementation.txt',sha256:digest(implementation)}]},renderer:{kind:'chromium-headless'},fixture:{isolated:true,private_inputs:false},locale:'en-US',images:[{path:'fixture.png',sha256:digest(png),width:1,height:1,landmark:'Fixture',caption:'Original captured surface.'}]};
+  const filename=path.join(directory,'application-capture.json'),original=Buffer.from(JSON.stringify(receipt));await fs.writeFile(filename,original);
+  const out=path.join(root,'out');await prepareScreenshots(root,out);
+  assert.equal(git(root,['rev-parse','HEAD']),head);
+  assert.equal(git(root,['status','--porcelain','--untracked-files=no']),'');
+  assert.equal(git(root,['cat-file','-t',revision]),'commit');
+  assert.throws(()=>git(root,['merge-base','--is-ancestor',revision,'HEAD']));
+  await assert.rejects(fs.access(path.join(root,'.git/FETCH_HEAD')));
+  assert.deepEqual(await fs.readFile(path.join(out,'screenshots/v1.0.2/application-capture.json')),original);
+  assert.deepEqual(await fs.readFile(path.join(out,'screenshots/v1.0.2/fixture.png')),png);
+  receipt.source.files[0].sha256=digest(Buffer.from('unwitnessed bytes'));await fs.writeFile(filename,JSON.stringify(receipt));
+  await assert.rejects(prepareScreenshots(root,out),/recorded capture/);
+  receipt.source.revision='f'.repeat(40);receipt.source.files[0].sha256=digest(implementation);await fs.writeFile(filename,JSON.stringify(receipt));
   await assert.rejects(prepareScreenshots(root,out),/matching complete snapshot/);
 });

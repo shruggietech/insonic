@@ -1,6 +1,6 @@
 # Implementation Plan: S053 v1.0.2 release preparation
 
-**Branch**: `codex/053-v102-release` | **Date**:2026-10-27 | **Spec**: [spec.md](spec.md)
+**Branch**: `codex/053-capture-source-correction` | **Date**:2026-10-27 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 
@@ -47,3 +47,7 @@ Issue #184; milestone 37; Project 7; slice S053. Broad #147 remains open.
 ## Delivery
 
 Prepare and test the versioned state, analyze before implementation, stage clean capture bootstrap, push/open PR, collect verified current-version captures, restore visual documentation, converge and finish exact final-head CI/reviews. The owner performs merge. Post-merge execution is recorded separately from pre-merge acceptance.
+
+## Post-merge correction (2026-10-27)
+
+Main960fbf7 lost the intermediate original capture commit after later PR corrections were squashed. Preserve complete source/version proof by checking the exact local commit regardless of ancestry, retaining the coherent historical-snapshot fallback, then retrieving only the pinned missing commit from the configured HTTPS/local origin under the same shared deadline. Disable prompts and other transport helpers; do not write refs, FETCH_HEAD or tracked source. An actual fresh single-branch clone regression exercises capture -> later correction -> squash -> missing original object, with strict unavailable/mismatching-proof refusal. Original capture receipts and PNGs stay byte-identical. No release accepts failed main or an unmerged correction.

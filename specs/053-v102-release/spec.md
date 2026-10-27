@@ -1,10 +1,10 @@
 # Feature Specification: S053 v1.0.2 release preparation
 
-**Feature Branch**: `codex/053-v102-release`
+**Feature Branch**: `codex/053-capture-source-correction`
 
 **Created**: 2026-10-27
 
-**Status**: Implementation qualified; owner review after final records CI
+**Status**: Owner-merged preparation; post-merge capture-source correction in progress
 
 **Input**: Prepare v1.0.2 using Spec Kit/autopilot, push/open the official PR, resolve CI failures and at most two Codex review rounds, then stop before owner merge. Official publication is a later phase.
 
@@ -92,3 +92,7 @@ The owner receives a concrete release-preparation PR with completed automated ch
 - v1.0.2 is unused and the latest published product is v1.0.1 from October15. Broad #147 remains open for continuing quality and installed-release observations.
 - Existing supported platforms, configured providers, signing policy and publication destination remain unchanged; no new feature scope or attended pre-release ritual is introduced.
 - Qualification retains the1800s target/3600s hard limit,60s provisional reserve, original product deadlines and separate phase accounting.
+
+## Post-merge continuation (2026-10-27)
+
+The owner merged PR #186, then authorized housekeeping, exact-main CPU/restore acceptance and v1.0.2 release/documentation publication. Main960fbf7 failed screenshot source validation because later PR corrections removed the complete capture snapshot from squashed ancestry. T019 restores the existing FR-003/SC-001 proof contract in a fresh checkout. Preserve the original two completed PR review rounds and every capture byte; new source must receive its own checks and reach reviewed main before release acceptance/publication.

@@ -43,6 +43,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Frozen screenshot source verification retrieves the exact pinned capture commit when later branch corrections and a squash merge leave no matching main ancestor. Complete version/source hashes, original PNG/receipt bytes and the shared Git deadline remain mandatory; retrieval disables prompts and leaves checkout and branch identities unchanged.
+
 - Terminal qualification drains final buffered output when child termination races the reader snapshot, retaining bounded exit/output diagnostics for a genuine missing observation or incorrect outcome. Required progress, exit semantics, natural cleanup and existing deadlines remain unchanged.
 
 - Update the maintained JSON Schema URI parser to fast-uri 3.1.9 in root and desktop tooling to resolve URI normalization and host/scheme confusion advisories.
