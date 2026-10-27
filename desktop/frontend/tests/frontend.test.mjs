@@ -246,7 +246,7 @@ function field(label) {
 }
 const mediaToolFixture = (directory) => ({
   kind: 'media-tools',
-  schema_version: '1.0.1',
+  schema_version: '1.0.2',
   ffprobe: {
     path: `${directory}/ffprobe.exe`,
     sha256: '7'.repeat(64),
@@ -597,7 +597,7 @@ test('rendered import includes the published manifest discriminator and schema v
   await click('Import');
   const request = bridge.calls.find((c) => c.operation === 'media.import');
   assert.equal(request.data.kind, 'import-manifest');
-  assert.equal(request.data.schema_version, '1.0.1');
+  assert.equal(request.data.schema_version, '1.0.2');
   assert.equal(validateNativeRequest(request).valid, true);
   const { kind, ...missingKind } = request.data;
   assert.equal(
@@ -1300,7 +1300,7 @@ test('effective package tools remain read-only and unchanged saves never persist
         mediaToolFixture('/package-A');
       response.result.sections.processing_tools.value = {
         kind: 'processing-tools',
-        schema_version: '1.0.1',
+        schema_version: '1.0.2',
         cueson: {
           executable: '/package-A/cueson.exe',
           executable_sha256: '9'.repeat(64),
@@ -1416,7 +1416,7 @@ test('processing tool reset uses the observed workspace revision and clears expl
         revision: explicit ? 'b'.repeat(64) : '2'.repeat(64),
         value: {
           kind: 'processing-tools',
-          schema_version: '1.0.1',
+          schema_version: '1.0.2',
           cueson: {
             executable: explicit
               ? '/explicit/cueson.exe'

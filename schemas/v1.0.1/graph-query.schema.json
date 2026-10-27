@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.1/schemas/v1.0.1/graph-query.schema.json",
   "title": "insonic saved graph query",
-  "description": "Immutable query definitions with typed parameters and declared backend compatibility. Every execution resolves current sources; presentation state is separate from evidence. Normalized result pages continue rows and relationships independently through one opaque next_cursor; edges may reference endpoints on other pages. Follow until next_cursor is absent, including edge-only pages. Each stream contains at most the requested limit and the result remains byte bounded.",
+  "description": "Immutable query definitions with typed parameters and declared backend compatibility. Every execution resolves current sources; presentation state is separate from evidence.",
   "type": "object",
   "properties": {
     "schema_version": {

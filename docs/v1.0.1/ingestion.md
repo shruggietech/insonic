@@ -163,8 +163,6 @@ the failed items. An admitted item with partial metadata or unresolved dates
 remains usable and does not by itself fail the work. Unused canonical candidates from failed admissions are retired using the current-reference
 fence, preserving shared or committed current artifacts.
 
-An accepted metadata refresh succeeds while live report leases or current references defer physical retirement. Obsolete reports remain in durable pending cleanup; release or expiry permits the existing reconciliation process to retire them. Replaying accepted work reconciles its receipt without accepting another revision. Genuine storage or catalog failures remain reported separately from ordinary retention delays; inspect the current recording when recovering a failure after acceptance.
-
 Inspect completion through
 `work show`; large batches expose references through
 `work results WORK_ID --after-ordinal 0 --limit 100`. Continue from the returned
@@ -209,9 +207,8 @@ insonic media set-origin MEDIA_ID --revision CURRENT_REVISION --originated-earli
 Installed bundles discover their pinned extractors automatically. An explicit workspace override can configure exact extractor files using
 `insonic media tools media-tools.json`. The rendered tools contract declares
 absolute executable paths, SHA-256 values, emitted versions, delegated support
-files and an explicit pinned interpreter when needed. The command starts or reuses the
-shared runtime and saves the override for the next operation. Already running
-operations retain their previous configuration. Missing or mismatched tools yield a visible partial/unsupported
+files and an explicit pinned interpreter when needed. Configure while the runtime
+is stopped. Missing or mismatched tools yield a visible partial/unsupported
 capture and preserve usable media for retry. The controlled native qualification
 uses ExifTool 13.59 and platform-specific ffprobe distribution binaries; installed
 product bundles and their notices remain part of release assembly.

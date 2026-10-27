@@ -9,7 +9,7 @@ import (
 )
 
 func TestResponseDecoderPreservesExactNumericTokens(t *testing.T) {
-	raw := []byte(`{"kind":"runtime-response","schema_version":"1.0.1","result":{"unix_ns":1791720000123456789,"nested":[9007199254740993,-9007199254740993,9223372036854775807,-9223372036854775808,1.25]}}`)
+	raw := []byte(`{"kind":"runtime-response","schema_version":"1.0.2","result":{"unix_ns":1791720000123456789,"nested":[9007199254740993,-9007199254740993,9223372036854775807,-9223372036854775808,1.25]}}`)
 	var response contracts.Response
 	if err := decode(raw, &response); err != nil {
 		t.Fatal(err)

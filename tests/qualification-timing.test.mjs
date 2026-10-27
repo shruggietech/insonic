@@ -77,7 +77,8 @@ test('every maintained timer-bearing owner has a checked inventory disposition',
 });
 
 test('current governance matches the expanded policy without rewriting historic evidence', async () => {
-  for (const file of ['AGENTS.md', 'CONTRIBUTING.md', '.specify/memory/constitution.md', 'docs/v1.0.1/development.md', 'docs/v1.0.1/product.md']) {
+  const version = (await readFile(path.join(root, 'VERSION'), 'utf8')).trim();
+  for (const file of ['AGENTS.md', 'CONTRIBUTING.md', '.specify/memory/constitution.md', `docs/v${version}/development.md`, `docs/v${version}/product.md`]) {
     const text = await readFile(path.join(root, file), 'utf8');
     assert.ok(text.includes('3,600'), file);
     assert.doesNotMatch(text, /qualification.{0,30}(?:660|900)-second/i, file);

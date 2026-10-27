@@ -61,30 +61,6 @@
           "type": "integer",
           "minimum": 0,
           "description": "Total frozen model/acquisition entries; bounded inspection may show only the first hundred."
-        },
-        "local_assets": {
-          "$ref": "worker-resources.schema.json#/$defs/localAssets",
-          "description": "Offline-only declared local prerequisite observations."
-        },
-        "profile_download_bytes": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Nominal complete worker profile transfer size, independent of the current election."
-        },
-        "credential_state": {
-          "enum": [
-            "not_required",
-            "available",
-            "missing",
-            "locked",
-            "rejected",
-            "unavailable"
-          ],
-          "description": "Local protected credential resolvability; available does not establish upstream authorization."
-        },
-        "upstream_authorization": {
-          "const": "not_checked",
-          "description": "Preview does not contact upstream services to test authentication or gated access."
         }
       }
     },
@@ -177,88 +153,9 @@
           },
           "maxItems": 64
         },
-        "validation": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "Generated schema-owned input location and constraints; excludes submitted values and dynamic map keys.",
-          "properties": {
-            "pointer": {
-              "type": "string",
-              "maxLength": 256,
-              "description": "Known contract field path; dynamic map keys and array positions are represented by an asterisk."
-            },
-            "offset": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 8388609,
-              "description": "One-based JSON byte position where available; no input bytes are included."
-            },
-            "expected": {
-              "enum": [
-                "object",
-                "array",
-                "string",
-                "number",
-                "integer",
-                "boolean",
-                "null"
-              ],
-              "description": "Expected JSON type from the packaged contract."
-            },
-            "constraint": {
-              "enum": [
-                "minimum",
-                "maximum",
-                "minLength",
-                "maxLength",
-                "minItems",
-                "maxItems",
-                "minProperties",
-                "maxProperties",
-                "maxBytes",
-                "maxDepth"
-              ],
-              "description": "Packaged constraint keyword; byte ceilings remain distinct from character counts."
-            },
-            "bound": {
-              "type": "integer",
-              "description": "Exact integer bound declared by the packaged contract."
-            }
-          }
-        },
         "reason": {
           "type": "string",
           "enum": [
-            "provider_auth",
-            "provider_missing",
-            "provider_busy",
-            "provider_redirect",
-            "provider_unavailable",
-            "provider_failure",
-            "provider_protocol",
-            "provider_timeout",
-            "provider_response_limit",
-            "native_result_limit",
-            "artifact_materialization_limit",
-            "native_statement",
-            "native_function",
-            "native_syntax",
-            "native_read_only",
-            "backend_pending_plan",
-            "backend_s3_bucket",
-            "backend_plan",
-            "backend_local_transport",
-            "backend_endpoint_tls",
-            "ollama_endpoint",
-            "ollama_unavailable",
-            "ollama_provider",
-            "ollama_auth",
-            "ollama_missing",
-            "ollama_busy",
-            "ollama_redirect",
-            "ollama_protocol",
-            "ollama_capability",
-            "ollama_route",
             "workspace_missing",
             "input_missing",
             "input_invalid",
@@ -284,122 +181,9 @@
             "startup_report",
             "startup_timeout",
             "wait_timeout",
-            "wait_interrupted",
-            "documentation_open",
-            "json_empty",
-            "json_syntax",
-            "json_encoding",
-            "json_duplicate_key",
-            "json_extra_document",
-            "input_shape",
-            "input_unknown_field",
-            "input_required",
-            "input_type",
-            "input_enum",
-            "input_range",
-            "input_length",
-            "input_version",
-            "input_constraint",
-            "input_bytes",
-            "credential_value_limit",
-            "credential_input_shape",
-            "output_exists",
-            "output_parent_missing",
-            "output_permission",
-            "output_directory",
-            "output_space",
-            "output_write",
-            "asset_missing",
-            "asset_unreadable",
-            "asset_not_regular",
-            "asset_size",
-            "asset_hash",
-            "asset_tool_missing",
-            "artifact_missing",
-            "artifact_identity",
-            "artifact_range",
-            "model_access_required",
-            "worker_probe_interpreter_missing",
-            "worker_probe_interpreter_unreadable",
-            "worker_probe_home_unavailable",
-            "worker_probe_launch_failed",
-            "worker_probe_process_failed",
-            "worker_probe_deadline",
-            "worker_probe_cancelled",
-            "worker_probe_output_invalid",
-            "worker_probe_output_limit",
-            "worker_probe_package_missing",
-            "worker_probe_version_mismatch",
-            "worker_probe_import_failed",
-            "worker_probe_cpu_unavailable",
-            "worker_probe_inventory_limit",
-            "worker_probe_inventory_unreadable",
-            "worker_probe_checkpoint_invalid"
+            "wait_interrupted"
           ],
           "description": "Allowlisted locally generated operation condition; never external text."
-        },
-        "asset": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "role",
-            "name"
-          ],
-          "description": "Generated logical asset identity, without local paths or external output.",
-          "properties": {
-            "role": {
-              "enum": [
-                "worker_runtime",
-                "worker_installer",
-                "worker_wheel",
-                "model_file",
-                "trainer_executable",
-                "trainer_support",
-                "trainer_output",
-                "artifact"
-              ],
-              "description": "Fixed elected asset role."
-            },
-            "name": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "pattern": "^[!-~]+$",
-              "description": "ASCII slash-relative logical name. Absolute, traversal, control and Windows device names are rejected by the shared runtime.",
-              "allOf": [
-                {
-                  "not": {
-                    "pattern": "^/"
-                  }
-                },
-                {
-                  "not": {
-                    "pattern": "[\\\\:\"<>|?*]"
-                  }
-                },
-                {
-                  "not": {
-                    "pattern": "(^|/)\\.{1,2}(/|$)"
-                  }
-                },
-                {
-                  "not": {
-                    "pattern": "//"
-                  }
-                },
-                {
-                  "not": {
-                    "pattern": "\\.(/|$)"
-                  }
-                },
-                {
-                  "not": {
-                    "pattern": "(^|/)([Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(\\.|/|$)"
-                  }
-                }
-              ]
-            }
-          }
         }
       }
     }

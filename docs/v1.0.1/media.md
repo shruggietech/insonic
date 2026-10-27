@@ -12,8 +12,6 @@ Owner-owned input files remain untouched. New managed storage retains canonical 
 
 Never edit an accepted asset in place. Content hashes identify bytes; stable entry IDs retain metadata and processing history. Hash equality supports deduplication, while titles and durations are comparison leads rather than identity proof. [Import, metadata and dates](ingestion.md) defines admission and date policy.
 
-Playback descriptors identify the actual materialized bytes. Canonical FLAC, MP3 and audio Matroska use `audio/flac`, `audio/mpeg` and `audio/x-matroska`; an encoded preview uses its own output type, digest and size. Captured original-source MIME observations remain unchanged even when the retained canonical format differs. Readable legacy sources retain their observed type and supported extension fallback.
-
 ## Audio derivatives
 
 Video audio extraction, resampling, channel selection, normalization and inference chunks create derived assets. Each records its parent hash, source stream, channel layout, transform specification, tool and version, sample format, duration and mapping to original media time. Default transcription input can be optimized mono PCM at the chosen model's supported sample rate. Do not mix channels when that would destroy useful separation; let the user select or preserve channels.

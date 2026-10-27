@@ -39,7 +39,7 @@ def verify_fixture(path, receipt):
 
 
 def fixture(root):
-    for name in ('VERSION', 'CHANGELOG.md', 'CONTRIBUTING.md', 'docs/versions.json', 'internal/contracts/contracts.go', '.github/bootstrap.json'):
+    for name in ('VERSION', 'CHANGELOG.md', 'CONTRIBUTING.md', 'docs/versions.json', 'internal/contracts/contracts.go', 'internal/workers/assets/catalog.json', 'tests/fixtures/media/manifest.json', '.github/bootstrap.json'):
         destination = root / name; destination.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(ROOT / name, destination)
     for prefix in ('', 'site', 'desktop/frontend'):
         for name in ('package.json', 'package-lock.json'):
@@ -162,12 +162,12 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertEqual(set(release.selected_release_platforms(ROOT, "1.0.0")), {"windows_amd64", "linux_amd64", "darwin_arm64"})
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            schema = json.loads((ROOT / "schemas/v1.0.1/release-candidate.schema.json").read_text())
+            schema = json.loads((ROOT / "schemas/v1.0.2/release-candidate.schema.json").read_text())
             schema["properties"]["packages"]["items"]["properties"]["platform"]["enum"].append("darwin_arm64")
-            path = root / "schemas/v1.0.1/release-candidate.schema.json"
+            path = root / "schemas/v1.0.2/release-candidate.schema.json"
             path.parent.mkdir(parents=True); path.write_text(json.dumps(schema))
             with self.assertRaisesRegex(ValueError, "platform contract"):
-                release.selected_release_platforms(root, "1.0.1")
+                release.selected_release_platforms(root, "1.0.2")
 
     def test_release_highlights_state_package_choices_and_real_signature_disposition(self):
         target = self.candidate(); api = GitHubFixture()
@@ -395,6 +395,16 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertEqual(candidate['properties']['tag']['const'], 'v' + VERSION)
         self.assertEqual(candidate['properties']['packages']['items']['properties']['product_version']['const'], VERSION)
 
+    def test_preparation_preserves_independent_licensed_media_provenance(self):
+        self.assertEqual((self.root / 'tests/fixtures/media/manifest.json').read_bytes(),
+                         (ROOT / 'tests/fixtures/media/manifest.json').read_bytes())
+
+    def test_preparation_advances_worker_catalog_envelope_without_rewriting_resource_pins(self):
+        original = release.read_json(ROOT / 'internal/workers/assets/catalog.json')
+        prepared = release.read_json(self.root / 'internal/workers/assets/catalog.json')
+        self.assertEqual(prepared['schema_version'], VERSION)
+        self.assertEqual(prepared['profiles'], original['profiles'])
+
     def test_preparation_advances_owned_asset_examples_and_common_description(self):
         schema = release.read_json(self.root / f'schemas/v{VERSION}/release-candidate.schema.json')
         expected = {f'insonic_{VERSION}_{platform}_{variant}' + ('.tar.gz' if platform == 'linux_amd64' else '.zip')
@@ -406,6 +416,16 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertTrue(common['description'].startswith(f'Shared logical types for the v{VERSION} contract.'))
         self.assertEqual((self.root / f'schemas/v{CURRENT}/common.schema.json').read_bytes(),
                          (ROOT / f'schemas/v{CURRENT}/common.schema.json').read_bytes())
+
+    def test_next_preparation_advances_owned_asset_tags_and_documentation_routes(self):
+        target = self.root / 'tests/owned_release_fixture.py'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("tag = 'v" + VERSION + "'\narchive = 'insonic_" + VERSION + "_windows_amd64_cli.zip'\npage = 'docs/v" + VERSION + "/index.md'\n", encoding='utf-8')
+        release.prepare(NEXT_VERSION, '2026-10-10', 'Candidate update.', self.root)
+        text = target.read_text(encoding='utf-8')
+        self.assertIn("'v" + NEXT_VERSION + "'", text)
+        self.assertIn('insonic_' + NEXT_VERSION + '_windows_amd64_cli.zip', text)
+        self.assertIn('docs/v' + NEXT_VERSION + '/index.md', text)
 
     def test_next_preparation_preserves_upstream_versions_equal_to_owned_version(self):
         upstream = self.root / 'tests/fixtures/cueson/upstream.json'

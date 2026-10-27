@@ -207,8 +207,8 @@
     },
     "assets": {
       "type": "array",
-      "minItems": 8,
-      "maxItems": 8,
+      "minItems": 7,
+      "maxItems": 7,
       "items": {
         "type": "object",
         "properties": {
@@ -235,7 +235,7 @@
         ],
         "additionalProperties": false
       },
-      "description": "Four archive packages, one selectable-client raw MSI, its recommended setup EXE and two documentation archives; checksums and manifest are companion assets."
+      "description": "Four archive packages, one selectable-client MSI and two documentation archives; checksums and manifest are companion assets."
     },
     "capabilities": {
       "type": "object",
@@ -473,163 +473,6 @@
             ],
             "additionalProperties": true,
             "description": "Real native Windows tests must pass each required lifecycle and capture result."
-          },
-          "setup": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "const": "windows-setup-receipt",
-                "description": "Coordinated per-user setup artifact receipt."
-              },
-              "format": {
-                "const": "exe",
-                "description": "Windows GUI setup executable with an exact full MSI payload."
-              },
-              "artifact": {
-                "type": "string",
-                "pattern": "^insonic_[0-9]+\\.[0-9]+\\.[0-9]+_windows_amd64_setup\\.exe$",
-                "description": "Exact release setup basename."
-              },
-              "artifact_sha256": {
-                "$ref": "common.schema.json#/$defs/sha256",
-                "description": "Final setup byte digest."
-              },
-              "artifact_size_bytes": {
-                "type": "integer",
-                "minimum": 1,
-                "description": "Exact setup byte length."
-              },
-              "embedded_msi": {
-                "type": "object",
-                "properties": {
-                  "product_code": {
-                    "type": "string",
-                    "description": "Embedded per-user MSI ProductCode."
-                  },
-                  "upgrade_code": {
-                    "const": "{96D72489-3629-52FB-A30D-79CCD4CAE9BC}",
-                    "description": "Production per-user MSI product family."
-                  },
-                  "version": {
-                    "const": "1.0.1",
-                    "description": "Embedded MSI release version."
-                  },
-                  "sha256": {
-                    "$ref": "common.schema.json#/$defs/sha256",
-                    "description": "Exact complete embedded MSI digest."
-                  },
-                  "size_bytes": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Full embedded MSI byte length."
-                  }
-                },
-                "required": [
-                  "product_code",
-                  "upgrade_code",
-                  "version",
-                  "sha256",
-                  "size_bytes"
-                ],
-                "additionalProperties": false,
-                "description": "Bounded full MSI identity, independently compared with the MSI asset."
-              },
-              "manifest": {
-                "const": "asInvoker",
-                "description": "Explicit same-user Windows execution level."
-              },
-              "scope": {
-                "const": "per-user",
-                "description": "Same ordinary invoking account."
-              },
-              "signing": {
-                "type": "object",
-                "properties": {
-                  "configured": {
-                    "const": false,
-                    "description": "No signing identity is configured."
-                  },
-                  "verified": {
-                    "const": false,
-                    "description": "No publisher signature is asserted."
-                  },
-                  "status": {
-                    "const": "unconfigured",
-                    "description": "Newly authored unsigned setup artifact."
-                  }
-                },
-                "required": [
-                  "configured",
-                  "verified",
-                  "status"
-                ],
-                "additionalProperties": false,
-                "description": "Setup signing is independently unconfigured."
-              },
-              "qualification": {
-                "type": "object",
-                "properties": {
-                  "ordinary_user": {
-                    "const": "passed",
-                    "description": "Required disposable native setup qualification result."
-                  },
-                  "source_integrity": {
-                    "const": "passed",
-                    "description": "Required disposable native setup qualification result."
-                  },
-                  "legacy_source": {
-                    "const": "passed",
-                    "description": "Required disposable native setup qualification result."
-                  },
-                  "failure_recovery": {
-                    "const": "passed",
-                    "description": "Required disposable native setup qualification result."
-                  },
-                  "cancellation_recovery": {
-                    "const": "passed",
-                    "description": "Required disposable native setup qualification result."
-                  },
-                  "prior_choices": {
-                    "const": "passed",
-                    "description": "Required disposable native setup qualification result."
-                  },
-                  "source_cleanup": {
-                    "const": "passed",
-                    "description": "Required disposable native setup qualification result."
-                  },
-                  "native_entry_point": {
-                    "const": "passed",
-                    "description": "Required disposable native setup qualification result."
-                  }
-                },
-                "required": [
-                  "ordinary_user",
-                  "source_integrity",
-                  "legacy_source",
-                  "failure_recovery",
-                  "cancellation_recovery",
-                  "prior_choices",
-                  "source_cleanup",
-                  "native_entry_point"
-                ],
-                "additionalProperties": false,
-                "description": "Native source, restoration, registration and lifecycle proof."
-              }
-            },
-            "required": [
-              "kind",
-              "format",
-              "artifact",
-              "artifact_sha256",
-              "artifact_size_bytes",
-              "embedded_msi",
-              "manifest",
-              "scope",
-              "signing",
-              "qualification"
-            ],
-            "additionalProperties": false,
-            "description": "Recommended setup EXE containing this exact raw MSI and its coordinated recovery evidence."
           }
         },
         "required": [
@@ -651,11 +494,10 @@
           "payload_archive_sha256",
           "payload_receipt",
           "payload_inventory",
-          "qualification",
-          "setup"
+          "qualification"
         ]
       },
-      "description": "Exactly one selectable-client Windows MSI and its recommended setup EXE; runtime verifies embedded bytes, source, payload, recovery, maintenance and signing evidence."
+      "description": "Exactly one selectable-client Windows x86-64 MSI; runtime verifies its format, source, payload, maintenance and signing evidence."
     }
   },
   "required": [
@@ -804,11 +646,6 @@
           "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         },
         {
-          "name": "insonic_1.0.1_windows_amd64_setup.exe",
-          "size_bytes": 1,
-          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-        },
-        {
           "name": "documentation.tar.gz",
           "size_bytes": 1,
           "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
@@ -898,39 +735,6 @@
             "source_complete": true,
             "binary_publication": "eligible",
             "corresponding_source": "included"
-          },
-          "product_code": "{11111111-1111-5111-8111-111111111111}",
-          "upgrade_code": "{96D72489-3629-52FB-A30D-79CCD4CAE9BC}",
-          "setup": {
-            "kind": "windows-setup-receipt",
-            "format": "exe",
-            "artifact": "insonic_1.0.1_windows_amd64_setup.exe",
-            "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "artifact_size_bytes": 1,
-            "embedded_msi": {
-              "product_code": "{11111111-1111-5111-8111-111111111111}",
-              "upgrade_code": "{96D72489-3629-52FB-A30D-79CCD4CAE9BC}",
-              "version": "1.0.1",
-              "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-              "size_bytes": 1
-            },
-            "manifest": "asInvoker",
-            "scope": "per-user",
-            "signing": {
-              "configured": false,
-              "verified": false,
-              "status": "unconfigured"
-            },
-            "qualification": {
-              "ordinary_user": "passed",
-              "source_integrity": "passed",
-              "legacy_source": "passed",
-              "failure_recovery": "passed",
-              "cancellation_recovery": "passed",
-              "prior_choices": "passed",
-              "source_cleanup": "passed",
-              "native_entry_point": "passed"
-            }
           }
         }
       ]

@@ -4,6 +4,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-27
+
 ### Changed
 
 - 2026-10-27: Maintained source and extracted-package CLI qualification now uses owned headless Windows/Linux terminals for progress and Ctrl+C, with an independent durable runtime, bounded capture and explicit cleanup. Release qualification requires the nested terminal receipt to match its package and executable identity. Ordinary product deadlines and wait/cancel semantics are unchanged.
@@ -425,7 +427,7 @@ All notable changes to this project will be documented here. The format follows 
 - Preserve closed GitHub Projects when rerunning repository setup.
 - Cover root schema-validation dependencies in grouped Dependabot updates and correct contributor installation guidance.
 
-[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.2...HEAD
 
 ## Decisions (2026-10-08)
 
@@ -442,3 +444,5 @@ All notable changes to this project will be documented here. The format follows 
 [1.0.0]: https://github.com/shruggietech/insonic/compare/v0.0.0...v1.0.0
 
 [1.0.1]: https://github.com/shruggietech/insonic/compare/v1.0.0...v1.0.1
+
+[1.0.2]: https://github.com/shruggietech/insonic/compare/v1.0.1...v1.0.2

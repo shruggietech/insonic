@@ -249,8 +249,8 @@ class QualificationArchiveTests(unittest.TestCase):
                 qualify.validate_maintained_sources(selected)
 
     def test_receipt_is_json_despite_native_loader_warnings(self):
-        output = b'libEGL warning: no accelerated rendering\n{"native_webview":"passed","frontend_bridge_ipc":"passed","schema_version":"1.0.1"}\n'
-        expected = {'native_webview': 'passed', 'frontend_bridge_ipc': 'passed', 'schema_version': '1.0.1'}
+        output = b'libEGL warning: no accelerated rendering\n{"native_webview":"passed","frontend_bridge_ipc":"passed","schema_version":"1.0.2"}\n'
+        expected = {'native_webview': 'passed', 'frontend_bridge_ipc': 'passed', 'schema_version': '1.0.2'}
         with tempfile.TemporaryDirectory() as directory:
             receipt = Path(directory) / 'webview-receipt.json'
             qualify.write_receipt(receipt, output, expected)
