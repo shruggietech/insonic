@@ -123,9 +123,19 @@ class WorkloadAffinity:
         self.lock=Lock();self.started=0;self.verified=0;self.failed=0;self.breakaway=0
 
     def __call__(self,args,**options):
+        return self._launch(lambda: AffinityProcessTree(args,**options,cpu_affinity=self.mask), options)
+
+    def terminal(self,args,**options):
+        from terminal_transport import Terminal
+        owner=AffinityProcessTree.__new__(AffinityProcessTree)
+        owner._requested_affinity=self.mask
+        owner.cpu_affinity_verified=None
+        return self._launch(lambda: Terminal(args,**options,owner=owner), {})
+
+    def _launch(self,launch,options):
         with self.lock:self.started+=1
         try:
-            tree=AffinityProcessTree(args,**options,cpu_affinity=self.mask)
+            tree=launch()
         except BaseException:
             with self.lock:self.failed+=1
             raise
@@ -140,5 +150,5 @@ class WorkloadAffinity:
                 'permitted_mask':self.permitted,'requested_mask':self.mask,'reserved_from_workload_mask':self.permitted^self.mask,
                 'available_processors':4,'workload_processors':3,'launches':self.started,'verified_before_resume':self.verified,
                 'failed_launches':self.failed,'breakaway_permitted_roots':self.breakaway,
-                'coverage':'explicit-cli-media-and-example-roots-descendants-inherit-native-affinity',
+                'coverage':'explicit-cli-media-example-and-terminal-roots-descendants-inherit-native-affinity',
                 'parent_or_gui_affinity_changed':False}

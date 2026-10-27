@@ -125,6 +125,8 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
             ('text_duration', qualify_text_duration, {}),
             ('readiness', qualify_readiness, {'executable': executable}),
             ('terminal', qualify_terminal, {'executable': executable, 'environment': environment, 'observe': observe})]
+    if process_factory is not None:
+        jobs[-1][2]['process_factory'] = process_factory
     if documentation:
         from cli_help_examples import qualify as qualify_examples
         jobs.append(('examples', qualify_examples, {}))

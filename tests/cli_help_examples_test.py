@@ -34,12 +34,15 @@ class ParallelRegressionTests(unittest.TestCase):
         from unittest.mock import patch
         from threading import Barrier, Lock
         barrier, lock, calls = Barrier(4), Lock(), []
+        selected_factory = object()
         def invoke(args, **kwargs):
             with lock:
                 calls.append((args, kwargs))
             return {}
         def fake(scoped, *args, **_kwargs):
             root = args[1] if args[0] is None else args[0]
+            if root.name in ('isolated examples qualification', 'isolated terminal qualification'):
+                self.assertIs(_kwargs['process_factory'], selected_factory)
             scoped(['settings', 'show'])
             scoped(['settings', 'show'], workspace_path=root / 'explicit override')
             scoped(['--help'], scoped=False)
@@ -52,7 +55,7 @@ class ParallelRegressionTests(unittest.TestCase):
              patch('cli_readiness_qualification.qualify', fake), \
              patch('cli_terminal_qualification.qualify', fake), \
              patch('cli_help_examples.qualify', fake):
-            with runner.parallel_regressions(invoke, Path('/owned'), '1.0.1', True, {}, '/owned/cli', {}) as futures:
+            with runner.parallel_regressions(invoke, Path('/owned'), '1.0.1', True, {}, '/owned/cli', {}, process_factory=selected_factory) as futures:
                 roots = {name: Path(future.result()) for name, future in futures.items()}
         self.assertEqual(len(set(roots.values())), 6)
         self.assertTrue(all(root.parent == Path('/owned') for root in roots.values()))

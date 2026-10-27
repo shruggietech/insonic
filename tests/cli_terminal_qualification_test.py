@@ -66,10 +66,18 @@ class TerminalReceiptTests(unittest.TestCase):
 
     def test_failed_launch_releases_only_new_owned_fixture(self):
         import cli_terminal_qualification as campaign
+        environments = []
+        def invoke(*_args, **options):
+            environments.append(options['execution_environment'])
+            return {}
         with tempfile.TemporaryDirectory() as root, patch.object(campaign, 'ProcessTree', side_effect=RuntimeError('owned launch refused')):
             with self.assertRaisesRegex(RuntimeError, 'owned launch refused'):
-                qualify(lambda *_a, **_k: {}, root, '1.0.1', executable=sys.executable, environment={})
+                qualify(invoke, root, '1.0.1', executable=sys.executable, environment={})
             self.assertEqual(list(Path(root).iterdir()), [])
+        self.assertFalse(Path(environments[0]['HOME']).exists())
+        if sys.platform == 'linux':
+            endpoint = str(Path(environments[0]['XDG_CACHE_HOME']) / 'insonic' / 'runtime' / ('a' * 32 + '.sock'))
+            self.assertLessEqual(len(endpoint.encode('utf-8')), 100)
 
     def test_existing_fixture_root_is_never_removed(self):
         with tempfile.TemporaryDirectory() as root:
@@ -80,6 +88,13 @@ class TerminalReceiptTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 qualify(lambda *_a, **_k: {}, root, '1.0.1', executable=sys.executable, environment={})
             self.assertEqual(sentinel.read_text(encoding='utf-8'), 'unchanged')
+
+    def test_elected_process_policy_cannot_silently_fall_back_for_terminals(self):
+        with tempfile.TemporaryDirectory() as root:
+            with self.assertRaisesRegex(ValueError, 'does not support owned terminals'):
+                qualify(lambda *_a, **_k: {}, root, '1.0.1', executable=sys.executable,
+                        environment={}, process_factory=object())
+            self.assertEqual(list(Path(root).iterdir()), [])
 
 
 if __name__ == '__main__':

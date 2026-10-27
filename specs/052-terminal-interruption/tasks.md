@@ -40,3 +40,9 @@
 ## Dependencies and Strategy
 
 T001 -> T002 -> T003 -> T004 -> T005 -> T006 -> T007 -> T008 -> T009 -> T010 -> T011. Actual terminal transport is the shared prerequisite; each story then has its own independently checkable scenario. Runtime/server ownership and cleanup are always required, including negative paths. Parallel opportunities are read-only research, separate transport/receipt tests after design, and independent final root/site checks; shared-file edits remain sequential. Build the observable progress MVP first, then interruption/durable comparisons, then strict delivery integration. No deployment, tag or merge.
+
+## Phase 7: Convergence
+
+- [x] T012 Preserve the elected Windows archive CLI workload allocation for terminal roots and the independent runtime in scripts/windows_workload_affinity.py, scripts/terminal_transport.py and shared qualification; add actual mask/parent-invariance and no-fallback regressions (Constitution V, FR-005/007; partial).
+
+- [x] T013 Correct the Linux fixture-only host-cache placement and add cleanup/socket-bound regression in scripts/cli_terminal_qualification.py and tests/cli_terminal_qualification_test.py; preserve deep Unicode library paths and the product endpoint bound (FR-005/007; partial).

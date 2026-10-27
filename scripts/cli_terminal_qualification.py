@@ -11,6 +11,7 @@ import queue
 import re
 import shutil
 import sys
+import tempfile
 import threading
 import time
 import uuid
@@ -97,8 +98,8 @@ def owned_directory(workspace):
 
 
 @contextmanager
-def owned_runtime(argv, cwd, env, gates):
-    with ProcessTree(argv, cwd=cwd, env=env) as owner:
+def owned_runtime(argv, cwd, env, gates, factory=ProcessTree):
+    with factory(argv, cwd=cwd, env=env) as owner:
         try:
             yield owner
         finally:
@@ -159,7 +160,7 @@ def owned_server(handler, gates):
             primary.add_note(str(error))
 
 
-def qualify(invoke, workspace, version, *, executable, environment, observe=None):
+def qualify(invoke, workspace, version, *, executable, environment, observe=None, process_factory=None):
     started = time.monotonic()
     campaign_bound = bounds.phase_bound(bounds.SUBPROCESS_SECONDS)
     deadline = started + campaign_bound
@@ -172,10 +173,16 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
 
     executable = Path(executable).resolve(strict=True)
     digest = hashlib.sha256(executable.read_bytes()).hexdigest()
+    terminal_factory = Terminal if process_factory is None else getattr(process_factory, 'terminal', None)
+    if terminal_factory is None:
+        raise ValueError('Elected CLI process factory does not support owned terminals')
     with ExitStack() as resources:
         directory = resources.enter_context(owned_directory(Path(workspace)))
-        private = directory / 'private home'
-        private.mkdir()
+        # The library keeps its realistic deep/Unicode path. A separate short
+        # private host cache keeps Linux Unix-socket names within the runtime's
+        # existing 100-byte endpoint bound, as on an ordinary user profile.
+        private = Path(resources.enter_context(tempfile.TemporaryDirectory(
+            prefix='it-', dir='/tmp' if sys.platform == 'linux' else None)))
         selected = dict(environment)
         for name in ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME']:
             selected[name] = str(private)
@@ -246,7 +253,7 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
             args = ['--workspace', str(library), '--request-id', request_id, '--log-level', 'debug',
                     '--log-file', str(directory / (request_id + '.jsonl')), *flags, 'work', 'wait', identity,
                     '--timeout-ms', str(timeout if timeout is not None else bounds.DURABLE_WORK_SECONDS * 1000)]
-            child = stack.enter_context(Terminal([str(executable), *args], cwd=directory, env=selected, deadline=deadline))
+            child = stack.enter_context(terminal_factory([str(executable), *args], cwd=directory, env=selected, deadline=deadline))
             return child, args, request_id
 
         def running_barrier(request_id):
@@ -313,7 +320,8 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
         call(['workspace', 'init', library], scoped=False)
         startup_id = str(uuid.uuid4())
         with owned_runtime([str(executable), '--workspace', str(library), '--startup-id', startup_id,
-                          '--json', 'runtime', 'serve'], cwd=directory, env=selected, gates=gates) as owner:
+                          '--json', 'runtime', 'serve'], cwd=directory, env=selected, gates=gates,
+                          factory=process_factory or ProcessTree) as owner:
             mailbox = queue.Queue(maxsize=1)
             ready_reader = threading.Thread(target=lambda: mailbox.put(owner.process.stdout.readline()), daemon=True)
             ready_reader.start()
@@ -404,7 +412,7 @@ def qualify(invoke, workspace, version, *, executable, environment, observe=None
                    'cases': cases, 'cleanup': True, 'runtime_natural_exit': runtime_natural,
                    'continued_work': continued, 'server_released': False, 'fixture_removed': False}
     receipt['server_released'] = server.released
-    receipt['fixture_removed'] = not directory.exists()
+    receipt['fixture_removed'] = not directory.exists() and not private.exists()
     remaining()
     validate_receipt(receipt, digest, receipt['platform'])
     return receipt

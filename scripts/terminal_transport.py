@@ -37,7 +37,7 @@ def normalize_terminal(raw, *, final=True):
 
 
 class Terminal:
-    def __init__(self, argv, *, cwd, env, deadline=None):
+    def __init__(self, argv, *, cwd, env, deadline=None, owner=None):
         self.started = time.monotonic()
         self.bound = bounds.phase_bound(bounds.SUBPROCESS_SECONDS)
         self.deadline = self.started + self.bound
@@ -53,7 +53,7 @@ class Terminal:
         self.reader = None
         self.input = self.output = self.hpc = None
         self.cleaned = False
-        self.owner = ProcessTree.__new__(ProcessTree)
+        self.owner = owner if owner is not None else ProcessTree.__new__(ProcessTree)
         self.owner.job = self.owner.process = self.owner.session_id = None
         self.kind = 'conpty' if os.name == 'nt' else 'linux-pty'
         try:
@@ -230,9 +230,7 @@ class Terminal:
 
             self.owner.process = Process()
             try:
-                checked(api.AssignProcessToJobObject(self.owner.job, info.process))
-                if api.ResumeThread(info.thread) == 0xffffffff:
-                    raise c.WinError(c.get_last_error())
+                self.owner._assign_and_resume()
             except BaseException as primary:
                 # Assignment can fail while the suspended child is still outside
                 # the job. Kill and join that exact handle before releasing it.

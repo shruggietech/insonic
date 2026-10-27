@@ -33,6 +33,7 @@ Before research and after design, all five principles pass: approved coverage sc
 
 ## Project Structure
 
+- scripts/windows_workload_affinity.py and tests/windows_workload_affinity_test.py: preserve elected archive workload masks on new terminal/runtime roots.
 - scripts/terminal_transport.py: bounded platform terminal lifetime and actual interrupt.
 - scripts/cli_terminal_qualification.py: durable work campaign, strict receipt validation and cleanup.
 - scripts/cli_contract_qualification.py and cli_corpus.py plus tests/fixtures/cli-corpus.json: shared source/package integration and coverage accounting.
