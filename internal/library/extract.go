@@ -93,10 +93,19 @@ type Metadata struct {
 	Truncated    bool            `json:"truncated"`
 }
 type captureBundle struct {
-	Metadata     Metadata `json:"metadata"`
-	Facts        Facts    `json:"facts"`
-	SourceDigest string   `json:"source_digest"`
-	SourceSize   int64    `json:"source_size"`
+	Metadata             Metadata            `json:"metadata"`
+	Facts                Facts               `json:"facts"`
+	SourceDigest         string              `json:"source_digest"`
+	SourceSize           int64               `json:"source_size"`
+	CanonicalPublication *capturePublication `json:"canonical_publication,omitempty"`
+}
+
+// Bind the complete unaccepted report to the exact canonical publication it
+// describes. Older partial reports without this binding remain recomputable.
+type capturePublication struct {
+	ID     string `json:"id"`
+	Digest string `json:"digest"`
+	Size   int64  `json:"size"`
 }
 
 // VerifyExtractor applies the same pinned extractor contract to runtime callers.

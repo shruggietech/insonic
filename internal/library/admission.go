@@ -329,16 +329,27 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 			}
 		}
 	}
-	phase = "metadata-capture"
-	bundle, err := s.capture(ctx, path, source, options)
+	phase = "candidate-recovery"
+	bundle, publication, reportID, recovered, err := s.recoverAdmissionCandidate(ctx, work, ordinal, digest, size)
 	if err != nil {
 		return out, err
 	}
-	bundle.Facts.Acquisition = acquisition
-	if acquisition != nil {
-		bundle.Facts.FilesystemModified = ""
+	if !recovered {
+		phase = "metadata-capture"
+		bundle, err = s.capture(ctx, path, source, options)
+		if err != nil {
+			return out, err
+		}
+		bundle.Facts.Acquisition = acquisition
+		if acquisition != nil {
+			bundle.Facts.FilesystemModified = ""
+		}
 	}
-	tracks := embeddedTracks(bundle.Facts.Streams)
+	sourceStreams := bundle.Facts.Streams
+	if recovered {
+		sourceStreams = bundle.Facts.Canonical.SourceStreams
+	}
+	tracks := embeddedTracks(sourceStreams)
 	notices := []string{}
 	var input []byte
 	format := ""
@@ -382,11 +393,6 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 		document = &value
 	}
 	phase = "canonical-audio"
-	canonical, facts, err := s.canonicalize(ctx, path, directory, bundle)
-	if err != nil {
-		return out, err
-	}
-	bundle.Facts = facts
 	candidates := []string{}
 	defer func() {
 		if returned != nil {
@@ -395,19 +401,29 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 			}
 		}
 	}()
-	phase = "canonical-publication"
-	publicationID, err := s.freshAdmissionCandidate(ctx, DerivedID(work.ID, "canonical-"+strconv.Itoa(ordinal)))
-	if err != nil {
-		return out, err
-	}
-	candidates = append(candidates, publicationID)
-	publication, err := s.publish(ctx, publicationID, canonical, "canonical-audio")
-	if err != nil {
-		return out, err
-	}
-	reportID, err := s.freshAdmissionCandidate(ctx, DerivedID(work.ID, "canonical-report-"+strconv.Itoa(ordinal)))
-	if err != nil {
-		return out, err
+	if !recovered {
+		canonical, facts, e := s.canonicalize(ctx, path, directory, bundle)
+		if e != nil {
+			return out, e
+		}
+		bundle.Facts = facts
+		phase = "canonical-publication"
+		publicationID, e := s.freshAdmissionCandidate(ctx, DerivedID(work.ID, "canonical-"+strconv.Itoa(ordinal)))
+		if e != nil {
+			return out, e
+		}
+		candidates = append(candidates, publicationID)
+		publication, err = s.publish(ctx, publicationID, canonical, "canonical-audio")
+		if err != nil {
+			return out, err
+		}
+		reportID, err = s.freshAdmissionCandidate(ctx, DerivedID(work.ID, "canonical-report-"+strconv.Itoa(ordinal)))
+		if err != nil {
+			return out, err
+		}
+		bundle.CanonicalPublication = &capturePublication{ID: publication.ID, Digest: publication.Digest, Size: publication.Size}
+	} else {
+		candidates = append(candidates, publication.ID)
 	}
 	candidates = append(candidates, reportID)
 	title := item.Title

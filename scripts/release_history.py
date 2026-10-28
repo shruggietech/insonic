@@ -22,10 +22,27 @@ ORIGINAL_TREE = '1c4ae59c053a3d8d751cde5c736f67f2bbeecd3c'
 ORIGINAL_MANIFEST = 'ce885efde09f7ba9d4b12d3b60ec9e87f918921e2db5fcc6ec2021fab743b8d8'
 ORIGINAL_MSI = 'beff9343561e160e157ed2ce3f8f41a287b6bdd9f88beec0779ae408fceae22d'
 ORIGINAL_MSI_SIZE = 137895936
+ORIGINAL_V102_MANIFEST = '02a55b6ec51855881a1fc7592b002c5d3ce5d5dce0bf09985094da27beee3449'
+ORIGINAL_V102_PACKAGES = frozenset((
+    '0f8e936f6689ef7d268640b93c19f98090d0306f7b8dc47dd143fe1d1a47d8a2',
+    '72fcff4fd5efb4f01b2c42edadf93b5b3c9aebe7e1d24d4f712bb541cf2b7714',
+    'ca15fcad7d64f18a24ec87ee649ebbd7c85c93257b12ce8320ba0acfbe50b6fc',
+    'c711023426571ef6798de9cc1507aa90c949e18ba3610e2589cb03d92f2002f5',
+))
 
 
 def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode('utf-8')).hexdigest()
+
+
+def original_recovery_absence(receipt):
+    """Only original v1.0.2 bytes may predate the new recovery evidence.
+
+    This exempts one new field, never existing source/archive/signing/terminal
+    or installer checks. Every receipt field, including revision and nested
+    inventories, is anchored by the immutable publication's canonical digest.
+    """
+    return digest(receipt) in ORIGINAL_V102_PACKAGES
 
 
 def git_metadata(args, repository):

@@ -394,7 +394,8 @@
         "internal/voicemodels/types.go",
         "internal/workers/platform.go",
         "internal/workers/probe.go",
-        "internal/workers/setup.go"
+        "internal/workers/setup.go",
+        "internal/library/admission_recovery.go"
       ],
       "platform": "Windows and Linux where the owner is supported",
       "callers": "ordinary CLI/runtime/desktop requests and explicit fixtures"
@@ -447,12 +448,24 @@
       "files": [
         "scripts/cli_terminal_qualification.py",
         "scripts/terminal_transport.py",
-      "scripts/terminal_failure_evidence.py",
+        "scripts/terminal_failure_evidence.py",
         "tests/cli_invocation_timing_test.py",
         "tests/terminal_transport_test.py"
       ],
       "platform": "Windows ConPTY and Linux controlling PTY",
       "callers": "source and extracted-package CLI qualification"
+    },
+    {
+      "id": "import-process-recovery-qualification",
+      "disposition": "shared-expanded-test-budget-with-kernel-and-injected-boundaries",
+      "origin": "single monotonic campaign start; original phase deadline; observed source-open break",
+      "parent": "earlier enclosing qualification deadline; kernel lease auto-break allowance minus completion margin; production 30-second probe capture remains unchanged",
+      "effective": "600s shared campaign;readiness60s;cleanup30s;probe gate20s inside existing30s product capture;existing Linux lease-break-time minus2s;controlled1s missing-break failure and bounded20s actual barrier smoke",
+      "files": [
+        "scripts/cli_recovery_qualification.py",
+        "scripts/file_open_barrier.py",
+        "tests/file_open_barrier_test.py"
+      ]
     }
   ],
   "workflow_owners": {
@@ -567,6 +580,24 @@
       "symbol": "deadline=time.monotonic()+.1",
       "seconds": 0.1,
       "reason": "Deliberate inherited deadline expiry requires failure and forced cleanup; not a successful execution allowance."
+    },
+    {
+      "file": "scripts/cli_recovery_qualification.py",
+      "symbol": "controlled final canonical probe gate",
+      "seconds": 20,
+      "reason": "Intentional fixture barrier is released before the unchanged 30-second production capture budget. It does not reduce the shared600s campaign or change product deadlines."
+    },
+    {
+      "file": "tests/file_open_barrier_test.py",
+      "symbol": "deadline=time.monotonic()+1",
+      "seconds": 1,
+      "reason": "Injected absent-break failure must time out and release the owned helper; ordinary successful qualification retains shared expanded allowances."
+    },
+    {
+      "file": "internal/library/admission_recovery.go",
+      "symbol": "materialization release cleanup",
+      "seconds": 10,
+      "reason": "New recovery cleanup follows the existing product candidate-cleanup bound; this is not a test execution allowance."
     }
   ],
   "notes": [
