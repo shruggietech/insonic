@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import http from 'node:http';
 import { waitForArtifact, waitForDesktopProofs, waitForDesktopInput, waitForWindowsPackages } from '../scripts/wait-ci-artifact.mjs';
 
 const options = { repository: 'shruggietech/insonic', run: '123', attempt: '2', os: 'windows-2022', token: 'fixture' };
@@ -262,6 +263,178 @@ const windowsReadinessCases = [
   { wait: waitForDesktopProofs, artifacts: proofArtifacts, jobs: proofGates.jobs, expected: { archive: 51, interactive: 52, maintenance: 53, setup: 54 }, scope: 'archive' },
   { wait: waitForWindowsPackages, artifacts: packageArtifacts, jobs: packageJobs, expected: { cli: 71, desktop: 72 }, scope: 'cli' },
 ];
+
+const metadataReadCases = [{ wait: waitForArtifact, artifacts: [artifact], jobs: gates.jobs, expected: 42 },
+  ...windowsReadinessCases];
+
+test('transient HTTP metadata failures recover for every source and Windows join within the same deadline', async t => {
+  for (const scenario of metadataReadCases) for (const dimension of ['jobs', 'artifacts']) {
+    let elapsed = 0;
+    const calls = { jobs: 0, artifacts: 0 };
+    const mocked = t.mock.method(globalThis, 'fetch', async url => {
+      const key = url.includes('/jobs?') ? 'jobs' : 'artifacts';
+      if (++calls[key] <= 2 && key === dimension) return new Response('transient provider failure', { status: 502 });
+      return Response.json({ total_count: scenario[key].length, [key]: scenario[key] });
+    });
+    try {
+      const ready = await scenario.wait({ ...proofOptions, phaseDeadlineMs: 5000, now: () => elapsed,
+        sleep: async ms => { elapsed += ms; } });
+      assert.deepEqual(ready, scenario.expected);
+      assert.equal(calls[dimension], 3);
+      assert.equal(calls[dimension === 'jobs' ? 'artifacts' : 'jobs'], 1);
+      assert.equal(elapsed, 3000);
+    } finally { mocked.mock.restore(); }
+  }
+});
+
+test('persistent transient metadata failure stops after three attempts', async t => {
+  let elapsed = 0, calls = 0;
+  t.mock.method(globalThis, 'fetch', async url => url.includes('/jobs?')
+    ? Response.json({ total_count: packageJobs.length, jobs: packageJobs })
+    : (++calls, new Response('transient provider failure', { status: 502 })));
+  await assert.rejects(waitForWindowsPackages({ ...proofOptions, now: () => elapsed,
+    sleep: async ms => { elapsed += ms; } }), /HTTP 502/);
+  assert.equal(calls, 3);
+  assert.equal(elapsed, 3000);
+});
+
+test('authentication, permanent HTTP errors and malformed metadata are never retried', async t => {
+  for (const status of [401, 403, 404, 409, 422, 501, 200]) {
+    let calls = 0;
+    const mocked = t.mock.method(globalThis, 'fetch', async url => url.includes('/jobs?')
+      ? Response.json({ total_count: packageJobs.length, jobs: packageJobs })
+      : (++calls, new Response('not JSON and not an accepted inventory', { status })));
+    try {
+      await assert.rejects(waitForWindowsPackages({ ...proofOptions,
+        sleep: async () => assert.fail('permanent failure must not retry') }));
+      assert.equal(calls, 1);
+    } finally { mocked.mock.restore(); }
+  }
+});
+
+test('retry backoff cannot restart or overrun the earlier qualification deadline', async t => {
+  let elapsed = 0, calls = 0;
+  t.mock.method(globalThis, 'fetch', async url => url.includes('/jobs?')
+    ? Response.json({ total_count: packageJobs.length, jobs: packageJobs })
+    : (++calls, new Response('transient provider failure', { status: 503 })));
+  await assert.rejects(waitForWindowsPackages({ ...proofOptions, phaseDeadlineMs: 500,
+    now: () => elapsed, sleep: async ms => { elapsed += ms; } }), /deadline/);
+  assert.equal(calls, 1);
+  assert.equal(elapsed, 500);
+});
+
+test('a transient fetch transport failure can recover but caller cancellation cannot retry', async t => {
+  for (const cancelled of [false, true]) {
+    const controller = new AbortController(); let calls = 0, elapsed = 0;
+    const mocked = t.mock.method(globalThis, 'fetch', async url => {
+      if (url.includes('/jobs?')) return Response.json({ total_count: packageJobs.length, jobs: packageJobs });
+      if (++calls === 1) {
+        if (cancelled) controller.abort(new Error('owner cancelled'));
+        throw new TypeError('fetch failed', { cause: Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }) });
+      }
+      return Response.json(response(packageArtifacts));
+    });
+    try {
+      const operation = waitForWindowsPackages({ ...proofOptions, signal: controller.signal,
+        now: () => elapsed, sleep: async ms => { elapsed += ms; } });
+      if (cancelled) {
+        await assert.rejects(operation, /owner cancelled/);
+        assert.equal(calls, 1); assert.equal(elapsed, 0);
+      } else {
+        assert.deepEqual(await operation, { cli: 71, desktop: 72 });
+        assert.equal(calls, 2); assert.equal(elapsed, 1000);
+      }
+    } finally { mocked.mock.restore(); }
+  }
+});
+
+test('a permanent metadata failure cancels a sibling read before another retry', async t => {
+  let siblingSignal, releaseBackoff;
+  const controller = new AbortController();
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    if (!url.includes('/jobs?')) return new Response('not authorized', { status: 401 });
+    siblingSignal = init.signal;
+    throw new TypeError('fetch failed', { cause: Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }) });
+  });
+  try {
+    await assert.rejects(waitForWindowsPackages({ ...proofOptions, signal: controller.signal,
+      sleep: async (ms, unused, { signal }) => new Promise((resolve, reject) => {
+        releaseBackoff = resolve;
+        if (signal.aborted) reject(signal.reason);
+        else signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      }) }), /HTTP 401/);
+    assert.equal(siblingSignal.aborted, true);
+  } finally { controller.abort(new Error('fixture cleanup')); releaseBackoff?.(); }
+});
+
+test('TLS, refused redirects and unclassified fetch errors are not transient retries', async t => {
+  for (const cause of [{ code: 'CERT_HAS_EXPIRED' }, { code: 'ERR_TLS_CERT_ALTNAME_INVALID' },
+    new Error('unexpected redirect'), undefined]) {
+    let calls = 0;
+    const mocked = t.mock.method(globalThis, 'fetch', async url => {
+      if (url.includes('/jobs?')) return Response.json({ total_count: packageJobs.length, jobs: packageJobs });
+      calls++;
+      throw new TypeError('fetch failed', { cause });
+    });
+    try {
+      await assert.rejects(waitForWindowsPackages({ ...proofOptions,
+        sleep: async () => assert.fail('unclassified failure must not retry') }), /fetch failed/);
+      assert.equal(calls, 1);
+    } finally { mocked.mock.restore(); }
+  }
+});
+
+test('a real socket drop after successful headers retries the discarded partial inventory body', async t => {
+  let artifactRequests = 0, partialResponse, headersObserved = false, elapsed = 0;
+  const server = http.createServer((request, reply) => {
+    if (request.url === '/jobs') {
+      reply.setHeader('Content-Type', 'application/json'); reply.end(JSON.stringify(gates));
+    } else if (++artifactRequests === 1) {
+      partialResponse = reply;
+      reply.writeHead(200, { 'Content-Type': 'application/json' });
+      reply.flushHeaders(); reply.write('{"total_count":');
+    } else {
+      reply.setHeader('Content-Type', 'application/json'); reply.end(JSON.stringify(response([artifact])));
+    }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  const nativeFetch = globalThis.fetch;
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    const route = url.includes('/jobs?') ? '/jobs' : '/artifacts';
+    const received = await nativeFetch(`http://127.0.0.1:${server.address().port}${route}`, init);
+    if (route === '/artifacts' && artifactRequests === 1) {
+      assert.equal(received.status, 200); headersObserved = true; partialResponse.destroy();
+    }
+    return received;
+  });
+  assert.equal(await waitForArtifact({ ...options, phaseDeadlineMs: 60000, now: () => elapsed,
+    sleep: async ms => { elapsed += ms; } }), 42);
+  assert.equal(headersObserved, true);
+  assert.equal(artifactRequests, 2);
+  assert.equal(elapsed, 1000);
+});
+
+test('oversized inventory bodies and cancellation during body reads cannot retry', async t => {
+  for (const cancelled of [false, true]) {
+    let calls = 0;
+    const controller = new AbortController();
+    const mocked = t.mock.method(globalThis, 'fetch', async url => {
+      if (url.includes('/jobs?')) return Response.json(gates);
+      calls++;
+      if (!cancelled) return new Response('x'.repeat((1 << 20) + 1));
+      return new Response(new ReadableStream({ pull(stream) {
+        controller.abort(new Error('owner cancelled during body'));
+        stream.error(new TypeError('terminated', { cause: { code: 'UND_ERR_SOCKET' } }));
+      } }));
+    });
+    try {
+      await assert.rejects(waitForArtifact({ ...options, signal: controller.signal,
+        sleep: async () => assert.fail('body refusal cannot retry') }), cancelled ? /owner cancelled/ : /bound/);
+      assert.equal(calls, 1);
+    } finally { mocked.mock.restore(); }
+  }
+});
 
 test('Windows readiness waits for complete consistent inventories after scheduling and upload races', async () => {
   for (const scenario of windowsReadinessCases) for (const dimension of ['jobs', 'artifacts']) for (const difference of [-1, 1]) {

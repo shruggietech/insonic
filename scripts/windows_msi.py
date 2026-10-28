@@ -490,7 +490,9 @@ def verify_model_bytes(path,model,fixture_failure=False):
         if order(actual)!=order(expected):raise ValueError('actual MSI table differs from source model: '+name)
     return {'streams':streams,'members':actual_members}
 
-def verify_installer(path,receipt,source_root=None):
+def verify_installer(path,receipt,source_root=None,*,history_profile=None):
+    if history_profile is not None:
+        return history_profile.verify_installer(path,receipt,source_root or ROOT)
     source_root=Path(source_root or ROOT);path=Path(path);version=json.loads((source_root/'package.json').read_text(encoding='utf-8'))['version']
     if receipt.get('publication_eligible') is False or ('payload_qualification' in receipt and receipt['payload_qualification']!='passed'):raise ValueError('provisional MSI lacks joined qualified ZIP evidence')
     if receipt.get('kind')!='windows-installer-receipt' or receipt.get('format')!='msi' or receipt.get('platform')!='windows_amd64' or receipt.get('variant')!='selectable':raise ValueError('wrong MSI kind/platform/format')

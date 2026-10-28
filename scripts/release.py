@@ -299,14 +299,16 @@ def verify_signing(signing, *, historical=False):
     elif signing['verified'] is not False or signing.get('status') != 'unconfigured': raise ValueError('unconfigured package signing cannot claim publisher verification')
 
 
-def verify_qualification(receipt):
+def verify_qualification(receipt, *, history_profile=None):
     required = {'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed', 'cli_real_audio_video_import': 'passed', 'development_native_libraries': 'isolated-and-restored'}
     if receipt.get('schema_version') != '1.0.0' and receipt.get('platform') == 'windows_amd64':
         required.update(windows_copy_install='passed', windows_first_use='passed')
     expected_gui = 'passed' if receipt.get('variant') == 'desktop' else 'not-included'
     required.update(gui_bridge=expected_gui, native_webview=expected_gui)
     if any(receipt.get(field) != expected for field, expected in required.items()): raise ValueError('package relocation and native qualification are incomplete')
-    if receipt.get('schema_version') != '1.0.0':
+    if history_profile is not None:
+        history_profile.verify_receipt(receipt)
+    elif receipt.get('schema_version') != '1.0.0':
         from cli_terminal_qualification import validate_receipt
         contract = receipt.get('cli_contract', {})
         coverage = contract.get('coverage') if isinstance(contract, dict) else None
@@ -333,13 +335,15 @@ def verify_package(path, receipt, source_root=ROOT):
     module.verify_archive_receipt(path, receipt, expected_source_root=source_root)
 
 
-def verify_installer(path, receipt, source_root=ROOT):
+def verify_installer(path, receipt, source_root=ROOT, *, history_profile=None):
     spec = importlib.util.spec_from_file_location('release_windows_msi', ROOT / 'scripts/windows_msi.py')
     module = importlib.util.module_from_spec(spec); sys.modules[spec.name] = module; spec.loader.exec_module(module)
+    if history_profile is not None:
+        return module.verify_installer(path, receipt, source_root=source_root, history_profile=history_profile)
     return module.verify_installer(path, receipt, source_root=source_root)
 
 
-def installer_identity(receipt, version, revision, packages):
+def installer_identity(receipt, version, revision, packages, *, history_profile=None):
     if (receipt.get('kind') != 'windows-installer-receipt' or receipt.get('format') != 'msi'
             or receipt.get('platform') != 'windows_amd64' or receipt.get('variant') != 'selectable'):
         raise ValueError('installer format or platform identity differs')
@@ -366,7 +370,10 @@ def installer_identity(receipt, version, revision, packages):
     verify_signing(signing)
     if signing.get('configured') is not False or signing.get('verified') is not False or signing.get('status') != 'unconfigured':
         raise ValueError('MSI is newly authored unsigned; payload signatures cannot establish installer signing')
-    setup_identity(receipt, version)
+    if history_profile is not None:
+        history_profile.verify_receipt(receipt)
+    else:
+        setup_identity(receipt, version)
 
 
 def setup_identity(receipt, version):
@@ -385,11 +392,14 @@ def setup_identity(receipt, version):
         raise ValueError('coordinated setup recovery qualification is incomplete')
 
 
-def verify_selected_package(path, receipt, verifier, source_root):
+def verify_selected_package(path, receipt, verifier, source_root, *, history_profile=None):
     # Execute the trusted verifier; candidate checkout inputs are data only.
     if verifier is verify_package:
         if receipt.get('kind') == 'windows-installer-receipt':
-            verify_installer(path, receipt, source_root)
+            if history_profile is not None:
+                verify_installer(path, receipt, source_root, history_profile=history_profile)
+            else:
+                verify_installer(path, receipt, source_root)
         else:
             verifier(path, receipt, source_root)
     else:
@@ -742,6 +752,8 @@ def load_candidate(directory, verifier=verify_package, source_root=ROOT):
     value = read_json(directory / 'release-manifest.json')
     if value.get('kind') != 'release-candidate' or value.get('repository') != REPOSITORY or not re.fullmatch(VERSION_PATTERN, value.get('version', '')) or value.get('tag') != 'v' + value['version'] or not re.fullmatch(r'[a-f0-9]{40}', value.get('revision', '')):
         raise ValueError('invalid release candidate identity')
+    from release_history import select_profile, verify_source
+    history_profile = select_profile(value, directory / 'release-manifest.json', source_root)
     platforms = selected_release_platforms(source_root, value['version'])
     package_count = len(platforms) * len(VARIANTS)
     capabilities = value.get('capabilities', {})
@@ -756,7 +768,7 @@ def load_candidate(directory, verifier=verify_package, source_root=ROOT):
     if len(packages) != package_count or {(p.get('platform'), p.get('variant')) for p in packages} != {(p, v) for p in platforms for v in VARIANTS}: raise ValueError('candidate package matrix is incomplete')
     for receipt in packages:
         if receipt.get('revision') != value['revision'] or receipt.get('source_dirty') is not False or any(receipt.get(field) != value['version'] for field in ('schema_version', 'product_version', 'documentation_version')): raise ValueError('candidate package authority differs')
-        verify_qualification(receipt)
+        verify_qualification(receipt, history_profile=history_profile)
         distribution = receipt.get('distribution', {})
         if distribution.get('source_complete') is not True or distribution.get('binary_publication') != 'eligible' or distribution.get('corresponding_source') != 'included': raise ValueError('candidate corresponding sources are incomplete')
         signing = receipt.get('signing', {})
@@ -765,7 +777,8 @@ def load_candidate(directory, verifier=verify_package, source_root=ROOT):
     installer_count = selected_installer_count(source_root, value['version'])
     if not isinstance(installers, list) or len(installers) != installer_count:
         raise ValueError('candidate MSI installer inventory is missing or duplicate')
-    for receipt in installers: installer_identity(receipt, value['version'], value['revision'], packages)
+    for receipt in installers:
+        installer_identity(receipt, value['version'], value['revision'], packages, history_profile=history_profile)
     setup_names = {i['setup']['artifact'] for i in installers} if selected_setup_count(source_root, value['version']) else set()
     asset_names = {p['archive'] for p in packages} | {i['artifact'] for i in installers} | setup_names | {'documentation.tar.gz', 'offline-help.tar.gz'}
     if len(value.get('assets', [])) != package_count + installer_count + len(setup_names) + 2 or {a['name'] for a in value['assets']} != asset_names: raise ValueError('candidate asset matrix differs')
@@ -777,18 +790,21 @@ def load_candidate(directory, verifier=verify_package, source_root=ROOT):
     for receipt in packages:
         archive_entry = next(a for a in value['assets'] if a['name'] == receipt['archive'])
         if archive_entry['sha256'] != receipt.get('archive_sha256') or archive_entry['size_bytes'] != receipt.get('archive_size_bytes'): raise ValueError('candidate receipt differs from archive identity')
-        verify_selected_package(directory / receipt['archive'], receipt, verifier, source_root)
+        verify_selected_package(directory / receipt['archive'], receipt, verifier, source_root, history_profile=history_profile)
     for receipt in installers:
         entry = next(a for a in value['assets'] if a['name'] == receipt['artifact'])
         if entry['sha256'] != receipt.get('artifact_sha256') or entry['size_bytes'] != receipt.get('artifact_size_bytes'):
             raise ValueError('candidate MSI receipt differs from artifact identity')
-        verify_selected_package(directory / receipt['artifact'], receipt, verifier, source_root)
-        setup = receipt['setup']; entry = next(a for a in value['assets'] if a['name'] == setup['artifact'])
-        if entry['sha256'] != setup.get('artifact_sha256') or entry['size_bytes'] != setup.get('artifact_size_bytes'):
-            raise ValueError('candidate setup receipt differs from artifact identity')
+        verify_selected_package(directory / receipt['artifact'], receipt, verifier, source_root, history_profile=history_profile)
+        if history_profile is None:
+            setup = receipt['setup']; entry = next(a for a in value['assets'] if a['name'] == setup['artifact'])
+            if entry['sha256'] != setup.get('artifact_sha256') or entry['size_bytes'] != setup.get('artifact_size_bytes'):
+                raise ValueError('candidate setup receipt differs from artifact identity')
     for name in ('documentation.tar.gz', 'offline-help.tar.gz'): verify_documentation(directory / name, value['version'], value['revision'])
     sums = ''.join(f"{entry['sha256']}  {entry['name']}\n" for entry in sorted(expected[:-1], key=lambda e: e['name']))
     if (directory / 'SHA256SUMS').read_text() != sums: raise ValueError('candidate checksums differ')
+    if history_profile is not None:
+        verify_source(source_root)
     return value, expected
 
 
