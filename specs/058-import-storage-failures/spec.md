@@ -2,7 +2,7 @@
 
 **Feature Branch**: `codex/058-import-storage-failures`
 **Created**: 2026-10-28
-**Status**: Specified
+**Status**: Implemented; source acceptance and bounded reviews passed, awaiting owner merge
 **Input**: Owner-authorized S058 for #147 under Spec Kit autopilot, including automatic push/PR, CI fixes, at most two Codex review rounds, and a stop before owner merge.
 
 ## User Scenarios & Testing

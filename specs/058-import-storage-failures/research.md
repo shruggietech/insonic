@@ -25,6 +25,12 @@
 **Decision**: Add a strict nested storage receipt for current/unknown candidates while retaining exact immutable original v1.0.2 receipt hashes and the existing v1.0.1 historical profile.
 **Rationale**: Historical bytes cannot acquire new runtime evidence. No version-wide bypass is acceptable.
 
+## Windows path authority
+
+**Decision**: Anchor the derived object relative path to the resolved owned library root before exact inode/hash-bound removal.
+
+**Rationale**: Initial Windows CI rejected equivalent resolved/absolute path spellings. The positive regression and a real short-path alias campaign pass with a shared resolved anchor, while an outside-root resolved target remains refused. This changes fixture cleanup authority only.
+
 ## Research authority
 
 One Spec Kit-directed agent inspected these boundaries read-only. Parent inspection confirms the relevant copy, persistence, staging and admission behavior. No unresolved research question remains.

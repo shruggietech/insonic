@@ -11,7 +11,7 @@
 ## Phase 2: Foundational
 
 - [x] T003 Add failing-first injected capacity/short-write/flush/rewind/cleanup regressions in internal/artifact/storage_failure_test.go (FR-001, FR-003, FR-004).
-- [x] T004 Repair demonstrated staging finalization/capacity classification in internal/artifact/stable.go, service.go, contract.go and capacity_*.go without product fault switches (FR-001, FR-003, FR-004, FR-006).
+- [x] T004 Repair demonstrated staging finalization/capacity classification in internal/artifact/stable.go, stage.go, service.go, contract.go and capacity_*.go without product fault switches (FR-001, FR-003, FR-004, FR-006).
 
 ## Phase 3: US1 - Refuse incomplete authority
 
@@ -39,7 +39,7 @@
 
 - [x] T012 Update current storage/development/release documentation, CHANGELOG.md and affected test-clock inventory, preserving public/internal planning boundaries (FR-003, FR-007, FR-008, FR-010).
 - [x] T013 Complete focused/all affected native/Python, npm check/test and affected site verification; run local actual campaign and Spec Kit convergence; record concise results in specs/058-import-storage-failures/verification.md (SC-001 through SC-004).
-- [ ] T014 Commit/push, open official PR, monitor/fix exact-head CI, resolve up to two Codex rounds, retain independently audited receipts, clean owned staging, and stop before owner merge (SC-004).
+- [x] T014 Commit/push, open official PR, monitor/fix exact-head CI, resolve up to two Codex rounds, retain independently audited receipts, clean owned staging, and stop before owner merge (SC-004).
 
 ## Dependencies and execution
 
