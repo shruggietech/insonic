@@ -1,6 +1,6 @@
 # Feature Specification: Original release revalidation
 
-**Feature**: S056 | **Issue**: #185 | **Created**: 2026-10-27 | **Status**: Implemented; hosted acceptance pending
+**Feature**: S056 | **Issue**: #185 | **Created**: 2026-10-27 | **Status**: Implemented
 
 Restore read-only verification of the original published v1.0.1 packages using their exact release authority. Later verification requirements must not invalidate authentic historical evidence or become optional for current candidates.
 

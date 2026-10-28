@@ -39,7 +39,7 @@
 - [x] T012 Update docs/v1.0.2/releases.md and CHANGELOG.md with the authoritative historical verification contract and dated maintainer-tooling decision (FR-008).
 - [x] T013 Run focused/full Python suites, npm run check, npm test and affected site tests/build; analyze/converge all requirements and retain compact verification facts in specs/056-historical-release-revalidation/verification.md (FR-001 through FR-008, SC-001 through SC-004).
 - [x] T014 Create S056 milestone/Project linkage, commit, automatically push and open the official PR linked to #185; attach it to this chat (SC-004).
-- [ ] T015 Monitor exact-head CI, audit/retain terminal receipts before any full rerun, resolve all findings through at most two Codex rounds, and stop before merging for owner review (SC-004).
+- [x] T015 Monitor exact-head CI, audit/retain terminal receipts before any full rerun, resolve all findings through at most two Codex rounds, and stop before merging for owner review (SC-004).
 
 ## Dependencies and Execution Strategy
 
@@ -51,4 +51,4 @@ Setup -> foundation -> US1 -> US2 -> US3 -> verification/delivery. Tests precede
 
 ## Phase 8: Convergence
 
-- [ ] T017 Classify recognized response-body transport failures in scripts/wait-ci-artifact.mjs per review discussion 4395426521; add an actual HTTP-200 partial-body/socket-disconnect regression plus oversized-body and cancellation refusal checks in tests/ci-artifact.test.mjs, verify the correction and reply/resolve the review after pushing (SC-004, partial).
+- [x] T017 Classify recognized response-body transport failures in scripts/wait-ci-artifact.mjs per review discussion 4395426521; add an actual HTTP-200 partial-body/socket-disconnect regression plus oversized-body and cancellation refusal checks in tests/ci-artifact.test.mjs, verify the correction and reply/resolve the review after pushing (SC-004, partial).
