@@ -84,4 +84,51 @@ class StorageQualificationTests(unittest.TestCase):
                     self.assertTrue(target.exists())
                 self.assertEqual(original.read_bytes(),b'original bytes')
 
+
+    def test_resolved_library_anchor_accepts_equivalent_parent_spelling(self):
+        import hashlib
+        import json
+        import tempfile
+        from unittest.mock import patch
+        module=load()
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);library=root/'owned library';control=library/'.insonic';control.mkdir(parents=True)
+            workspace,profile=str(uuid.uuid4()),str(uuid.uuid4())
+            config={'workspace_id':workspace,'profiles':{'storage':{'profile_id':profile,'profile_revision':1,'adapter_id':'filesystem','configuration':{'root':'artifacts'}}}}
+            (control/'workspace.json').write_text(json.dumps(config),encoding='utf8')
+            relative=Path('.insonic/artifacts/objects')/workspace/profile/'1/sha256'/'aa'/('a'*64)
+            target=library/relative;target.parent.mkdir(parents=True);target.write_bytes(b'owned blocker')
+            st=target.stat();record={'path':str(target),'digest':'a'*64,'device':st.st_dev,'inode':st.st_ino,'size':st.st_size,'sha256':hashlib.sha256(target.read_bytes()).hexdigest()}
+            marker=root/'marker.json';marker.write_text(json.dumps(record),encoding='utf8')
+            canonical=root/'expanded ancestor spelling'/'owned library'
+            original=Path.resolve
+            def resolved(path,*args,**kwargs):
+                if path==library:return canonical
+                if path==target:return canonical/relative
+                return original(path,*args,**kwargs)
+            with patch.object(Path,'resolve',resolved):
+                module.remove_blocker(library,marker)
+            self.assertFalse(target.exists())
+
+    def test_resolved_parent_escape_is_refused_even_with_matching_marker(self):
+        import hashlib
+        import json
+        import tempfile
+        from unittest.mock import patch
+        module=load()
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);library=root/'owned library';control=library/'.insonic';control.mkdir(parents=True)
+            workspace,profile=str(uuid.uuid4()),str(uuid.uuid4())
+            config={'workspace_id':workspace,'profiles':{'storage':{'profile_id':profile,'profile_revision':1,'adapter_id':'filesystem','configuration':{'root':'artifacts'}}}}
+            (control/'workspace.json').write_text(json.dumps(config),encoding='utf8')
+            target=control/'artifacts/objects'/workspace/profile/'1/sha256'/'aa'/('a'*64);target.parent.mkdir(parents=True);target.write_bytes(b'owned blocker')
+            st=target.stat();record={'path':str(target),'digest':'a'*64,'device':st.st_dev,'inode':st.st_ino,'size':st.st_size,'sha256':hashlib.sha256(target.read_bytes()).hexdigest()}
+            marker=root/'marker.json';marker.write_text(json.dumps(record),encoding='utf8')
+            original=Path.resolve
+            def resolved(path,*args,**kwargs):
+                return root/'outside' if path==target else original(path,*args,**kwargs)
+            with patch.object(Path,'resolve',resolved),self.assertRaises(ValueError):
+                module.remove_blocker(library,marker)
+            self.assertEqual(target.read_bytes(),b'owned blocker')
+
 if __name__=='__main__':unittest.main()

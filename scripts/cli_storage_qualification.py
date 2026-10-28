@@ -78,7 +78,10 @@ def remove_blocker(library, marker):
               / str(profile['profile_revision']) / 'sha256' / record['digest'][:2] / record['digest'])
     if not hashed(record['digest']) or str(wanted) != record['path']:
         raise ValueError('Storage obstruction path differs from owned workspace authority')
-    if wanted.resolve(strict=True) != wanted.absolute() or not wanted.is_relative_to(Path(library).absolute()):
+    library_root = Path(library).resolve(strict=True)
+    relative = wanted.relative_to(Path(library))
+    resolved = wanted.resolve(strict=True)
+    if resolved != library_root / relative or not resolved.is_relative_to(library_root):
         raise ValueError('Storage obstruction escapes its owned library')
     observed = wanted.lstat()
     if (not stat.S_ISREG(observed.st_mode) or wanted.is_symlink()
