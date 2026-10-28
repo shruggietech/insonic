@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"io"
@@ -104,8 +105,12 @@ func redact(ctx context.Context, e error) error {
 	if ctx.Err() != nil {
 		return contracts.Fail("cancelled")
 	}
-	if err, ok := e.(*contracts.Error); ok {
-		return err
+	var original *contracts.Error
+	if errors.As(e, &original) {
+		return original
+	}
+	if capacityFailure(e) {
+		return contracts.Fail("insufficient_space")
 	}
 	return contracts.Fail("unavailable")
 }

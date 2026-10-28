@@ -31,11 +31,13 @@ def receipt_fixture(digest='a' * 64, platform='windows', transport='conpty'):
 
 def package_contract_fixture(receipt):
     from cli_recovery_qualification_test import receipt_fixture as recovery_fixture
+    from cli_storage_qualification_test import receipt as storage_fixture
     platform = 'windows' if receipt['platform'] == 'windows_amd64' else 'linux'
     return {'coverage': {'identity': {'scope': 'package', 'archive_sha256': receipt['archive_sha256'],
         'inventory_sha256': receipt['inventory_sha256'], 'executable_sha256': 'd' * 64, 'platform': platform}},
         'terminal_contracts': receipt_fixture('d' * 64, platform, 'conpty' if platform == 'windows' else 'linux-pty'),
-        'recovery_contracts': recovery_fixture('d' * 64, platform)}
+        'recovery_contracts': recovery_fixture('d' * 64, platform),
+        'storage_contracts': storage_fixture('d' * 64, platform)}
 
 
 class TerminalReceiptTests(unittest.TestCase):

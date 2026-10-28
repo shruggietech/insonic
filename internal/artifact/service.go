@@ -110,16 +110,10 @@ func (s *Service) StageBound(ctx context.Context, source string, maxBytes int64)
 	if e != nil {
 		return nil, "", 0, redact(ctx, e)
 	}
-	digest, n, e := copyStableBound(ctx, source, input, f, maxBytes)
-	if e == nil {
-		e = f.Sync()
-	}
+	digest, n, e := prepareStableStage(ctx, source, input, f, maxBytes, func() error { return s.scratch.Remove(name) })
 	if e != nil {
-		f.Close()
-		s.scratch.Remove(name)
 		return nil, "", 0, redact(ctx, e)
 	}
-	f.Seek(0, 0)
 	return f, digest, n, nil
 }
 

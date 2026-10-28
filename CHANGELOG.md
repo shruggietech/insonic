@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Preserve actionable insufficient-space results for local staging/publication failures, require successful staging flush and rewind, and propagate failed stage cleanup while preserving completed object bytes.
+
 - Recover a complete canonical-media import candidate after abrupt runtime loss without replacing its published audio/report bytes or captured metadata. Refuse changed source bytes and corrupt candidates before admission; retain ordinary failed-attempt retirement and catalog fencing.
 
 - Revalidate the immutable original v1.0.1 publication using its complete selected source and original receipt/MSI formats, while retaining applicable first-use, source, inventory, signing and lifecycle checks. Current and unknown candidates still require modern terminal and coordinated setup evidence.
@@ -30,6 +32,8 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-28: Qualify actual import runtime termination/restart with external Windows RW oplocks and Linux file leases, controlled hash-pinned media tools, independent byte/catalog/history reads and owned cleanup. Require complete recovery receipts in current source/package acceptance. Only exact original v1.0.2 package-receipt hashes may lack this newly introduced evidence; existing source, archive, inventory, signing, terminal, setup and installer validation remains required. No product test switch, changed product deadline, kernel setting, release/tag or power-loss claim is introduced.
 
+
+- 2026-10-28: Add bounded native disk-full/short-write/persistence regressions and actual source/package filesystem publication obstruction/re-import acceptance. Bind receipts to exact image/platform/package authority, preserve original-release exemptions, and distinguish injected faults and actual filesystem refusal from physical volume exhaustion. Existing product deadlines and publication/work fences remain unchanged.
 
 ## [1.0.2] - 2026-10-27
 

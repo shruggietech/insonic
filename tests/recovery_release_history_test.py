@@ -30,6 +30,7 @@ class OriginalRecoveryCompatibilityTests(unittest.TestCase):
         for receipt in self.receipts:
             with self.subTest(platform=receipt['platform'], variant=receipt['variant']):
                 self.assertNotIn('recovery_contracts', receipt['cli_contract'])
+                self.assertNotIn('storage_contracts', receipt['cli_contract'])
                 self.assertTrue(original_recovery_absence(receipt))
                 self.release.verify_qualification(receipt)
 

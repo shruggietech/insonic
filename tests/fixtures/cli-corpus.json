@@ -191,6 +191,20 @@
       "expectations": [
         "Actual abrupt runtime loss and replacement preserve complete candidate bytes and captured provenance; changed source and corrupt reports refuse stale admission; attempt receipts and owned cleanup remain verified."
       ]
+    },
+    {
+      "id": "storage-failure",
+      "owners": [
+        {
+          "path": "scripts/cli_storage_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Owned tiny PCM, pinned configured probe and marker-bound regular-file obstruction exercise an actual filesystem publication refusal. Native injected capacity/short-write evidence stays separate.",
+      "expectations": [
+        "A failed import admits no incomplete recording; clearing the exact obstruction permits one ordinary re-import, preserves source/sentinel/provenance and requires natural runtime and owned fixture cleanup. No physical volume exhaustion claim."
+      ]
     }
   ],
   "scenarios": [
@@ -320,6 +334,17 @@
       },
       "fixtures": [
         "import-recovery",
+        "pcm-subtitles"
+      ]
+    },
+    {
+      "id": "storage",
+      "owner": {
+        "path": "scripts/cli_storage_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "storage-failure",
         "pcm-subtitles"
       ]
     }
