@@ -396,5 +396,3 @@ def qualify(invoke, workspace, version, *, executable, environment, process_fact
 
 def held_verify(call, publication):
     return call(['artifacts', 'verify', publication['id']])['result']['verified'] is True
-
-
