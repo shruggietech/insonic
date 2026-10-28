@@ -120,13 +120,17 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
     from cli_text_duration_qualification import qualify as qualify_text_duration
     from cli_readiness_qualification import qualify as qualify_readiness
     from cli_terminal_qualification import qualify as qualify_terminal
+    from cli_recovery_qualification import qualify as qualify_recovery
     jobs = [('operator', qualify_operator, {'media': documentation}),
             ('input', qualify_inputs, {'media': documentation}),
             ('text_duration', qualify_text_duration, {}),
             ('readiness', qualify_readiness, {'executable': executable}),
-            ('terminal', qualify_terminal, {'executable': executable, 'environment': environment, 'observe': observe})]
+            ('terminal', qualify_terminal, {'executable': executable, 'environment': environment, 'observe': observe}),
+            ('recovery', qualify_recovery, {'executable': executable, 'environment': environment})]
     if process_factory is not None:
-        jobs[-1][2]['process_factory'] = process_factory
+        for name, _, keywords in jobs:
+            if name in ('terminal', 'recovery'):
+                keywords['process_factory'] = process_factory
     if documentation:
         from cli_help_examples import qualify as qualify_examples
         jobs.append(('examples', qualify_examples, {}))
@@ -401,6 +405,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         text_duration_contracts = regressions['text_duration'].result()
         readiness_contracts = regressions['readiness'].result()
         terminal_contracts = regressions['terminal'].result()
+        recovery_contracts = regressions['recovery'].result()
         if documentation:
             examples = regressions['examples'].result()
     input_file.unlink(missing_ok=True)
@@ -411,10 +416,10 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
     for entry in examples.get('ledger', []):
         coverage.assert_example(entry)
-    ledger = coverage.finish({'core': True, 'operator': True, 'input': True, 'text-duration': True, 'readiness': True, 'terminal': True,
+    ledger = coverage.finish({'core': True, 'operator': True, 'input': True, 'text-duration': True, 'readiness': True, 'terminal': True, 'recovery': True,
                               **{name: documentation for name in ['media', 'query', 'provider', 'documented', 'examples']}})
     phase('complete')
-    return {'coverage': ledger, 'terminal_contracts': terminal_contracts, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'coverage': ledger, 'terminal_contracts': terminal_contracts, 'recovery_contracts': recovery_contracts, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'cold_startup_timing': cold_timing, 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

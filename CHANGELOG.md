@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Recover a complete canonical-media import candidate after abrupt runtime loss without replacing its published audio/report bytes or captured metadata. Refuse changed source bytes and corrupt candidates before admission; retain ordinary failed-attempt retirement and catalog fencing.
+
 - Revalidate the immutable original v1.0.1 publication using its complete selected source and original receipt/MSI formats, while retaining applicable first-use, source, inventory, signing and lifecycle checks. Current and unknown candidates still require modern terminal and coordinated setup evidence.
 
 - Join an existing runtime after a transient readiness miss while its workspace owner lock remains held, instead of attempting an unnecessary detached launch from the terminal client. Preserve the existing startup deadline, cold-start conflict handling and protected-input loading.
@@ -25,6 +27,9 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-27: Actual-terminal CI qualification elects the existing sanitized startup-stage/native-error hook and captures bounded process, request/work/session and generated-event observations before owned teardown. Failure receipts remain distinct from successful terminal acceptance; private paths, arbitrary error text, inputs and environment values are excluded. Terminal containment and all eight acceptance cases remain required.
 
 - 2026-10-27: Overlapping qualification setup can resnapshot a short, count-changing or duplicate job inventory up to three times under its original verified readiness deadline. Partial observations can retain that bound and reject known failures, but never authorize work. Complete unique inventories, attempt identity and terminal audits remain mandatory; clocks and required checks are unchanged.
+
+- 2026-10-28: Qualify actual import runtime termination/restart with external Windows RW oplocks and Linux file leases, controlled hash-pinned media tools, independent byte/catalog/history reads and owned cleanup. Require complete recovery receipts in current source/package acceptance. Only exact original v1.0.2 package-receipt hashes may lack this newly introduced evidence; existing source, archive, inventory, signing, terminal, setup and installer validation remains required. No product test switch, changed product deadline, kernel setting, release/tag or power-loss claim is introduced.
+
 
 ## [1.0.2] - 2026-10-27
 

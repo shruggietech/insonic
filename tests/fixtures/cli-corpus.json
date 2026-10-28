@@ -173,6 +173,24 @@
       "expectations": [
         "Actual progress/count, Ctrl+C client-only interruption, durable continuation/cancellation, timeout/failure, output-mode controls and verified cleanup."
       ]
+    },
+    {
+      "id": "import-recovery",
+      "owners": [
+        {
+          "path": "scripts/cli_recovery_qualification.py",
+          "symbol": "qualify"
+        },
+        {
+          "path": "scripts/file_open_barrier.py",
+          "symbol": "hold"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Owned PCM input, pinned configured media tools and an external source-open barrier hold actual runtime import after durable publication. No inference or owner media.",
+      "expectations": [
+        "Actual abrupt runtime loss and replacement preserve complete candidate bytes and captured provenance; changed source and corrupt reports refuse stale admission; attempt receipts and owned cleanup remain verified."
+      ]
     }
   ],
   "scenarios": [
@@ -292,6 +310,17 @@
       "fixtures": [
         "terminal-work",
         "model-transfer"
+      ]
+    },
+    {
+      "id": "recovery",
+      "owner": {
+        "path": "scripts/cli_recovery_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "import-recovery",
+        "pcm-subtitles"
       ]
     }
   ]

@@ -322,6 +322,10 @@ def verify_qualification(receipt, *, history_profile=None):
                 or identity.get('platform') != platform):
             raise ValueError('Terminal qualification archive/inventory/platform identity is incomplete')
         validate_receipt(contract.get('terminal_contracts'), identity.get('executable_sha256'), platform)
+        from release_history import original_recovery_absence
+        if not original_recovery_absence(receipt):
+            from cli_recovery_qualification import validate_receipt as validate_recovery
+            validate_recovery(contract.get('recovery_contracts'), identity.get('executable_sha256'), platform)
 
 
 def package_module():

@@ -41,12 +41,12 @@ class ParallelRegressionTests(unittest.TestCase):
             return {}
         def fake(scoped, *args, **_kwargs):
             root = args[1] if args[0] is None else args[0]
-            if root.name in ('isolated examples qualification', 'isolated terminal qualification'):
+            if root.name in ('isolated examples qualification', 'isolated terminal qualification', 'isolated recovery qualification'):
                 self.assertIs(_kwargs['process_factory'], selected_factory)
             scoped(['settings', 'show'])
             scoped(['settings', 'show'], workspace_path=root / 'explicit override')
             scoped(['--help'], scoped=False)
-            if root.name not in ('isolated examples qualification', 'isolated terminal qualification'):
+            if root.name not in ('isolated examples qualification', 'isolated terminal qualification', 'isolated recovery qualification'):
                 barrier.wait(timeout=2)
             return str(root)
         with patch('cli_operator_qualification.qualify', fake), \
@@ -54,10 +54,11 @@ class ParallelRegressionTests(unittest.TestCase):
              patch('cli_text_duration_qualification.qualify', fake), \
              patch('cli_readiness_qualification.qualify', fake), \
              patch('cli_terminal_qualification.qualify', fake), \
+             patch('cli_recovery_qualification.qualify', fake), \
              patch('cli_help_examples.qualify', fake):
             with runner.parallel_regressions(invoke, Path('/owned'), '1.0.2', True, {}, '/owned/cli', {}, process_factory=selected_factory) as futures:
                 roots = {name: Path(future.result()) for name, future in futures.items()}
-        self.assertEqual(len(set(roots.values())), 6)
+        self.assertEqual(len(set(roots.values())), 7)
         self.assertTrue(all(root.parent == Path('/owned') for root in roots.values()))
         for name, root in roots.items():
             scenario=name.replace('_','-')
@@ -79,11 +80,12 @@ class ParallelRegressionTests(unittest.TestCase):
              patch('cli_input_qualification.qualify', complete), \
              patch('cli_text_duration_qualification.qualify', complete), \
              patch('cli_readiness_qualification.qualify', complete), \
-             patch('cli_terminal_qualification.qualify', complete):
+             patch('cli_terminal_qualification.qualify', complete), \
+             patch('cli_recovery_qualification.qualify', complete):
             with self.assertRaisesRegex(ValueError, 'fixture regression'):
                 with runner.parallel_regressions(lambda *a, **k: {}, Path('/owned'), '1.0.2', False, {}, '/owned/cli', {}) as futures:
                     futures['operator'].result()
-        self.assertEqual(len(finished), 4)
+        self.assertEqual(len(finished), 5)
 
 
 if __name__ == '__main__':
