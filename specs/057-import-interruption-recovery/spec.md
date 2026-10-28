@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Specified
+**Status**: Implemented and verified; awaiting owner merge
 
 **Input**: S057 for #147, following the approved recommendation for actual abrupt runtime termination/restart around import publication and catalog acceptance. Use Spec Kit autopilot, push/open the PR, resolve at most two Codex rounds, and stop before merging.
 

@@ -39,7 +39,7 @@
 
 - [x] T012 Update docs/v1.0.2/storage.md, docs/v1.0.2/development.md and CHANGELOG.md with recovery/qualification contracts, explicit limits and dated tooling decisions (FR-002, FR-006, FR-008, FR-009).
 - [x] T013 Run focused/full product/Python checks, npm run check, npm test and affected site tests/build; analyze/converge every FR/SC and retain concise results in specs/057-import-interruption-recovery/verification.md (all requirements).
-- [ ] T014 Create S057 milestone/Project linkage, commit/push/open and attach the official PR referencing #147, monitor exact-head CI with independent retained audits, resolve all findings through at most two Codex rounds, and stop before merging (SC-004).
+- [x] T014 Create S057 milestone/Project linkage, commit/push/open and attach the official PR referencing #147, monitor exact-head CI with independent retained audits, resolve all findings through at most two Codex rounds, and stop before merging (SC-004).
 
 ## Dependencies and execution strategy
 
