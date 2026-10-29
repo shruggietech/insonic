@@ -39,11 +39,11 @@ Independent test: genuine current-version image authority and exact final-source
 
 ## Phase 6: Convergence and delivery
 
-- [ ] T014 Converge actual changes against every requirement, scenario, task and constitution principle in specs/059-v103-release/ (FR-001 through FR-010; SC-001 through SC-004).
-- [ ] T015 Commit/push completed source and genuine captures, open the official ready PR, attach it and update #196/Project tracking (FR-008; SC-004).
-- [ ] T016 Monitor/fix final exact-source CI and retain independently audited platform/package/image/receipt identities and preparation/qualification/combined timing outside workflow expiry before any full rerun (FR-005, FR-007, FR-008; SC-003).
-- [ ] T017 Resolve every actionable review and individual thread within the initial automatic Codex round plus at most one manual second round; retain receipts (FR-008; SC-004).
-- [ ] T018 Finalize concise verification.md and tracking, verify clean final head and owned transient cleanup, and hand off the open unmerged PR for owner final review (FR-008, FR-009; SC-004).
+- [x] T014 Converge actual changes against every requirement, scenario, task and constitution principle in specs/059-v103-release/ (FR-001 through FR-010; SC-001 through SC-004).
+- [x] T015 Commit/push completed source and genuine captures, open the official ready PR, attach it and update #196/Project tracking (FR-008; SC-004).
+- [x] T016 Monitor/fix final exact-source CI and retain independently audited platform/package/image/receipt identities and preparation/qualification/combined timing outside workflow expiry before any full rerun (FR-005, FR-007, FR-008; SC-003).
+- [x] T017 Resolve every actionable review and individual thread within the initial automatic Codex round plus at most one manual second round; retain receipts (FR-008; SC-004).
+- [x] T018 Finalize concise verification.md and tracking, verify clean final head and owned transient cleanup, and hand off the open unmerged PR for owner final review (FR-008, FR-009; SC-004).
 
 ## Dependencies and execution
 
