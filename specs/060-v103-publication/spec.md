@@ -92,7 +92,7 @@ The owner reviews a concise evidence PR with completed qualification, publicatio
 ## Assumptions
 
 - The release version is already prepared; no product feature, dependency, schema or version migration is intended.
-- Existing maintained release, qualification, managed model and documentation tools are reused.
+- Existing maintained release, qualification, managed model and documentation tools are reused. Demonstrated evidence-PR CI scheduling and read-only website verification repairs may be included without changing selected product or publication source.
 - The evidence PR may contain operational records without changing the already-reviewed release source. Any demonstrated prerequisite repair must reach reviewed main before its effects can be published.
 - Original candidate bytes remain retained through verified publication; rebuilding cannot inherit their CPU acceptance.
 - The broader audit remains open; no attended owner-desktop acceptance gate is introduced.

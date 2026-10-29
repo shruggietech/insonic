@@ -17,10 +17,10 @@
 
 Independent test: exact source/version and complete retained assets validate; all required original/restored CPU stages pass on their bound archive/executable.
 
-- [ ] T005 [US1] Dispatch .github/workflows/release.yml from main at exact 72098446d435aa1e3d6d6726a9f07e04e0b227a6 with publish=false/promote_docs=false; monitor every producer and retain real earliest-check timing (FR-001, FR-008; SC-001).
-- [ ] T006 [US1] Verify original release-candidate and Windows CLI receipt artifact IDs/run/attempt/ZIP size/digests, confine regular-file extraction and retain the original complete candidate outside workflow expiry (FR-003, FR-007, FR-009; SC-001).
-- [ ] T007 [US1] Run maintained scripts/release.py candidate/documentation validation and match the original CLI receipt with release-manifest.json.packages; require version exactly 1.0.3, selected source exactly 72098446d435aa1e3d6d6726a9f07e04e0b227a6 and source_dirty false (FR-001, FR-003, FR-006; SC-001).
-- [ ] T008 [US1] Verify exact selected model files and complete managed prerequisites for scripts/qualify-journey.py; preserve read-only input authority and owned isolation before qualification (FR-002, FR-007, FR-008; SC-002).
+- [x] T005 [US1] Dispatch .github/workflows/release.yml from main at exact 72098446d435aa1e3d6d6726a9f07e04e0b227a6 with publish=false/promote_docs=false; monitor every producer and retain real earliest-check timing (FR-001, FR-008; SC-001).
+- [x] T006 [US1] Verify original release-candidate and Windows CLI receipt artifact IDs/run/attempt/ZIP size/digests, confine regular-file extraction and retain the original complete candidate outside workflow expiry (FR-003, FR-007, FR-009; SC-001).
+- [x] T007 [US1] Run maintained scripts/release.py candidate/documentation validation and match the original CLI receipt with release-manifest.json.packages; require version exactly 1.0.3, selected source exactly 72098446d435aa1e3d6d6726a9f07e04e0b227a6 and source_dirty false (FR-001, FR-003, FR-006; SC-001).
+- [x] T008 [US1] Verify exact selected model files and complete managed prerequisites for scripts/qualify-journey.py; preserve read-only input authority and owned isolation before qualification (FR-002, FR-007, FR-008; SC-002).
 - [ ] T009 [US1] Run scripts/qualify-journey.py --mode real with the exact retained package/receipt/revision and frozen acoustic manifest; require all original/fresh-restored stages, original-path withdrawal, integrity/provenance and cleanup (FR-002, FR-008; SC-002).
 - [ ] T010 [US1] Independently run scripts/journey_cpu.py acceptance validation, rehash unchanged candidate assets and retain recoverable original/failure CPU receipts with separate phase timing and readback (FR-002, FR-003, FR-009; SC-002).
 
@@ -45,7 +45,7 @@ Independent test: recoverable phase identities and final CI/reviews agree; the o
 
 ## Phase 6: Demonstrated CI convergence repair
 
-- [ ] T021 [US3] Retain failed planning-only run 40953107339 attempt 1 with independent terminal timing and recoverable original gate ZIP; explicitly schedule mandatory foundation/docs-build/docs after their successful direct dependency despite unelected ancestors, preserve aggregate requirements and validate hosted execution (FR-010; SC-004). This CI-only change does not alter the selected released product source.
+- [x] T021 [US3] Retain failed planning-only run 40953107339 attempt 1 with independent terminal timing and recoverable original gate ZIP; explicitly schedule mandatory foundation/docs-build/docs after their successful direct dependency despite unelected ancestors, preserve aggregate requirements and validate hosted execution (FR-010; SC-004). This CI-only change does not alter the selected released product source.
 
 ## Phase 7: Finalization
 
@@ -61,4 +61,8 @@ The plan-directed read-only research task and compatible root/site checks are in
 
 ## Implementation strategy
 
-Qualify existing reviewed product bytes first, publish those same bytes second, then close evidence delivery. All twenty-one tasks belong to this slice; the evidence PR merge remains the owner's action.
+Qualify existing reviewed product bytes first, publish those same bytes second, then close evidence delivery. All twenty-two tasks belong to this slice; the evidence PR merge remains the owner's action.
+
+## Phase 8: Read-only website verification repair
+
+- [ ] T022 [US3] Retain maintenance run 40954286503 failure before rerun, increase only scripts/website.py metadata-reader default to 16 MiB for the demonstrated 7,481,000-byte immutable manifest, retain size/digest/redirect/HEAD authority and verify tests plus the live maintenance path (FR-005, FR-009, FR-010; SC-003, SC-004). Selected product/publication source is unchanged.

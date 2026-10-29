@@ -8,6 +8,8 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-29: Run mandatory foundation and documentation checks after verified readiness when optional component preparation is unelected. Preserve explicit dependency success and required aggregate acceptance.
 
+- 2026-10-29: Allow the read-only website verifier to inspect complete published release manifests up to 16 MiB, retaining explicit smaller bounds, exact sizes/digests and bounded reads.
+
 ## [1.0.3] - 2026-10-29
 
 ### Fixed
