@@ -28,7 +28,7 @@ The installed plan skill directed one read-only research agent. Maintained code 
 
 ## Phase 1 Design
 
-1. Preserve the already-reviewed release source and its existing 1.0.3 changelog/highlights. Keep operational planning/evidence on this branch. No new user-facing change or architecture decision is introduced, so do not invent a new changelog feature or rewrite frozen release documents for receipt-only records.
+1. Preserve the already-reviewed release source and its existing 1.0.3 changelog/highlights. Keep operational planning/evidence on this branch. No new user-facing change or architecture decision is introduced. A demonstrated CI scheduling repair is recorded under Unreleased; frozen release documents and selected release bytes remain unchanged.
 2. Use a dedicated clean managed worktree at the selected main revision for qualification and trusted publication. Keep the primary checkout on the evidence branch. If main advances, maintain separate trusted-current-main and exact-candidate source authority.
 3. Open the official evidence PR after the Spec Kit analysis gate and initial root/site validation. Describe incomplete operational phases accurately. Its initial automatic review may run while candidate production proceeds; request at most one second round after final evidence.
 4. Dispatch release.yml from main with exact revision and publication/promotion disabled. Independently verify original artifact ZIP run/head/attempt, size/digest and confined regular-file extraction. Retain the flat complete candidate (eight assets plus manifest/checksums), original package receipt and hashes outside workflow expiry before CPU execution. Compare the CLI receipt with its manifest package object.
@@ -52,3 +52,7 @@ The release workflow lacks CI's shared readiness/elected-acceptance aggregate jo
 ## Tracking
 
 Issue #198, milestone 44 and Project 7; Slice S060, Release 1.0.3. #147 remains open. Explicit push/PR and release publication authorization are recorded in spec.md. Final owner review is for the evidence PR merge.
+
+## Demonstrated CI repair
+
+2026-10-29: Initial planning-only run 40953107339 passed readiness but skipped foundation/docs-build/docs through intentionally unelected preparation ancestors. Add explicit always() conditions with successful direct-dependency checks (and readiness ready=true where applicable). Preserve every aggregate result requirement, existing clocks and component election. Retain the original failed gate ZIP and independently audited terminal API evidence before pushing the repair. The repair belongs only to the evidence PR; selected product/release source remains reviewed main 72098446d435aa1e3d6d6726a9f07e04e0b227a6.

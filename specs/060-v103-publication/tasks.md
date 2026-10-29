@@ -11,7 +11,7 @@
 ## Phase 2: Foundation
 
 - [x] T003 Select a clean managed worktree at reviewed main for trusted scripts/release.py and exact-source qualification; verify hidden launch, owned retention/scratch boundaries and existing ignore rules.
-- [ ] T004 Run npm root check/test and affected site check/test/build, commit/push initial specs/060-v103-publication/ records, open/attach the official evidence PR with accurate ongoing status and track its initial automatic review.
+- [x] T004 Run npm root check/test and affected site check/test/build, commit/push initial specs/060-v103-publication/ records, open/attach the official evidence PR with accurate ongoing status and track its initial automatic review.
 
 ## Phase 3: US1 - Exact-byte real processing acceptance
 
@@ -43,7 +43,11 @@ Independent test: recoverable phase identities and final CI/reviews agree; the o
 - [ ] T018 [US3] Execute Spec Kit convergence across every requirement/scenario/plan decision and constitution principle in specs/060-v103-publication/; remediate demonstrated gaps without duplicating already tracked delivery work (FR-001 through FR-011; SC-001 through SC-004).
 - [ ] T019 [US3] Complete final exact-head applicable PR CI and all arriving actionable reviews; allow only the initial automatic Codex round plus at most one manual second round, retaining identities and resolving each thread (FR-009, FR-010; SC-004).
 
-## Phase 6: Finalization
+## Phase 6: Demonstrated CI convergence repair
+
+- [ ] T021 [US3] Retain failed planning-only run 40953107339 attempt 1 with independent terminal timing and recoverable original gate ZIP; explicitly schedule mandatory foundation/docs-build/docs after their successful direct dependency despite unelected ancestors, preserve aggregate requirements and validate hosted execution (FR-010; SC-004). This CI-only change does not alter the selected released product source.
+
+## Phase 7: Finalization
 
 - [ ] T020 Update GitHub tracking, verify recovered receipts before removing owned scratch/checkouts, keep required original assets through verified publication and hand off the clean open unmerged PR with auto-merge off (FR-003, FR-007, FR-009, FR-010; SC-004).
 
@@ -57,4 +61,4 @@ The plan-directed read-only research task and compatible root/site checks are in
 
 ## Implementation strategy
 
-Qualify existing reviewed product bytes first, publish those same bytes second, then close evidence delivery. All twenty tasks belong to this slice; the evidence PR merge remains the owner's action.
+Qualify existing reviewed product bytes first, publish those same bytes second, then close evidence delivery. All twenty-one tasks belong to this slice; the evidence PR merge remains the owner's action.

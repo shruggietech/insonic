@@ -4,6 +4,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Fixed
+
+- 2026-10-29: Run mandatory foundation and documentation checks after verified readiness when optional component preparation is unelected. Preserve explicit dependency success and required aggregate acceptance.
+
 ## [1.0.3] - 2026-10-29
 
 ### Fixed
