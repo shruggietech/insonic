@@ -31,9 +31,9 @@ Independent test: original versioned docs/schemas and frozen receipt fixtures re
 
 Independent test: genuine current-version image authority and exact final-source platform checks are accepted; all findings are resolved with an unmerged PR.
 
-- [ ] T009 [US3] Temporarily omit only current screenshot sections in docs/v1.0.3, commit/push clean capture bootstrap and dispatch .github/workflows/ci.yml on its exact branch SHA (FR-005, FR-006, FR-007; SC-002, SC-003).
-- [ ] T010 [US3] Independently verify original capture artifact digests/source authority, import original enumerated PNGs and four receipts into docs/screenshots/v1.0.3 and restore current documentation embeds (FR-006; SC-002).
-- [ ] T011 [US3] Complete root check/test and site check/test/public/offline builds, source/version/hash image validation, visual inspection and placeholder/encoding scan (FR-001, FR-002, FR-006; SC-001, SC-002).
+- [x] T009 [US3] Temporarily omit only current screenshot sections in docs/v1.0.3, commit/push clean capture bootstrap and dispatch .github/workflows/ci.yml on its exact branch SHA (FR-005, FR-006, FR-007; SC-002, SC-003).
+- [x] T010 [US3] Independently verify original capture artifact digests/source authority, import original enumerated PNGs and four receipts into docs/screenshots/v1.0.3 and restore current documentation embeds (FR-006; SC-002).
+- [x] T011 [US3] Complete root check/test and site check/test/public/offline builds, source/version/hash image validation, visual inspection and placeholder/encoding scan (FR-001, FR-002, FR-006; SC-001, SC-002).
 - [x] T012 [US3] Complete full Python and affected Go/vet checks without weakening history, security, substantive assertions or product deadlines (FR-003, FR-004, FR-007; SC-001, SC-003).
 - [x] T013 [US3] Finalize executable post-merge exact-main candidate/CPU/restore/retained-byte publication/public-verification guide in specs/059-v103-release/quickstart.md (FR-009; SC-004).
 
@@ -55,8 +55,12 @@ Independent Python/root/site checks can run after prepared source readiness. The
 
 ## Implementation strategy
 
-Use maintained preparation after failing-first proportional repairs, then preserve historical authority, then genuine hosted captures and final qualified delivery. The first clean bootstrap is an evidence producer, not an official release. All nineteen tasks belong to this PR phase; later merge/publication operations are documented continuation only.
+Use maintained preparation after failing-first proportional repairs, then preserve historical authority, then genuine hosted captures and final qualified delivery. The first clean bootstrap is an evidence producer, not an official release. All twenty tasks belong to this PR phase; later merge/publication operations are documented continuation only.
 
 ## Phase 7: Convergence
 
 - [x] T019 Repair redundant Windows private-directory permission normalization in internal/workspace/private_windows.go with fresh exact owner/ACL validation; add deterministic no-write and changed-ACL normalization/error regressions in internal/workspace/private_windows_test.go, then revalidate concurrent startup and all Go packages under unchanged clocks (FR-005, FR-007, FR-010; Constitution IV/V; complete). The successful full-source revalidation unblocks the T009 capture push.
+
+## Phase 8: Convergence
+
+- [x] T020 Apply maintained request headroom to non-expiry acquisition fixtures in internal/library/acquisition_test.go, retain intentionally injected 100 ms timeout clocks, and prove delayed truncated-response classification plus persisted transcript correction/authority through three focused repetitions (FR-007; Constitution V; complete). Final hosted full-source acceptance remains T016.

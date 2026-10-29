@@ -31,3 +31,7 @@ The first complete prepared-state checks reproduced a third owned-boundary omiss
 ## Demonstrated Windows startup repair
 
 Repeated cold-owner failures under the unchanged ten-second deadline survived temporary-directory and package-concurrency changes. Setter-spy coverage then demonstrated a redundant private-DACL write on every already-conforming directory access. Fresh exact ownership/ACL validation now avoids that write without caching authority. Changed owned ACLs still require repair and failed writes remain unavailable. Three normal-environment protected-input cold starts pass in 0.37–0.70 seconds; complete suite and hosted qualification determine acceptance.
+
+## Hosted non-expiry fixture clock
+
+The first hosted attempt failed only the truncated acquisition case because a shared injected 100 ms deadline also constrained non-expiry scenarios. A controlled delayed truncated body proves that collision. Adopt maintained request_seconds for ordinary response/cancellation cases and preserve 100 ms in explicit expiry cases, including the neighboring transcript fixture. No production transport behavior changes. Successful clean-source capture producers retain their own source/version/hash authority even when an unrelated core job fails; retain that failed aggregate distinctly and require green final-source PR qualification.

@@ -98,6 +98,18 @@ Implemented Library playback uses private native tickets scoped to the selected 
 
 Unsupported media and nonzero source clocks receive a bounded temporary WAV or MP4 preview made by the configured hash-verified FFmpeg tools. Original bytes remain immutable. Preview responses identify served and source digests separately and carry the measured difference between original and preview timelines used when seeking. Zero-clock compatible originals play directly. Current cue clocks reach JavaScript as exact decimal strings; raw capture pages retain byte-exact JSON rather than rounding nanosecond integers through JavaScript numbers. Cues and speaker intervals always resolve against current embedded Cueson authority.
 
+## Compact controls
+
+Desktop forms use compact spacing and content-sized actions. Checkboxes retain a small square native glyph inside an associated label with a minimum 44 by 44 pixel activation target. Clicking the label or pressing Space on the focused checkbox changes its value. Keyboard focus remains visible.
+
+The window opens at 1200 by 800 and supports a 720 by 600 minimum. Enlarged text can wrap commands; the header and content scroll independently so commands remain reachable. Wide tables keep their own horizontal scrolling region.
+
+![Compact Library controls and workspace navigation](../screenshots/v1.0.3/desktop-library.png)
+
+![Settings at the minimum window size with text enlarged to 200 percent](../screenshots/v1.0.3/desktop-settings-enlarged.png)
+
+These images record a clean source build in an isolated Chromium renderer. The capture receipt records the window, renderer scale, text scale and geometry observations. Renderer scale checks do not establish behavior under every operating-system display setting. Native Windows and Linux qualification separately observes the controls in their application webviews.
+
 ## Native package layouts
 
 insonic supports a recommended unsigned Windows x86-64 setup EXE containing its selectable-client raw MSI, Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. [Windows installation, updates and removal](windows-installation.md) covers MSI controls, first launch, optional setup and conditional download/Windows warnings. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.

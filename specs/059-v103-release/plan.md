@@ -42,6 +42,8 @@ The installed plan command directed one read-only research agent. Parent inspect
 - scripts/release.py and tests/release_test.py, tests/release_history_test.py, tests/recovery_release_history_test.py: bounded preparation/history correction.
 - README.md, CONTRIBUTING.md, site/README.md, docs/README.md, docs/versions.json, docs/v1.0.3/, schemas/v1.0.3/ and docs/screenshots/v1.0.3/.
 - Historical docs/v1.0.2 and schemas/v1.0.2 only if exact published-authority reconciliation is demonstrated after copying current corrections forward.
+- internal/workspace/private_windows.go and private_windows_test.go: fresh private-owner/ACL validation without redundant normalization writes.
+- internal/library/acquisition_test.go: maintained headroom for ordinary response cases, unchanged injected expiry clocks and delayed-truncation proof.
 - internal/runtime/startup_test.go: bounded test-only owner/client elapsed observations; product startup deadline and protected-input/one-owner assertions remain unchanged.
 - CHANGELOG.md and specs/059-v103-release/{spec,plan,research,data-model,quickstart,tasks,verification,highlights}.md.
 

@@ -8,6 +8,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Apply maintained request-test headroom to non-expiry acquisition fixtures; preserve short injected expiry clocks, substantive failure classifications and production deadlines.
+
 - Avoid reapplying already-correct Windows private-directory permissions during runtime lookups. Fresh ownership and exact private-access checks remain mandatory; changed owned permissions still normalize and failed normalization remains an error.
 
 - Preserve frozen historical release tests and receipt fixtures during version preparation, while keeping current-version negative coverage explicit. Advance owned download URL tags together with asset names, and avoid duplicating the final tagged changelog link when complete highlights are supplied.
