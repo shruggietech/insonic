@@ -2,11 +2,11 @@
 
 ## Start with the specification
 
-Read the [v1.0.1 system contracts](docs/v1.0.1/index.md), [constitution](.specify/memory/constitution.md) and [delivery outcomes](docs/v1.0.1/roadmap.md). Scope each change around an observable outcome. Numbered implementation plans live under `specs/` and are separate from the public documentation.
+Read the [current system contracts](https://insonic.io/docs/latest/), [constitution](.specify/memory/constitution.md) and [delivery outcomes](https://insonic.io/docs/latest/roadmap/). Scope each change around an observable outcome. Numbered implementation plans live under `specs/` and are separate from the public documentation.
 
 ## Issues and work slices
 
-GitHub Issues, milestones and the project board are the primary progress record. Issues describe behavior and acceptance; Spec Kit artifacts record implementation decisions and tasks. Follow the [development workflow](docs/v1.0.1/development.md). Link the slice, affected issues and milestone in the pull request. Do not duplicate status in disconnected planning documents.
+GitHub Issues, milestones and the project board are the primary progress record. Issues describe behavior and acceptance; Spec Kit artifacts record implementation decisions and tasks. Follow the [development workflow](https://insonic.io/docs/latest/development/). Link the slice, affected issues and milestone in the pull request. Do not duplicate status in disconnected planning documents.
 
 User verification normally follows a release and arrives as versioned issues. Pre-release controlled automated checks still verify code contracts, integrity and buildability. Do not turn post-release observation into mandatory attended pre-release testing. Record what was checked and what remains unverified.
 
@@ -36,4 +36,4 @@ Do not modify files under `brand/kit/` directly. Use the maintainer updater and 
 
 Use a focused branch, conventional commit/PR title and a concise description of changed behavior, validation and limitations. Use squash merges after required checks pass and review findings are resolved. Human PR approval is optional. GitHub deletes merged branches automatically once configured. Agents follow the owner's authorization for the merge itself.
 
-Update `CHANGELOG.md` under Unreleased using Added, Changed, Deprecated, Removed, Fixed or Security as appropriate. Release notes are a short highlights reel ending with the master changelog link. See [release workflow](docs/v1.0.1/releases.md).
+Update `CHANGELOG.md` under Unreleased using Added, Changed, Deprecated, Removed, Fixed or Security as appropriate. Release notes are a short highlights reel ending with the master changelog link. See [release workflow](https://insonic.io/docs/latest/releases/).
