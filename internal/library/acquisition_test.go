@@ -11,9 +11,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	qt "github.com/shruggietech/insonic/internal/qualificationtiming"
 )
 
 type acquisitionSecret struct{ resolved []byte }
@@ -53,14 +55,22 @@ func TestAcquisitionBoundsCancellationAndRedaction(t *testing.T) {
 				case "truncated":
 					w.Header().Set("Content-Length", "7")
 					w.Write([]byte("1234"))
+					w.(http.Flusher).Flush()
+					// Exercise truncation after the former incidental 100 ms clock.
+					select {
+					case <-time.After(200 * time.Millisecond):
+					case <-r.Context().Done():
+					}
 				default:
 					w.Write([]byte("12345678"))
 				}
 			}))
 			defer server.Close()
-			max, timeout, local := int64(8), int64(100), true
-			if tc.mode == "cancel" {
-				timeout = 1000
+			max, timeout, local := int64(8), qt.Duration("request_seconds").Milliseconds(), true
+			// Only expiry scenarios deliberately use a short injected deadline.
+			switch tc.mode {
+			case "headers-timeout", "body-timeout", "probe-timeout":
+				timeout = 100
 			}
 			destination := filepath.Join(t.TempDir(), "private-input")
 			adapter := httpAcquisition{Secrets: &acquisitionSecret{}}
@@ -112,7 +122,10 @@ func TestTranscriptAcquisitionFailurePersistsCorrectionAndAcceptedDocument(t *te
 				w.Write([]byte("1\n00:00:00,000 --> 00:00:00,010\nprivate fixture text\n"))
 			}))
 			defer server.Close()
-			max, timeout, replace := int64(8), int64(100), true
+			max, timeout, replace := int64(8), qt.Duration("request_seconds").Milliseconds(), true
+			if tc.mode == "timeout" {
+				timeout = 100
+			}
 			work := claimLibraryWork(t, db, "media.import", ImportRequest{Items: []Item{{Record: entry.ID, Transcript: server.URL + "/selected.srt", Options: Options{ReplaceTranscript: &replace, TranscriptMaxBytes: &max, TranscriptTimeoutMS: &timeout}}}})
 			result, err := s.Execute(ctx, work)
 			if err != nil {

@@ -1,0 +1,939 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.3/schemas/v1.0.3/release-candidate.schema.json",
+  "title": "Verified native release candidate",
+  "description": "Exact-version complete native package and documentation inventory. Structural validation complements source revision, corresponding-source, signing, checksum and publication readback checks. Synthetic examples illustrate shape and do not represent a shipped release.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "const": "release-candidate",
+      "description": "Complete verified release candidate manifest."
+    },
+    "schema_version": {
+      "const": "1.0.3",
+      "description": "Synchronized contract version."
+    },
+    "version": {
+      "const": "1.0.3",
+      "description": "Software, documentation and master-schema release version."
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$",
+      "description": "Exact clean source commit."
+    },
+    "tag": {
+      "const": "v1.0.3",
+      "description": "Exact release tag; baseline candidates are never published as a product release."
+    },
+    "repository": {
+      "const": "shruggietech/insonic",
+      "description": "Release publication repository."
+    },
+    "packages": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "native-package-receipt",
+            "description": "Native package qualification receipt."
+          },
+          "schema_version": {
+            "const": "1.0.3",
+            "description": "Release contract version."
+          },
+          "product_version": {
+            "const": "1.0.3",
+            "description": "Owned software version."
+          },
+          "documentation_version": {
+            "const": "1.0.3",
+            "description": "Packaged documentation version."
+          },
+          "platform": {
+            "enum": [
+              "windows_amd64",
+              "linux_amd64"
+            ],
+            "description": "Qualified native operating system and architecture."
+          },
+          "variant": {
+            "enum": [
+              "cli",
+              "desktop"
+            ],
+            "description": "CLI-only or GUI-with-CLI distribution."
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$",
+            "description": "Exact reviewed source commit."
+          },
+          "source_dirty": {
+            "const": false,
+            "description": "Candidate source must be clean."
+          },
+          "archive": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:]+$",
+            "description": "Portable archive basename."
+          },
+          "archive_sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Final archive digest after configured signing."
+          },
+          "archive_size_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Exact archive byte count."
+          },
+          "inventory_sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Final package inventory digest."
+          },
+          "distribution": {
+            "type": "object",
+            "properties": {
+              "source_complete": {
+                "const": true,
+                "description": "Exact corresponding sources and build material verified."
+              },
+              "binary_publication": {
+                "const": "eligible",
+                "description": "Corresponding-source publication gate passed."
+              },
+              "corresponding_source": {
+                "const": "included",
+                "description": "Source material travels inside the package."
+              }
+            },
+            "required": [
+              "source_complete",
+              "binary_publication",
+              "corresponding_source"
+            ],
+            "description": "Verified distribution disposition; detailed source inventory is inside the package."
+          },
+          "signing": {
+            "type": "object",
+            "properties": {
+              "configured": {
+                "type": "boolean",
+                "description": "Explicit publisher signing configuration exists."
+              },
+              "verified": {
+                "type": "boolean",
+                "description": "Configured signing was verified."
+              },
+              "status": {
+                "enum": [
+                  "unconfigured",
+                  "signed"
+                ],
+                "description": "Truthful configured publisher signing status."
+              }
+            },
+            "required": [
+              "configured",
+              "verified",
+              "status"
+            ],
+            "description": "Configured publisher signing evidence; unsigned disposition is explicit.",
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "configured": {
+                      "const": true,
+                      "description": "Whether publisher signing is configured."
+                    }
+                  },
+                  "required": [
+                    "configured"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "verified": {
+                      "const": true,
+                      "description": "Configured publisher signing must be verified before release."
+                    },
+                    "status": {
+                      "enum": [
+                        "signed"
+                      ],
+                      "description": "Configured signing requires a verified signed disposition."
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "verified": {
+                      "const": false,
+                      "description": "Unconfigured signing cannot assert publisher verification."
+                    },
+                    "status": {
+                      "const": "unconfigured",
+                      "description": "No publisher signing identity was configured."
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "schema_version",
+          "product_version",
+          "documentation_version",
+          "platform",
+          "variant",
+          "revision",
+          "source_dirty",
+          "archive",
+          "archive_sha256",
+          "archive_size_bytes",
+          "inventory_sha256",
+          "distribution",
+          "signing"
+        ]
+      },
+      "description": "Both Windows/Linux platforms and both variants. Runtime verifies unique matrix identities, inventory and corresponding-source proof."
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:]+$",
+            "description": "Safe immutable release asset basename."
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Exact byte length."
+          },
+          "sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Complete asset SHA-256."
+          }
+        },
+        "required": [
+          "name",
+          "size_bytes",
+          "sha256"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Four archive packages, one selectable-client raw MSI, its recommended setup EXE and two documentation archives; checksums and manifest are companion assets."
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "variants": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "cli",
+              "desktop"
+            ]
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "description": "Qualified native variants."
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "windows_amd64",
+              "linux_amd64"
+            ]
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "description": "Qualified operating systems and architectures."
+        },
+        "advanced_cli": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "Advanced CLI capabilities awaiting dedicated GUI controls."
+        },
+        "inference_qualification": {
+          "const": "not-executed",
+          "description": "Required package checks do not initialize models or execute acoustic inference."
+        }
+      },
+      "required": [
+        "variants",
+        "platforms",
+        "advanced_cli",
+        "inference_qualification"
+      ],
+      "additionalProperties": false,
+      "description": "CLI/GUI and qualification disposition."
+    },
+    "installers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "schema_version": {
+            "const": "1.0.3",
+            "description": "Release contract version."
+          },
+          "product_version": {
+            "const": "1.0.3",
+            "description": "Owned software version."
+          },
+          "documentation_version": {
+            "const": "1.0.3",
+            "description": "Packaged documentation version."
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$",
+            "description": "Exact reviewed source commit."
+          },
+          "source_dirty": {
+            "const": false,
+            "description": "Candidate source must be clean."
+          },
+          "signing": {
+            "type": "object",
+            "properties": {
+              "configured": {
+                "const": false,
+                "description": "The newly authored MSI has no configured publisher signing."
+              },
+              "verified": {
+                "const": false,
+                "description": "A signed payload does not establish an MSI publisher signature."
+              },
+              "status": {
+                "const": "unconfigured",
+                "description": "This MSI remains independently unsigned."
+              }
+            },
+            "required": [
+              "configured",
+              "verified",
+              "status"
+            ],
+            "additionalProperties": false,
+            "description": "MSI signing is independent of contained executables and is explicitly unsigned."
+          },
+          "distribution": {
+            "type": "object",
+            "properties": {
+              "source_complete": {
+                "const": true,
+                "description": "Exact corresponding sources and build material verified."
+              },
+              "binary_publication": {
+                "const": "eligible",
+                "description": "Corresponding-source publication gate passed."
+              },
+              "corresponding_source": {
+                "const": "included",
+                "description": "Source material travels inside the package."
+              }
+            },
+            "required": [
+              "source_complete",
+              "binary_publication",
+              "corresponding_source"
+            ],
+            "description": "Verified distribution disposition; detailed source inventory is inside the package."
+          },
+          "kind": {
+            "const": "windows-installer-receipt",
+            "description": "Native MSI qualification and payload receipt."
+          },
+          "format": {
+            "const": "msi",
+            "description": "Windows Installer database, separate from portable archives."
+          },
+          "platform": {
+            "const": "windows_amd64",
+            "description": "Supported Windows x86-64 target."
+          },
+          "variant": {
+            "const": "selectable",
+            "description": "One MSI offers Desktop application, CLI or both."
+          },
+          "artifact": {
+            "type": "string",
+            "pattern": "^insonic_[0-9]+\\.[0-9]+\\.[0-9]+_windows_amd64_installer\\.msi$",
+            "description": "Exact installer asset basename for this release."
+          },
+          "artifact_sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Complete final MSI digest."
+          },
+          "artifact_size_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Complete final MSI length."
+          },
+          "payload_archive": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Qualified Windows desktop archive supplying complete payload."
+          },
+          "payload_archive_sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Digest of the independently verified desktop payload archive."
+          },
+          "payload_receipt": {
+            "$ref": "#/properties/packages/items",
+            "description": "Exact independently qualified Windows desktop archive receipt."
+          },
+          "payload_inventory": {
+            "type": "object",
+            "description": "Exact embedded files and source inventory verified against MSI cabinets."
+          },
+          "qualification": {
+            "type": "object",
+            "properties": {
+              "client_selections": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "license_and_prerequisites": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "maintenance": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "upgrade_rollback": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "downgrade_rejection": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "active_work_preserved": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "user_data_preserved": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "launch_contract": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "native_ui_capture": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "cancellation_rollback": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "user_context": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              }
+            },
+            "required": [
+              "client_selections",
+              "license_and_prerequisites",
+              "maintenance",
+              "upgrade_rollback",
+              "downgrade_rejection",
+              "active_work_preserved",
+              "user_data_preserved",
+              "launch_contract",
+              "native_ui_capture",
+              "cancellation_rollback",
+              "user_context"
+            ],
+            "additionalProperties": true,
+            "description": "Real native Windows tests must pass each required lifecycle and capture result."
+          },
+          "setup": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "windows-setup-receipt",
+                "description": "Coordinated per-user setup artifact receipt."
+              },
+              "format": {
+                "const": "exe",
+                "description": "Windows GUI setup executable with an exact full MSI payload."
+              },
+              "artifact": {
+                "type": "string",
+                "pattern": "^insonic_[0-9]+\\.[0-9]+\\.[0-9]+_windows_amd64_setup\\.exe$",
+                "description": "Exact release setup basename."
+              },
+              "artifact_sha256": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Final setup byte digest."
+              },
+              "artifact_size_bytes": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact setup byte length."
+              },
+              "embedded_msi": {
+                "type": "object",
+                "properties": {
+                  "product_code": {
+                    "type": "string",
+                    "description": "Embedded per-user MSI ProductCode."
+                  },
+                  "upgrade_code": {
+                    "const": "{96D72489-3629-52FB-A30D-79CCD4CAE9BC}",
+                    "description": "Production per-user MSI product family."
+                  },
+                  "version": {
+                    "const": "1.0.3",
+                    "description": "Embedded MSI release version."
+                  },
+                  "sha256": {
+                    "$ref": "common.schema.json#/$defs/sha256",
+                    "description": "Exact complete embedded MSI digest."
+                  },
+                  "size_bytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Full embedded MSI byte length."
+                  }
+                },
+                "required": [
+                  "product_code",
+                  "upgrade_code",
+                  "version",
+                  "sha256",
+                  "size_bytes"
+                ],
+                "additionalProperties": false,
+                "description": "Bounded full MSI identity, independently compared with the MSI asset."
+              },
+              "manifest": {
+                "const": "asInvoker",
+                "description": "Explicit same-user Windows execution level."
+              },
+              "scope": {
+                "const": "per-user",
+                "description": "Same ordinary invoking account."
+              },
+              "signing": {
+                "type": "object",
+                "properties": {
+                  "configured": {
+                    "const": false,
+                    "description": "No signing identity is configured."
+                  },
+                  "verified": {
+                    "const": false,
+                    "description": "No publisher signature is asserted."
+                  },
+                  "status": {
+                    "const": "unconfigured",
+                    "description": "Newly authored unsigned setup artifact."
+                  }
+                },
+                "required": [
+                  "configured",
+                  "verified",
+                  "status"
+                ],
+                "additionalProperties": false,
+                "description": "Setup signing is independently unconfigured."
+              },
+              "qualification": {
+                "type": "object",
+                "properties": {
+                  "ordinary_user": {
+                    "const": "passed",
+                    "description": "Required disposable native setup qualification result."
+                  },
+                  "source_integrity": {
+                    "const": "passed",
+                    "description": "Required disposable native setup qualification result."
+                  },
+                  "legacy_source": {
+                    "const": "passed",
+                    "description": "Required disposable native setup qualification result."
+                  },
+                  "failure_recovery": {
+                    "const": "passed",
+                    "description": "Required disposable native setup qualification result."
+                  },
+                  "cancellation_recovery": {
+                    "const": "passed",
+                    "description": "Required disposable native setup qualification result."
+                  },
+                  "prior_choices": {
+                    "const": "passed",
+                    "description": "Required disposable native setup qualification result."
+                  },
+                  "source_cleanup": {
+                    "const": "passed",
+                    "description": "Required disposable native setup qualification result."
+                  },
+                  "native_entry_point": {
+                    "const": "passed",
+                    "description": "Required disposable native setup qualification result."
+                  }
+                },
+                "required": [
+                  "ordinary_user",
+                  "source_integrity",
+                  "legacy_source",
+                  "failure_recovery",
+                  "cancellation_recovery",
+                  "prior_choices",
+                  "source_cleanup",
+                  "native_entry_point"
+                ],
+                "additionalProperties": false,
+                "description": "Native source, restoration, registration and lifecycle proof."
+              }
+            },
+            "required": [
+              "kind",
+              "format",
+              "artifact",
+              "artifact_sha256",
+              "artifact_size_bytes",
+              "embedded_msi",
+              "manifest",
+              "scope",
+              "signing",
+              "qualification"
+            ],
+            "additionalProperties": false,
+            "description": "Recommended setup EXE containing this exact raw MSI and its coordinated recovery evidence."
+          }
+        },
+        "required": [
+          "schema_version",
+          "product_version",
+          "documentation_version",
+          "revision",
+          "source_dirty",
+          "signing",
+          "distribution",
+          "kind",
+          "format",
+          "platform",
+          "variant",
+          "artifact",
+          "artifact_sha256",
+          "artifact_size_bytes",
+          "payload_archive",
+          "payload_archive_sha256",
+          "payload_receipt",
+          "payload_inventory",
+          "qualification",
+          "setup"
+        ]
+      },
+      "description": "Exactly one selectable-client Windows MSI and its recommended setup EXE; runtime verifies embedded bytes, source, payload, recovery, maintenance and signing evidence."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "version",
+    "revision",
+    "tag",
+    "repository",
+    "packages",
+    "assets",
+    "capabilities",
+    "installers"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "kind": "release-candidate",
+      "schema_version": "1.0.3",
+      "version": "1.0.3",
+      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tag": "v1.0.3",
+      "repository": "shruggietech/insonic",
+      "packages": [
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.3",
+          "product_version": "1.0.3",
+          "documentation_version": "1.0.3",
+          "platform": "windows_amd64",
+          "variant": "cli",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.3_windows_amd64_cli.zip",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        },
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.3",
+          "product_version": "1.0.3",
+          "documentation_version": "1.0.3",
+          "platform": "windows_amd64",
+          "variant": "desktop",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.3_windows_amd64_desktop.zip",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        },
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.3",
+          "product_version": "1.0.3",
+          "documentation_version": "1.0.3",
+          "platform": "linux_amd64",
+          "variant": "cli",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.3_linux_amd64_cli.tar.gz",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        },
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.3",
+          "product_version": "1.0.3",
+          "documentation_version": "1.0.3",
+          "platform": "linux_amd64",
+          "variant": "desktop",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.3_linux_amd64_desktop.tar.gz",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        }
+      ],
+      "assets": [
+        {
+          "name": "insonic_1.0.3_windows_amd64_cli.zip",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "insonic_1.0.3_windows_amd64_desktop.zip",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "insonic_1.0.3_linux_amd64_cli.tar.gz",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "insonic_1.0.3_linux_amd64_desktop.tar.gz",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "insonic_1.0.3_windows_amd64_installer.msi",
+          "size_bytes": 1,
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "name": "insonic_1.0.3_windows_amd64_setup.exe",
+          "size_bytes": 1,
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "name": "documentation.tar.gz",
+          "size_bytes": 1,
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "name": "offline-help.tar.gz",
+          "size_bytes": 1,
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "capabilities": {
+        "variants": [
+          "cli",
+          "desktop"
+        ],
+        "platforms": [
+          "windows_amd64",
+          "linux_amd64"
+        ],
+        "advanced_cli": [
+          "backup"
+        ],
+        "inference_qualification": "not-executed"
+      },
+      "installers": [
+        {
+          "kind": "windows-installer-receipt",
+          "schema_version": "1.0.3",
+          "product_version": "1.0.3",
+          "documentation_version": "1.0.3",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "format": "msi",
+          "platform": "windows_amd64",
+          "variant": "selectable",
+          "artifact": "insonic_1.0.3_windows_amd64_installer.msi",
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "artifact_size_bytes": 1,
+          "payload_archive": "insonic_1.0.3_windows_amd64_desktop.zip",
+          "payload_archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "payload_receipt": {
+            "kind": "native-package-receipt",
+            "schema_version": "1.0.3",
+            "product_version": "1.0.3",
+            "documentation_version": "1.0.3",
+            "platform": "windows_amd64",
+            "variant": "desktop",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_dirty": false,
+            "archive": "insonic_1.0.3_windows_amd64_desktop.zip",
+            "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "archive_size_bytes": 1,
+            "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "distribution": {
+              "source_complete": true,
+              "binary_publication": "eligible",
+              "corresponding_source": "included"
+            },
+            "signing": {
+              "configured": false,
+              "verified": false,
+              "status": "unconfigured"
+            }
+          },
+          "payload_inventory": {
+            "kind": "native-package-inventory"
+          },
+          "qualification": {
+            "client_selections": "passed",
+            "license_and_prerequisites": "passed",
+            "maintenance": "passed",
+            "upgrade_rollback": "passed",
+            "downgrade_rejection": "passed",
+            "active_work_preserved": "passed",
+            "user_data_preserved": "passed",
+            "launch_contract": "passed",
+            "native_ui_capture": "passed",
+            "cancellation_rollback": "passed",
+            "user_context": "passed"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          },
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "product_code": "{11111111-1111-5111-8111-111111111111}",
+          "upgrade_code": "{96D72489-3629-52FB-A30D-79CCD4CAE9BC}",
+          "setup": {
+            "kind": "windows-setup-receipt",
+            "format": "exe",
+            "artifact": "insonic_1.0.3_windows_amd64_setup.exe",
+            "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "artifact_size_bytes": 1,
+            "embedded_msi": {
+              "product_code": "{11111111-1111-5111-8111-111111111111}",
+              "upgrade_code": "{96D72489-3629-52FB-A30D-79CCD4CAE9BC}",
+              "version": "1.0.3",
+              "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "size_bytes": 1
+            },
+            "manifest": "asInvoker",
+            "scope": "per-user",
+            "signing": {
+              "configured": false,
+              "verified": false,
+              "status": "unconfigured"
+            },
+            "qualification": {
+              "ordinary_user": "passed",
+              "source_integrity": "passed",
+              "legacy_source": "passed",
+              "failure_recovery": "passed",
+              "cancellation_recovery": "passed",
+              "prior_choices": "passed",
+              "source_cleanup": "passed",
+              "native_entry_point": "passed"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

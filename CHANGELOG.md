@@ -4,7 +4,15 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-29
+
 ### Fixed
+
+- Apply maintained request-test headroom to non-expiry acquisition fixtures; preserve short injected expiry clocks, substantive failure classifications and production deadlines.
+
+- Avoid reapplying already-correct Windows private-directory permissions during runtime lookups. Fresh ownership and exact private-access checks remain mandatory; changed owned permissions still normalize and failed normalization remains an error.
+
+- Preserve frozen historical release tests and receipt fixtures during version preparation, while keeping current-version negative coverage explicit. Advance owned download URL tags together with asset names, and avoid duplicating the final tagged changelog link when complete highlights are supplied.
 
 - Preserve actionable insufficient-space results for local staging/publication failures, require successful staging flush and rewind, and propagate failed stage cleanup while preserving completed object bytes.
 
@@ -19,6 +27,10 @@ All notable changes to this project will be documented here. The format follows 
 - Publish complete documentation through bounded incremental Git tree requests, with verified standalone blobs for large text and binary files. Require the complete original path, mode, size and content inventory before advancing Pages; retain historical routes, release authority, non-forced updates and exact build/live verification.
 
 ### Changed
+
+- 2026-10-29: Concurrent cold-start qualification reports bounded owner/client timing and typed outcomes without credential values. Its protected-input and single-owner assertions and ten-second product startup limit remain unchanged; failed child-argument validation reports back instead of exiting a worker goroutine before its result is collected.
+
+- 2026-10-29: Prepare the unpublished v1.0.3 patch using maintained version migration and genuine isolated hosted captures. Preserve original release assets and versioned authority, unchanged product/qualification deadlines and the owner merge/publication boundary. Exact-main CPU/restore acceptance and publication remain post-merge work on retained accepted bytes.
 
 - 2026-10-27: Bind original v1.0.1 compatibility to its reviewed source tree and published manifest/MSI digests. Maintained verification reads historical source as data and checks every tracked file; it neither executes old verifier code nor reconstructs the old installer with the current MSI model. Altered history cannot acquire acceptance by recomputing local checksums. Original tags/assets and product version remain unchanged.
 
@@ -466,7 +478,7 @@ All notable changes to this project will be documented here. The format follows 
 - Preserve closed GitHub Projects when rerunning repository setup.
 - Cover root schema-validation dependencies in grouped Dependabot updates and correct contributor installation guidance.
 
-[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.3...HEAD
 
 ## Decisions (2026-10-08)
 
@@ -485,3 +497,5 @@ All notable changes to this project will be documented here. The format follows 
 [1.0.1]: https://github.com/shruggietech/insonic/compare/v1.0.0...v1.0.1
 
 [1.0.2]: https://github.com/shruggietech/insonic/compare/v1.0.1...v1.0.2
+
+[1.0.3]: https://github.com/shruggietech/insonic/compare/v1.0.2...v1.0.3

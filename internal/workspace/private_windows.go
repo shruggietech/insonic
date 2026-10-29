@@ -55,6 +55,12 @@ func privateSecurity(sd *windows.SECURITY_DESCRIPTOR, user *windows.SID) bool {
 }
 
 func SecureDirectory(dir string, newlyCreated ...bool) error {
+	return secureDirectory(dir, len(newlyCreated) == 1 && newlyCreated[0], func(flags windows.SECURITY_INFORMATION, owner *windows.SID, dacl *windows.ACL) error {
+		return windows.SetNamedSecurityInfo(dir, windows.SE_FILE_OBJECT, flags, owner, nil, dacl, nil)
+	})
+}
+
+func secureDirectory(dir string, created bool, setSecurity func(windows.SECURITY_INFORMATION, *windows.SID, *windows.ACL) error) error {
 	stat, err := os.Lstat(dir)
 	if err != nil || !stat.IsDir() || stat.Mode()&os.ModeSymlink != 0 {
 		return contracts.Fail("unavailable")
@@ -68,9 +74,14 @@ func SecureDirectory(dir string, newlyCreated ...bool) error {
 		return contracts.Fail("unavailable")
 	}
 	owner, _, err := existing.Owner()
-	created := len(newlyCreated) == 1 && newlyCreated[0]
 	if err != nil || (!created && owner.String() != user.User.Sid.String()) {
 		return contracts.Fail("unavailable")
+	}
+	// Freshly verify exact current ownership and access before deciding to write.
+	// Reapplying an already-correct inheritable DACL makes every runtime probe
+	// perform unnecessary filesystem security work. Never cache this authority.
+	if PrivateDirectory(dir) == nil {
+		return nil
 	}
 	sd, err := windows.SecurityDescriptorFromString("D:P(A;OICI;FA;;;" + user.User.Sid.String() + ")")
 	if err != nil {
@@ -90,7 +101,7 @@ func SecureDirectory(dir string, newlyCreated ...bool) error {
 		flags |= windows.OWNER_SECURITY_INFORMATION
 		replacementOwner = user.User.Sid
 	}
-	if err := windows.SetNamedSecurityInfo(dir, windows.SE_FILE_OBJECT, flags, replacementOwner, nil, dacl, nil); err != nil {
+	if err := setSecurity(flags, replacementOwner, dacl); err != nil {
 		return contracts.Fail("unavailable")
 	}
 	return PrivateDirectory(dir)

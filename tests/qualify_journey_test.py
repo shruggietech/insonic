@@ -18,12 +18,12 @@ class JourneyGuardTests(unittest.TestCase):
     def setUpClass(cls): spec.loader.exec_module(journey)
 
     def test_package_election_requires_exact_clean_revision_version_and_platform(self):
-        receipt = {'revision': 'a' * 40, 'schema_version': '1.0.2', 'product_version': '1.0.2', 'documentation_version': '1.0.2',
+        receipt = {'revision': 'a' * 40, 'schema_version': '1.0.3', 'product_version': '1.0.3', 'documentation_version': '1.0.3',
                    'platform': 'windows_amd64', 'source_dirty': False, 'variant': 'cli'}
-        journey.validate_package_election(receipt, 'a' * 40, '1.0.2', 'windows_amd64')
+        journey.validate_package_election(receipt, 'a' * 40, '1.0.3', 'windows_amd64')
         for change in ({'revision': 'b' * 40}, {'schema_version': '0.0.0'}, {'product_version': '0.0.0'},
                        {'documentation_version': '0.0.0'}, {'platform': 'linux_amd64'}, {'source_dirty': True}, {'variant': 'unknown'}):
-            with self.assertRaises(ValueError): journey.validate_package_election({**receipt, **change}, 'a' * 40, '1.0.2', 'windows_amd64')
+            with self.assertRaises(ValueError): journey.validate_package_election({**receipt, **change}, 'a' * 40, '1.0.3', 'windows_amd64')
 
     def test_package_selection_rejects_source_tool_or_cli_overrides(self):
         for field in ('cli', 'tools', 'cueson'):
@@ -54,8 +54,8 @@ class JourneyGuardTests(unittest.TestCase):
             base = Path(temporary)
             archive = base / 'package.zip'; archive.write_bytes(b'controlled archive')
             receipt_path = base / 'receipt.json'
-            receipt = {'revision': 'a' * 40, 'schema_version': '1.0.2', 'product_version': '1.0.2',
-                       'documentation_version': '1.0.2', 'platform': 'linux_amd64', 'source_dirty': False, 'variant': 'cli',
+            receipt = {'revision': 'a' * 40, 'schema_version': '1.0.3', 'product_version': '1.0.3',
+                       'documentation_version': '1.0.3', 'platform': 'linux_amd64', 'source_dirty': False, 'variant': 'cli',
                        'archive_sha256': package.sha(archive), 'inventory_sha256': journey.hashlib.sha256(b'{}').hexdigest(),
                        'inventory_root': 'installed', 'inventory_path': 'installed/package-inventory.json'}
             journey.write_json(receipt_path, receipt)
@@ -67,7 +67,7 @@ class JourneyGuardTests(unittest.TestCase):
                     (root / name).write_bytes(b'fixture')
                 worker = root / 'companions/processing/processing-worker.py'; worker.parent.mkdir(parents=True)
                 worker.write_bytes((ROOT / 'scripts/processing-worker.py').read_bytes())
-                manifest = {'kind': 'installed-companions', 'schema_version': '1.0.2', 'platform': 'linux_amd64',
+                manifest = {'kind': 'installed-companions', 'schema_version': '1.0.3', 'platform': 'linux_amd64',
                             'media': {name: {'path': name, 'sha256': package.sha(root / name)} for name in ('ffmpeg', 'ffprobe', 'exiftool')},
                             'cueson': {'executable': 'cueson', 'executable_sha256': package.sha(root / 'cueson')}}
                 if case == 'escape': manifest['media']['ffmpeg']['path'] = '../outside'

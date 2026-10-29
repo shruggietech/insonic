@@ -19,7 +19,7 @@ Read the [current system contracts](https://insonic.io/docs/latest/), [technolog
 
 ## Installation
 
-Choose a Windows/Linux x86-64 package from the [official releases](https://github.com/shruggietech/insonic/releases). Desktop + CLI includes application windows and the command-line tool; CLI-only includes terminal commands without the desktop application. Windows ZIP packages require Microsoft Visual C++ x64; desktop additionally requires WebView2. Read [package choices, prerequisites and Windows ZIP installation/update/removal](docs/v1.0.1/desktop.md#native-package-layouts) for the selected version. The current 1.0.1 index identifies candidate status; historical packages retain their own version-specific guidance.
+Choose a Windows/Linux x86-64 package from the [official releases](https://github.com/shruggietech/insonic/releases). Desktop + CLI includes application windows and the command-line tool; CLI-only includes terminal commands without the desktop application. Windows ZIP packages require Microsoft Visual C++ x64; desktop additionally requires WebView2. Read [package choices, prerequisites and Windows installation/update/removal](https://insonic.io/docs/latest/windows-installation/) for the selected release. The [source version manifest](docs/versions.json) identifies prepared versions and publication status; historical packages retain their own version-specific guidance.
 
 ## Capabilities
 

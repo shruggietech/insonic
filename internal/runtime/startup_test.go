@@ -258,13 +258,14 @@ func TestConcurrentColdStartupLoadsProtectedInputIntoOneOwner(t *testing.T) {
 	if err = secrets.Select(w, "session"); err != nil {
 		t.Fatal(err)
 	}
+	observedStart := time.Now()
 	ownerCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var owners sync.WaitGroup
 	launch := func(ctx context.Context, _ string, args []string, raw []byte, validate func([]byte) error) ([]byte, error) {
 		for _, arg := range args {
 			if strings.Contains(arg, "session-secret") {
-				t.Fatal("secret in child arguments")
+				return nil, fmt.Errorf("secret in child arguments")
 			}
 		}
 		input, e := credentialcmd.ReadInput(bytes.NewReader(raw))
@@ -277,9 +278,10 @@ func TestConcurrentColdStartupLoadsProtectedInputIntoOneOwner(t *testing.T) {
 		go func() {
 			defer owners.Done()
 			defer input.Close()
-			err := Serve(ownerCtx, w, Options{Input: input, Idle: qt.Duration("fixture_idle_seconds"), ReportReady: func() { reports <- report }})
+			err := Serve(ownerCtx, w, Options{Input: input, Idle: qt.Duration("fixture_idle_seconds"), ReportReady: func() { t.Logf("startup owner ready at %s", time.Since(observedStart)); reports <- report }})
 			if err != nil {
 				safe := contracts.SafeError(err)
+				t.Logf("startup owner returned %s/%s at %s", safe.Code, safe.Reason, time.Since(observedStart))
 				report.State, report.Stage, report.Code, report.Reason = "failed", "startup", safe.Code, safe.Reason
 				reports <- report
 			}
@@ -298,7 +300,12 @@ func TestConcurrentColdStartupLoadsProtectedInputIntoOneOwner(t *testing.T) {
 	failures := make(chan error, 4)
 	for i := 0; i < 4; i++ {
 		calls.Add(1)
-		go func() { defer calls.Done(); failures <- ensureInput(context.Background(), w, "fixture", raw, launch) }()
+		go func() {
+			defer calls.Done()
+			outcome := ensureInput(context.Background(), w, "fixture", raw, launch)
+			t.Logf("startup client completed at %s with outcome type %T", time.Since(observedStart), outcome)
+			failures <- outcome
+		}()
 	}
 	calls.Wait()
 	for i := 0; i < 4; i++ {
