@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+CURRENT = (ROOT / 'VERSION').read_text(encoding='utf-8').strip()
 sys.path.insert(0, str(ROOT / 'scripts'))
 import release
 import release_history as history
@@ -43,7 +44,7 @@ class OriginalReleaseTests(unittest.TestCase):
                 history.select_profile(ORIGINAL, self.manifest, self.root)
 
     def test_unknown_identity_does_not_elect_a_historical_profile(self):
-        for field, value in [('version', '1.0.2'), ('revision', 'f' * 40)]:
+        for field, value in [('version', value) for value in dict.fromkeys(('1.0.2', CURRENT))] + [('revision', 'f' * 40)]:
             altered = copy.deepcopy(ORIGINAL); altered[field] = value
             with self.subTest(field=field), patch.object(history, 'verify_source') as proof:
                 self.assertIsNone(history.select_profile(altered, self.manifest, self.root))
@@ -147,7 +148,7 @@ class OriginalReleaseTests(unittest.TestCase):
         verify.assert_called_once_with(path, installer, self.root, history_profile=profile)
 
     def test_unknown_and_current_receipts_still_require_modern_evidence(self):
-        for version, revision in [('1.0.1', 'f' * 40), ('1.0.2', 'a' * 40), ('99.0.0', 'a' * 40)]:
+        for version, revision in dict.fromkeys([('1.0.1', 'f' * 40), ('1.0.2', 'a' * 40), (CURRENT, 'a' * 40), ('99.0.0', 'a' * 40)]):
             package = copy.deepcopy(ORIGINAL['packages'][0])
             package.update(schema_version=version, product_version=version,
                            documentation_version=version, revision=revision)

@@ -1,6 +1,8 @@
 package workspace
 
 import (
+	"errors"
+	"fmt"
 	"golang.org/x/sys/windows"
 	"os"
 	"path/filepath"
@@ -59,5 +61,80 @@ func TestSecureAlreadyOwnedDirectoryWithoutOwnershipTransfer(t *testing.T) {
 	}
 	if e = PrivateDirectory(dir); e != nil {
 		t.Fatal("private owner/ACL invariant lost", e)
+	}
+}
+
+func TestSecurePrivateDirectoryDoesNotReapplyPermissions(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "private")
+	if err := os.Mkdir(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := SecureDirectory(dir, true); err != nil {
+		t.Fatal(err)
+	}
+	writes := 0
+	err := secureDirectory(dir, false, func(windows.SECURITY_INFORMATION, *windows.SID, *windows.ACL) error {
+		writes++
+		return errors.New("unexpected permission rewrite")
+	})
+	if err != nil || writes != 0 {
+		t.Fatalf("already-private directory requires validation only: writes=%d error=%v", writes, err)
+	}
+	if err := PrivateDirectory(dir); err != nil {
+		t.Fatal("private authority changed", err)
+	}
+}
+
+func TestSecureDirectoryRechecksChangedPermissionsAndRetainsWriteFailure(t *testing.T) {
+	for _, fail := range []bool{false, true} {
+		t.Run(fmt.Sprint(fail), func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "changed")
+			if err := os.Mkdir(dir, 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := SecureDirectory(dir, true); err != nil {
+				t.Fatal(err)
+			}
+			user, err := windows.GetCurrentProcessToken().GetTokenUser()
+			if err != nil {
+				t.Fatal(err)
+			}
+			descriptor, err := windows.SecurityDescriptorFromString("D:P(A;OICI;FA;;;" + user.User.Sid.String() + ")(A;OICI;FR;;;WD)")
+			if err != nil {
+				t.Fatal(err)
+			}
+			acl, _, err := descriptor.DACL()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = windows.SetNamedSecurityInfo(dir, windows.SE_FILE_OBJECT, windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, nil, nil, acl, nil); err != nil {
+				t.Fatal(err)
+			}
+			if PrivateDirectory(dir) == nil {
+				t.Fatal("changed access unexpectedly remained private")
+			}
+			sentinel := errors.New("controlled normalization failure")
+			writes := 0
+			err = secureDirectory(dir, false, func(flags windows.SECURITY_INFORMATION, owner *windows.SID, normalized *windows.ACL) error {
+				writes++
+				if flags&windows.OWNER_SECURITY_INFORMATION != 0 || owner != nil {
+					t.Fatal("already-owned directory requested ownership transfer")
+				}
+				if fail {
+					return sentinel
+				}
+				return windows.SetNamedSecurityInfo(dir, windows.SE_FILE_OBJECT, flags, owner, nil, normalized, nil)
+			})
+			if writes != 1 {
+				t.Fatal("changed ACL did not require exactly one normalization", writes)
+			}
+			if fail {
+				if err == nil || PrivateDirectory(dir) == nil {
+					t.Fatal("failed normalization became accepted authority", err)
+				}
+			} else if err != nil || PrivateDirectory(dir) != nil {
+				t.Fatal("changed ACL did not recover private authority", err)
+			}
+		})
 	}
 }

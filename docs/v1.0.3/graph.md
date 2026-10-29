@@ -1,0 +1,262 @@
+# Queries, timeline and graph
+
+## Evidence graph and supported adapters
+
+LadybugDB is the default semantic graph; ArcadeDB is a fully supported alternative. The selected SQLite or PostgreSQL catalog remains the operational authority described in [architecture](architecture.md). Both graph adapters project media, assets, metadata/date selections, current recording/document/cue references, local voice tokens, speaker identities, terms, assertions, concepts, evidence spans, speaker audio segments and trained-model lineage. Every assertion cites actual cue IDs, original source intervals, current document digest and processing-run identity. Model relationships cite reference-only dataset/run provenance and durable output versions rather than implying that a model is the speaker.
+
+```mermaid
+flowchart TB
+  Media[Media entry and selected origination date] --> Asset[Original media asset]
+  Asset --> Transcript[Current embedded Cue JSON]
+  Transcript --> Cue[Timed cue]
+  Cue --> Evidence[Evidence span]
+  Cue --> Voice[Current cue and local speaker token reference]
+  Voice --> Speaker[Catalog speaker]
+  Asset --> Segment[Mapped speaker audio segment]
+  Segment --> Speaker
+  Segment --> Dataset[Valid current dataset references]
+  Dataset --> Run[Optional training run]
+  Run --> Model[Speaker-model version]
+  Model --> Speaker
+  Evidence --> Assertion[Extracted assertion]
+  Assertion --> Concept[Normalized concepts and relations]
+```
+
+Backend-specific node/relationship DDL and migrations implement the [logical schema](schema.md). Use stable catalog IDs as graph identities. LadybugDB node tables are schema-first; ArcadeDB uses its own types, constraints and indexes. Native record IDs are not public entity IDs. Parameterize values on both backends.
+
+## Graph adapter and publication
+
+The graph contract includes `Capabilities`, `EnsureSchema`, `FenceGeneration`, `ApplyRevision`, `ReadCheckpoint`, `Query`, `Explain`, `ExportSnapshot` and `Rebuild`. `ApplyRevision` accepts workspace/target, event sequence, predecessor sequence, operation ID, payload digest, catalog revision and installed projection generation. One publisher per target applies a gap-free sequence; fact changes, event receipt and checkpoint commit atomically only when generation and predecessor match. A later catalog revision cannot bypass an earlier event, even when they affect different entities. Repeated exact events are harmless; mismatched receipts or generations fail. A replacement owner first uses `FenceGeneration` to atomically install its higher catalog lease generation while retaining the graph's committed sequence. Old writers then fail their transactional generation check. Reconcile committed-but-unacknowledged receipts before continuing. Catalog acknowledgement is separately guarded by its current lease. An unknown remote outcome is reconciled by exact event/operation receipt before replay.
+
+The capabilities response names server/core and adapter versions, schema version, supported native language identifiers, parameter types, transaction behavior, cancellation/timeouts, pagination and optional search/algorithm features. Required checks qualify LadybugDB 0.21.2 and ArcadeDB 26.9.1. A configured expected backend version must match the observed engine version; an unavailable server version remains unknown. A health check alone does not establish support. When graph publication is unavailable, accepted catalog evidence and model lookups remain usable; graph results disclose the published revision and pending changes.
+
+LadybugDB runs inside the owning workspace runtime, with one read/write database object and separate connections. ArcadeDB is selected through a configured service endpoint/database using its [HTTP/JSON query and transaction API](https://docs.arcadedb.com/arcadedb/reference/http-api/http). Qualify session, expiry, authentication and commit semantics for the supported server version. The adapter never assumes a failed HTTP response proves a transaction did not commit.
+
+## Chunking and assertions
+
+Chunk adapters build bounded windows from complete selected cues, preserving overlap and speaker transitions where possible. Each chunk records current recording/document/cue references and policy/model provenance; it does not copy assignment arrays. Resolve source intervals through the current document/map. Overlapping windows deduplicate evidence by source identity rather than producing false independent support.
+
+An extraction adapter returns structured propositions with cited cues, subject/relation/object, polarity, modality and relevant conditions. Validation checks shape, cue existence, source ownership and time bounds before publication. An assertion states what a speaker said; it does not establish the proposition's truth. Quotations and reported positions retain who delivered the words and whose position was described.
+
+Materially different conditions or negation cannot collapse into one normalized proposition. Unsupported assertions are rejected or retained as unpublished diagnostics. Valid output publishes automatically without a mandatory approval queue. Failed extraction leaves transcript search available.
+
+## Portable operations and native query dialects
+
+Application operations provide media listing, speaker/model lookup, term/text search, time-range filtering, evidence traversal and graph-view results on either supported backend. A versioned normalized `QuerySpec` represents these operations with typed filters, parameters, traversal limits and deterministic ordering. Both adapters read current reference nodes and relationships; the shared evaluator hydrates authoritative catalog values and applies filters, ordering and bounded pagination. Native text uses the declared engine language. Shared fixtures compare evidence, null values, timestamp handling, pagination and graph relationships. Full support means application behavior parity; it does not mean every engine-specific function exists in the other engine.
+
+Native queries remain available for advanced work. LadybugDB uses its openCypher dialect. ArcadeDB provides [SQL and native OpenCypher](https://docs.arcadedb.com/arcadedb/reference/cypher/chapter), with current documentation distinguishing recommended `opencypher` from legacy `cypher`. SQL graph functions, language identifiers, traversal semantics and transaction features must be validated against the actual supported server, not inferred from a Cypher label. Native queries are tagged with a dialect, for example `ladybug-cypher`, `arcade-opencypher` or `arcade-sql`. Unsupported languages/features produce actionable errors.
+
+Command contracts:
+
+```sh
+insonic media list --json
+insonic search "sample phrase" --speaker SPEAKER_ID --json
+insonic search "sample phrase" --speaker SPEAKER_ID --after NEXT_CURSOR --json
+insonic models list --speaker SPEAKER_ID --json
+insonic query run --saved QUERY_ID
+insonic query native --dialect ladybug-cypher --file query.cypher --json
+insonic query native --dialect arcade-sql --file query.sql --json
+```
+
+Return media/source IDs, speaker or voice state, quoted cue text, source start/end time, selected revisions, graph publication status and pagination information. The GUI wraps the same query/result contract and opens cited media at the correct original time. Results report catalog revision, source IDs and current document digests. Graph status separately exposes the publication checkpoint and pending count. Portable reads may use accepted current catalog evidence if publication is unavailable; their basis and graph error disclose that condition. Replacement invalidates stale referenced results and preparation rather than preserving old assignments or frozen transcript copies. Current speaker timing is resolved from the embedded document.
+
+## Timeline
+
+The calendar timeline includes all library entries, not just the current page of results. The selected recording-date observation and its precision/bounds drive placement. Publication or import dates are explicitly chosen alternatives, never invisible substitutes. Undated entries have a visible group; approximate dates appear as ranges. Zoom, pan, keyboard navigation, filtering and bounded continuation support large libraries.
+
+Selecting an entry opens its within-media timeline of cues, voices, speaker audio segments and assertion spans. These media-relative intervals differ from calendar placement. Audio and video share the same correlation model. A timezone or origination-date correction changes calendar placement without rewriting cue or segment intervals.
+
+## Saved graph views and AI assistance
+
+A saved query version records either a normalized `QuerySpec` or native text/dialect, typed parameters, title, catalog and projection schema versions, adapter/backend identity, capability fingerprint and validation result. Graph-view settings and force-directed layout positions are separate records. Saved definitions and layouts retain no result snapshots or processing documents. Keep old versions when a user edits a query. Saving checks the currently selected target when reachable and stores immutable compatibility metadata. Unreachable checks remain pending. The validate operation checks the current target; switching backends does not pretend arbitrary Cypher/SQL text is portable. Retain incompatible saved queries with an explanation and allow a compatible revision to be saved.
+
+Force-directed rendering displays selected nodes/relationships with labels, provenance inspection, filtering and a tabular accessible alternative. Persist layout positions separately from graph facts. A truncated view states omitted node/edge counts and permits deliberate expansion. Saved definitions and speaker/model relationships use the same normalized result envelope on both engines.
+
+AI query assistance is optional until configured. The chosen adapter receives the selected backend's schema and capability context and can propose a normalized operation or native query with a declared dialect. Read-only execution can proceed under the configured assistance mode after structural validation, with optional preview for users who want it. Do not add a compulsory review step to every suggestion. The interface shows the generated query, explanation and provider/model provenance with its result. Result excerpts are sent only when the configured task requests them. Direct queries remain available if assistance is disabled or fails.
+
+Ordinary exploration uses bounded read operations; maintenance and advanced mutations are separate explicit operations. Native-language enforcement belongs in each adapter's query/privilege contract, including engines that lack an equivalent read-only transaction mode. Treat user queries as data, parameterize values and enforce the selected operation mode. This is an integrity boundary rather than a subject-matter policy.
+
+## Supported and community graph engines
+
+Both graph adapters must pass projection replay, corrections, dataset/model lineage, query results, saved views, migration/rebuild and failure recovery. Backend-specific optional algorithms remain discoverable capabilities. Other graph engines may be user-provided community adapters through the same extension contract. They are labelled unofficial, with declared dependencies and licenses. They are not bundled, recommended or silently selected. [ArcadeDB's Apache 2.0 license](https://github.com/ArcadeData/arcadedb/blob/main/LICENSE) fits the project's official dependency direction; every exact redistributed artifact still needs its own notices reviewed during packaging.
+
+## Executable exploration operations
+
+The source CLI and desktop Explore route implement current evidence extraction, the seven normalized operations, bounded native reads, calendars, recording timelines, saved query versions and separate layouts. Optional query assistance uses an explicitly configured local or hosted HTTP adapter. Completed speaker-model versions retain originating speaker, dataset and work lineage. A current speaker profile adds a `uses-profile` edge to the exact version; clearing that association removes the edge while retaining the immutable output.
+
+```sh
+insonic graph capabilities --json
+insonic graph status --json
+insonic graph publish --json
+insonic graph rebuild --json
+insonic evidence extract MEDIA_ID --input extraction.json --json
+insonic evidence show MEDIA_ID --json
+insonic query run --input query.json --json
+insonic query explain --input query.json --json
+insonic query validate --input query.json --json
+insonic query save QUERY_ID --input saved-update.json --json
+insonic query show QUERY_ID --json
+insonic timeline calendar --input calendar.json --json
+insonic timeline recording MEDIA_ID --json
+insonic views save VIEW_ID --input layout-update.json --json
+insonic views show VIEW_ID --json
+```
+
+A portable input is `{"definition":{"mode":"normalized","operation":"text-search","filters":{"text":"example"},"order_by":[{"field":"source_start_us","direction":"asc"}],"pagination":{"limit":100}}}`. Operations are `media-list`, `speaker-search`, `model-list`, `text-search`, `time-range`, `evidence-traverse` and `graph-view`. Filters can select media/speaker/entity/concept IDs, text, model kind, selected origination bounds or a half-open source interval in integer microseconds. Traversal declares direction, relationship types and depth (1 through 32). Continuation cursors bind the query, effective page limit, current values and pagination policy; corrected evidence or an incompatible policy makes an old cursor conflict. The same opaque cursor advances rows and relationships independently, so a page may contain relationships without new rows. Edges can reference endpoints returned on another page. Accumulate their stable identities and continue until `next_cursor` is absent; do not stop merely because `items` is empty.
+
+Internal publication uses an immutable reference snapshot with its own 128 MiB budget, separate from the 8 MiB per-work input budget. Reference reads use pages of up to 1,000 rows (smaller pages for large individual references) in one consistent read transaction; facts, receipt and checkpoint still commit atomically. Exceeding the snapshot budget reports a limit without accepting a partial projection.
+
+Query pages return at most the requested limit (1 through 500) for each of the row and relationship streams and at most 512 KiB in total. Byte-heavy pages can return fewer entries with continuation; a single entry that cannot fit reports a limit. Original source microseconds and exact date nanoseconds travel as decimal strings in hydrated results. Native text is limited to 64 KiB, one read statement and supported pure functions, with a 20-second backend timeout. One trailing semicolon followed by whitespace or comments is accepted. Cypher reads start with MATCH, OPTIONAL MATCH, RETURN, WITH or UNWIND; SQL reads start with SELECT, optionally prefixed by EXPLAIN. The shared pure-function subset is COUNT, SUM, MIN, MAX, AVG, COALESCE, TOSTRING, TOINTEGER, LOWER, UPPER, ABS, SIZE, LENGTH and COLLECT, subject to the selected engine dialect. Parenthesized read expressions are accepted; function calls use unqualified names from that subset. Other functions, including range, receive a supported-subset diagnostic. Native parameter files reject duplicate object members at every level and preserve exact integer values. DDL, mutations, transaction control, effectful procedures, PROFILE and reserved profiling parameters are rejected. A workspace owns one graph database; binding a database owned by another workspace fails. Untagged source builds report embedded Ladybug unavailable; prepared packages include the real adapter.
+
+The default `cue-statement` extraction records literal cue/voice source statements, without inferring a semantic proposition. An explicitly elected `insonic-http` extractor can return structured propositions. The legacy `http` input alias is accepted and stored as `insonic-http`. Extraction input contains `expected_revision`, `document_digest` and `configuration`. The named default configuration uses contract `1`, 16 complete cues per window, two cues of overlap, a 64 KiB chunk bound, 30-second timeout and 512 KiB response bound. The HTTP protocol receives contract version, operation, elected model and chunk cues; its response contains contract version and a required assertions array (an explicit empty array is valid). Missing or null arrays, duplicate members, unknown response/assertion fields and supplied clock fields are rejected. Each citation must belong to the current chunk and current recording document; normalized results obtain their exact source clocks from the catalog cues. Each assertion names subject, relation, object, polarity, modality, conditions and actual cue IDs, with optional local speaker and quoted attribution. Remote route and opaque credentials must be explicitly configured. Invalid output produces bounded diagnostics; it does not block text search.
+
+Saved updates contain `expected_revision` and `query` (required nonblank title, definition and typed parameters). Ordinary run/explain input can omit a title. Creation expects zero; edits append a new immutable version. Layout updates contain `expected_revision`, `query_id` and `layout` (positions, paused motion, label filter and drawing limit). Layout coordinates never modify evidence. A graph page states omitted nodes and relationships; the drawing limits itself to 200 nodes and offers table inspection and deliberate relationship expansion.
+
+Calendar input contains `filter` (`from`, `through`, `timezone`, `include_undated`) and optional pagination. Query and calendar timezone validation share the bundled metadata-date resolver: omitted calendar timezone means UTC; UTC/Z, local (also Local), IANA names such as America/New_York, and signed HH:MM offsets such as +02:00 are accepted. Explicit local resolves the current operating-system zone through the bundled mappings/rules. Day precision preserves its literal day; instants use the selected timezone and approximate ranges intersect the viewport. Recording timelines resolve current cues/assertions/segments on the original clock. Desktop selections and playback tickets are fenced against replacement; a changed recording clears inspected evidence on the next authority check.
+
+Required tests use supplied current cues and deterministic extraction replies, real pinned graph transactions and native Explore/package journeys. They never initialize or run recognition/diarization models or download weights.
+
+
+## Configured query assistance
+
+`insonic query assistance-show --json` reads workspace configuration without contacting a provider. `insonic query assistance-set --input assistance-setting.json --json` saves `expected_revision` and `configuration` with compare-and-swap. Settings travel with catalog snapshots; credentials remain opaque IDs resolved by the selected credential backend. Assistance is disabled until elected. The `insonic-http` contract version `1` works with a local loopback or hosted endpoint that implements this protocol. Ollama uses the native adapter described below; other generic model APIs require a compatible adapter service.
+
+```json
+{
+  "expected_revision": 0,
+  "configuration": {
+    "enabled": true,
+    "adapter": "insonic-http",
+    "contract_version": "1",
+    "route": "local",
+    "endpoint": "http://127.0.0.1:9001/query",
+    "model": "selected-model",
+    "mode": "suggest"
+  }
+}
+```
+
+`insonic query assist --input assistance-request.json --json` accepts `{"prompt":"List current recordings","mode":"suggest"}`. Omit `mode` to use the saved preference, or elect `auto-run` to validate and execute a current read. An optional `configuration` overrides the saved choice for that request; `settings_revision` fences the observed configuration. No failure chooses another route or model. The response includes the exact `proposal`, `explanation`, validation status, route/model/settings/capability provenance and, for auto-run, current `execution`. The desktop Explore screen exposes the same configuration and separate Suggest query and Assist and run query actions. Load proposal into editor preserves the entire query, including fields outside the compact controls, for editing, direct execution or versioned saving. Pending UI results are discarded after prompt/settings/editor changes, navigation or an explicit discard action; discarding UI ownership does not promise to undo a read already sent to the runtime.
+
+The provider receives one JSON POST containing `contract_version`, `operation: "query-assistance"`, `model`, `prompt`, self-contained bare query schema, selected capabilities, finite `limits` and optional `context`. It returns exactly `{"contract_version":"1","query":{"definition":{"mode":"normalized","operation":"media-list","pagination":{"limit":5}}},"explanation":"List current recordings"}`. Unknown fields, duplicate keys, trailing documents, malformed parameters and structural mutations fail. A normalized proposal must select an explicit bounded first page, without a cursor. Native text declares a compatible dialect and must pass the ordinary read guard and actual selected backend EXPLAIN before auto-run. Unreachable validation stays pending in a suggestion and cannot auto-run. The physical native schema uses `Entity(id, workspace, entity_id, kind, reference)` and `EvidenceLink(id, kind)`; normalized operations hydrate current catalog text and clocks.
+
+Default provider timeout is 30 seconds (maximum 60); one aggregate query budget of at most 20 seconds covers backend probing, optional context collection and validation/execution. Provider time has its own budget. Together with five seconds of overhead, these fit within the 90-second assistance IPC ceiling. Prompts are at most 16 KiB. Provider responses default to 256 KiB (maximum 512 KiB). Results default to 100 rows (maximum 500) and 512 KiB; native engines retain their existing 500-row/512-KiB ceiling (exceeding it returns `output_limit/native_result_limit` with guidance to narrow the query) and a lower elected result ceiling is checked before returning. All limits can be reduced. Result excerpts are absent by default. An explicit normalized `context_query` elects at most 25 current rows and 32 KiB, retaining exact source-clock strings. Neither configuration nor a saved query stores these results. HTTP redirects are refused, credentials require HTTPS except on loopback, and provider bodies never become diagnostic messages. Generic HTTP failures distinguish authentication (`provider_auth`), missing endpoint/model (`provider_missing`), busy service (`provider_busy`), refused redirect (`provider_redirect`), transport/TLS failure (`provider_unavailable`), rejected request (`provider_failure`) and malformed protocol output (`provider_protocol`). Existing native Ollama failures retain their `ollama_*` reasons. Both adapters report an expired provider deadline as `unavailable/provider_timeout`, explicit caller cancellation as `cancelled`, and excessive response bytes as `output_limit/provider_response_limit`. Truncated responses within the byte bound are protocol failures. Messages contain fixed local correction guidance, without provider bodies, prompts, credentials or transport details.
+
+Required checks refuse production assistance under CI environment markers before HTTP or credential access. Deterministic fixture construction exercises the same proposal validation, ordinary backend execution and mounted native UI without model loading, inference or weight downloads. Maintainers may elect a compatible provider outside CI.
+
+Typed integer parameters accept JSON integers or canonical signed decimal strings in the 64-bit range. Assistance emits browser-unsafe integers as decimal strings so desktop inspection, editing, saving and execution preserve every digit; the selected native engine receives an integer value.
+
+## Complete exploration inputs
+
+Save the following named files. For `extraction.json`, read the positive current recording revision and document digest from `recordings show MEDIA_ID`; replace the illustrative values. The builtin adapter records literal cue statements and runs no model. Wait the returned work ID before inspecting evidence.
+
+<!-- executable-example: extraction.json -->
+```json
+{
+  "expected_revision": 1,
+  "document_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "configuration": {
+    "adapter": "cue-statement",
+    "contract_version": "1",
+    "window_cues": 16,
+    "overlap_cues": 2
+  }
+}
+```
+
+`query.json` performs a current normalized read. It requires no invented native query syntax or saved ID.
+
+<!-- executable-example: query.json -->
+```json
+{
+  "definition": {
+    "mode": "normalized",
+    "operation": "media-list",
+    "pagination": {
+      "limit": 25
+    }
+  }
+}
+```
+
+`saved-update.json` creates a versioned graph definition. Supply a fresh `QUERY_ID` when the example UUID below is already used; the returned `revision` fences the next save.
+
+<!-- executable-example: saved-update.json -->
+```json
+{
+  "expected_revision": 0,
+  "query": {
+    "title": "Current library graph",
+    "definition": {
+      "mode": "normalized",
+      "operation": "graph-view",
+      "pagination": {
+        "limit": 100
+      }
+    }
+  }
+}
+```
+
+`layout-update.json` references that saved query ID. A layout has its own revision; use its returned revision for the next edit.
+
+<!-- executable-example: layout-update.json -->
+```json
+{
+  "expected_revision": 0,
+  "query_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "layout": {
+    "positions": {},
+    "paused": true,
+    "filter": "",
+    "limit": 200
+  }
+}
+```
+
+`calendar.json` selects a viewport and the zone used for instant grouping; date-only entries retain their original day.
+
+<!-- executable-example: calendar.json -->
+```json
+{
+  "filter": {
+    "from": "2020-01-01",
+    "through": "2026-12-31",
+    "timezone": "UTC",
+    "include_undated": true
+  },
+  "pagination": {
+    "limit": 25
+  }
+}
+```
+
+```sh
+insonic evidence extract MEDIA_ID --input extraction.json --json
+insonic work wait WORK_ID --json
+insonic evidence show MEDIA_ID --json
+insonic query run --input query.json --json
+insonic query explain --input query.json --json
+insonic query validate --input query.json --json
+insonic query save aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa --input saved-update.json --json
+insonic query show aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa --json
+insonic views save bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb --input layout-update.json --json
+insonic views show bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb --json
+insonic timeline calendar --input calendar.json --json
+insonic timeline recording MEDIA_ID --json
+```
+
+Reads return bounded current pages and publication status. Follow returned cursors for further results. Saving a definition/layout stores configuration rather than a snapshot of results.
+## Native Ollama query assistance
+
+Select `adapter: "ollama"`, `contract_version: "1"`, the service root endpoint, exact model, enabled state and elected route in the existing assistance configuration. Version 1 describes insonic's adapter contract, not an upstream API version. Native local route means observed local inference, including an explicitly configured LAN instance; endpoint scope is shown separately. Loopback does not prove local inference because Ollama can serve cloud models. A hosted selection explicitly permits the inspected connected/cloud model. Existing insonic-http routing stays compatible.
+
+1. Run `insonic query services --json`, or choose Discover Ollama services and models in Explore. Manual roots use `--input` with `{"endpoints":["http://127.0.0.1:11434"],"timeout_ms":5000}`.
+2. Inspect source/time, installation evidence, protocol responsiveness, model capability and actual local/hosted/unknown inference route. Package declarations, configured endpoints, loopback defaults, OLLAMA_HOST and known installation/PATH locations supply candidates. External hints are shown without automatic contact or adoption.
+3. Elect the endpoint/model/route and save with `query assistance-set` at the observed expected_revision. Local Ollama needs no fabricated API key. A custom authenticated endpoint can use an existing protected credential reference.
+4. Optionally run `insonic query assistance-test --input test.json --json`, where `test.json` contains the saved `settings_revision`. The synthetic test may load the model, sends fictional input without library context, and records the exact selection/revision tested.
+5. Use `query assist` or the matching Explore controls. Native requests recheck the elected model before inference and translate responses into the same strict proposal contract, query validation, aggregate query budget and read-only execution machinery.
+
+Metadata-only discovery uses a default five-second aggregate deadline, at most 16 endpoint candidates, 128 model summaries and eight detail probes per candidate (plus an explicitly selected model), with 1 MiB response caps. Unprobed details remain untested and truncated inventories are identified. Configured and synthetically tested states are independent from installed, running, reachable and advertised task compatibility. Cancellation stops the underlying operation.
+
+Local models receive a non-streaming native chat request with JSON output. Hosted models omit upstream's currently unsupported structured-output format; the returned proposal still undergoes identical strict parsing and validation. Redirects, oversized or malformed responses, missing models, authentication failures and busy providers return fixed redacted corrections without silent fallback. This adapter supports query assistance; discovery of text capability establishes no transcription, diarization or training readiness.

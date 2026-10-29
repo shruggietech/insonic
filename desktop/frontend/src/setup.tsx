@@ -108,7 +108,7 @@ export function Setup({ client, onWorkspace, onNavigate, onClose }: {
         onWorkspace(value);
         await load();
     });
-    const saveDraft = async (next: Stage, status = 'active', plan = draftPlan.current) => mutate('draft', { expected_revision: draft?.revision ?? 0, path, plan: plan ?? { schema_version: '1.0.2', kind: 'backend-plan', display_name: name }, stage: next === 'workspace' ? 'workspace' : 'backends', status, credential_backend: draftCredentialBackend.current });
+    const saveDraft = async (next: Stage, status = 'active', plan = draftPlan.current) => mutate('draft', { expected_revision: draft?.revision ?? 0, path, plan: plan ?? { schema_version: '1.0.3', kind: 'backend-plan', display_name: name }, stage: next === 'workspace' ? 'workspace' : 'backends', status, credential_backend: draftCredentialBackend.current });
     const saveJourney = async (next: Stage, mark?: 'completed' | 'skipped', status = 'active', source = journey) => {
         const current = source ?? await client.call('setup.show');
         const state = structuredClone(current.state);

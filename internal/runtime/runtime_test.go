@@ -126,7 +126,7 @@ func TestIdleExit(t *testing.T) {
 }
 
 func TestWireRejectsUnknownFieldsAndTrailingDocuments(t *testing.T) {
-	for _, data := range []string{`{"unknown":"fixture-secret"}`, `{"schema_version":"1.0.2"} {}`, `{`} {
+	for _, data := range []string{`{"unknown":"fixture-secret"}`, `{"schema_version":"1.0.3"} {}`, `{`} {
 		var req contracts.Request
 		if err := decode([]byte(data), &req); err == nil || strings.Contains(err.Error(), "fixture-secret") {
 			t.Fatal("invalid/untrusted wire accepted")

@@ -36,7 +36,7 @@ class WindowsSetupTests(unittest.TestCase):
             executable.write_bytes(b'MZ' + b'0' * 126)
             msi.write_bytes(b'exact complete cabinet MSI')
             identity = {'product_code': '{11111111-1111-5111-8111-111111111111}',
-                        'upgrade_code': setup.m.UPGRADE_CODE, 'version': '1.0.2',
+                        'upgrade_code': setup.m.UPGRADE_CODE, 'version': '1.0.3',
                         'sha256': setup.m.sha(msi), 'size_bytes': msi.stat().st_size}
             setup.append_payload(executable, msi, identity)
             actual, offset = setup.read_payload(executable)
@@ -57,7 +57,7 @@ class WindowsSetupTests(unittest.TestCase):
 
     def test_manifest_declares_as_invoker_and_preserves_approved_icon(self):
         import xml.etree.ElementTree as ET
-        manifest = ET.fromstring(setup.manifest('1.0.2'))
+        manifest = ET.fromstring(setup.manifest('1.0.3'))
         requested = manifest.find('.//{urn:schemas-microsoft-com:asm.v3}requestedExecutionLevel')
         self.assertEqual(requested.attrib, {'level': 'asInvoker', 'uiAccess': 'false'})
         icon = (ROOT / setup.m.ICON).read_bytes()
@@ -79,25 +79,25 @@ class WindowsSetupSourceBindingTests(unittest.TestCase):
     def setUpClass(cls):
         cls.temporary = tempfile.TemporaryDirectory(dir=ROOT / 'build')
         cls.root = Path(cls.temporary.name)
-        cls.prefix = setup.compile_prefix(cls.root / 'first/setup.exe', '1.0.2')
+        cls.prefix = setup.compile_prefix(cls.root / 'first/setup.exe', '1.0.3')
 
     @classmethod
     def tearDownClass(cls): cls.temporary.cleanup()
 
     def test_reproducible_code_and_resources_reject_forged_build_lane_receipts(self):
-        other = setup.compile_prefix(self.root / 'different output directory/setup.exe', '1.0.2')
+        other = setup.compile_prefix(self.root / 'different output directory/setup.exe', '1.0.3')
         self.assertEqual(other.read_bytes(), self.prefix.read_bytes())
-        target = self.root / 'insonic_1.0.2_windows_amd64_setup.exe'
+        target = self.root / 'insonic_1.0.3_windows_amd64_setup.exe'
         target.write_bytes(self.prefix.read_bytes())
         msi = self.root / 'controlled.msi'; msi.write_bytes(b'controlled exact MSI overlay')
         identity = {'product_code': '{11111111-1111-5111-8111-111111111111}',
-                    'upgrade_code': setup.m.UPGRADE_CODE, 'version': '1.0.2',
+                    'upgrade_code': setup.m.UPGRADE_CODE, 'version': '1.0.3',
                     'sha256': setup.m.sha(msi), 'size_bytes': msi.stat().st_size}
         setup.append_payload(target, msi, identity)
         receipt = {'kind': 'windows-setup-receipt', 'format': 'exe', 'artifact': target.name,
                    'scope': 'per-user', 'manifest': 'asInvoker', 'signing': dict(setup.m.UNSIGNED_SIGNING),
                    'embedded_msi': identity, 'qualification': {key: 'passed' for key in setup.QUALIFICATION_KEYS}}
-        installer = {'product_version': '1.0.2', 'product_code': identity['product_code'],
+        installer = {'product_version': '1.0.3', 'product_code': identity['product_code'],
                      'upgrade_code': identity['upgrade_code'], 'artifact_sha256': identity['sha256'],
                      'artifact_size_bytes': identity['size_bytes']}
         def verify():
@@ -116,7 +116,7 @@ class WindowsSetupSourceBindingTests(unittest.TestCase):
                 # Both the appended MSI and approved resources are still valid;
                 # the attacker also controls this lane's digest/qualification.
                 self.assertEqual(setup.read_payload(target)[0], identity)
-                setup.verify_resources(target, '1.0.2')
+                setup.verify_resources(target, '1.0.3')
                 with self.assertRaisesRegex(ValueError, 'independently rebuilt source'): verify()
 
     @unittest.skipUnless(os.name == 'nt', 'read-only Windows resource loader')
@@ -136,5 +136,5 @@ class WindowsSetupSourceBindingTests(unittest.TestCase):
             if not resource: raise C.WinError(C.get_last_error())
             size = dll.SizeofResource(module, resource)
             pointer = dll.LockResource(dll.LoadResource(module, resource))
-            self.assertEqual(C.string_at(pointer, size), setup.manifest('1.0.2'))
+            self.assertEqual(C.string_at(pointer, size), setup.manifest('1.0.3'))
         finally: dll.FreeLibrary(module)

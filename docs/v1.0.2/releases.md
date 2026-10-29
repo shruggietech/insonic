@@ -86,31 +86,6 @@ digest change requires the same reviewed refresh, never an unchecked fallback.
 
 ### Public release and documentation verification
 
-Original v1.0.1 package revalidation uses a reviewed immutable profile bound to
-source `136f5c0307a6fce00ba8240ef69c907a944cd8c0`, the original manifest and MSI
-digests, and every tracked file in the selected source tree. Select the complete
-original source checkout, not a directory containing only historical schemas.
-Current tooling reads historical scripts as source data without executing them.
-Candidate loading, published-candidate retrieval and public verification share
-this authority.
-
-The original profile validates all four product archives, the MSI, both
-documentation archives, original receipts and checksums. Applicable first-use,
-relocation, native/GUI, source, inventory, distribution, signing and installer
-lifecycle evidence remains required. The immutable MSI digest establishes its
-original tables and embedded payload bytes instead of reconstructing a later
-installer model. The original publication predates actual-terminal receipts and
-the coordinated setup EXE; those later fields are not required for this one
-exact publication. Modified manifests or receipts, changed source or asset
-bytes, and recomputed checksums cannot extend the exception. Current and unknown
-candidates retain their modern evidence requirements. Existing v1.0.0 records
-retain their separate historical platform contract.
-
-Revalidation does not rewrite tags or release assets, install historical
-packages, execute their binaries, or establish fresh runtime behavior. Source
-metadata for the pinned revision must be available in the trusted tooling
-checkout. No unavailable historical proof is replaced with current files.
-
 `verify-public --candidate DIRECTORY --source-root SOURCE_DIRECTORY --site
 https://insonic.io/ --pages-commit FULL_COMMIT [--output RECEIPT_JSON]` is a
 read-only `python scripts/release.py` command. Select the original complete
@@ -203,7 +178,3 @@ Each network/transport command has a 540-second owned-process aggregate deadline
 The live browser phase freshly fetches approved production resources, verifies their SHA256 against the qualified export and renders those bounded response bytes in an isolated headless Chromium profile. This is recorded as bounded live-response rendering. It captures 320, 390, 768 and 1440 CSS pixels in light/dark themes, measuring overflow, target size, clipping, overlap, download spacing and sampled text contrast. It has a 180-second budget, at most 200 resources and 64 MiB. It does not use personal browser profiles or launch owner-desktop windows. These checks do not certify every browser engine, assistive technology or complete accessibility conformance.
 
 A deployment receipt at pushed or deployed phase establishes a destination change even when later checks fail. Verification failure does not silently roll back or republish products. Inspect the exact retained Pages/source identities and repair the cause. Reuse the qualified archive and receipt for recovery through the maintainer CLI; rebuilding the same revision can change renderer build IDs and requires new qualification. The CLI phases are source, prepare, publish, verify and deployment in scripts/website.py; each accepts an explicit output receipt, while publish/verify accept the elected archive and website receipt. The existing CI workflow also has an optional read-only site_smoke dispatch for production content, package links and browser evidence without a publication.
-
-Current package qualification also requires the source/image-bound import recovery receipt produced by the maintained interruption campaign. The four immutable original v1.0.2 package receipts predate that field; exact canonical receipt hashes permit only its historical absence. Source, archive, inventory, signing, terminal, setup and installer checks retain their existing authority. A changed or unknown receipt cannot acquire that exemption by reporting an older version or recomputing local checksums. Historical release bytes and claims remain unchanged.
-
-Current and unknown package receipts additionally require the image/platform-bound storage-failure receipt for actual filesystem refusal and subsequent ordinary re-import. Its origin and unexecuted physical-exhaustion boundary are explicit. The same four exact immutable original v1.0.2 receipt hashes retain only their historical absence of newly introduced evidence; altered receipts, archive/inventory mismatches and omitted modern evidence still fail. The existing original v1.0.1 historical validation profile remains separate.

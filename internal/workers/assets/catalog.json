@@ -1,6 +1,6 @@
 {
   "kind": "worker-catalog",
-  "schema_version": "1.0.2",
+  "schema_version": "1.0.3",
   "profiles": [
     {
       "id": "recognition",

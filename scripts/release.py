@@ -207,13 +207,14 @@ def prepare(version, date, highlights, root=ROOT):
         paths = [base] if base.is_file() else list(base.rglob('*'))
         for path in paths:
             if not path.is_file() or path.suffix not in ('.go', '.mjs', '.tsx', '.ts', '.py', '.json'): continue
-            if path.relative_to(root).as_posix() in ('tests/check.test.mjs', 'tests/ci-scope.test.mjs', 'tests/brand-sync.test.mjs', 'tests/fixtures/media/manifest.json'): continue
-            if path.is_relative_to(root / 'tests/fixtures/cueson') or path.is_relative_to(root / 'internal/subtitles'): continue
+            # Frozen release evidence and its tests keep their recorded identities.
+            if path.relative_to(root).as_posix() in ('tests/check.test.mjs', 'tests/ci-scope.test.mjs', 'tests/brand-sync.test.mjs', 'tests/fixtures/media/manifest.json', 'tests/release_history_test.py', 'tests/recovery_release_history_test.py'): continue
+            if any(path.is_relative_to(root / frozen) for frozen in ('tests/fixtures/cueson', 'tests/fixtures/release-history', 'tests/fixtures/releases', 'internal/subtitles')): continue
             if 'schemas' in path.parts and path.parent.name.startswith('v'): continue
             if path.suffix == '.json' and not path.is_relative_to(root / 'tests'): continue
             text = path.read_text(encoding='utf-8')
             # Advance owned envelopes and asset/routes; independent upstream identities stay unchanged.
-            rewritten = text.replace('"' + old + '"', '"' + version + '"').replace("'" + old + "'", "'" + version + "'").replace(f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/', f'https://raw.githubusercontent.com/{REPOSITORY}/v{version}/schemas/v{version}/').replace('schemas/v' + old + '/', 'schemas/v' + version + '/').replace('docs/v' + old + '/', 'docs/v' + version + '/').replace('insonic_' + old + '_', 'insonic_' + version + '_').replace("'v" + old + "'", "'v" + version + "'").replace('"v' + old + '"', '"v' + version + '"').replace('"v' + old + '/', '"v' + version + '/').replace("'v" + old + '/', "'v" + version + '/')
+            rewritten = text.replace('"' + old + '"', '"' + version + '"').replace("'" + old + "'", "'" + version + "'").replace(f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/', f'https://raw.githubusercontent.com/{REPOSITORY}/v{version}/schemas/v{version}/').replace(f'https://github.com/{REPOSITORY}/releases/download/v{old}/', f'https://github.com/{REPOSITORY}/releases/download/v{version}/').replace('schemas/v' + old + '/', 'schemas/v' + version + '/').replace('docs/v' + old + '/', 'docs/v' + version + '/').replace('insonic_' + old + '_', 'insonic_' + version + '_').replace("'v" + old + "'", "'v" + version + "'").replace('"v' + old + '"', '"v' + version + '"').replace('"v' + old + '/', '"v' + version + '/').replace("'v" + old + '/', "'v" + version + '/')
             if rewritten != text: changes[path] = rewritten
     # Retained document authority survives the current envelope advancing.
     contract_path = root / 'internal/contracts/contracts.go'
@@ -272,7 +273,10 @@ def prepare(version, date, highlights, root=ROOT):
         scan = glossary_scan(docs) if version.split('.')[0] != old.split('.')[0] else None
         report = {'version': version, 'previous_version': old, 'glossary_scan': scan, 'published': False}
         write_json(root / 'build/release/version-preparation.json', report)
-        (root / 'build/release/highlights.md').write_text(highlights.strip() + f'\n\n[Full changelog](https://github.com/{REPOSITORY}/blob/v{version}/CHANGELOG.md)\n', encoding='utf-8', newline='\n')
+        link = f'[Full changelog](https://github.com/{REPOSITORY}/blob/v{version}/CHANGELOG.md)'
+        body = highlights.strip()
+        if not body.endswith(link): body += '\n\n' + link
+        (root / 'build/release/highlights.md').write_text(body + '\n', encoding='utf-8', newline='\n')
         return report
     except BaseException:
         for path, raw in saved.items(): path.write_bytes(raw)

@@ -159,12 +159,12 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertEqual(set(release.selected_release_platforms(ROOT, "1.0.0")), {"windows_amd64", "linux_amd64", "darwin_arm64"})
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            schema = json.loads((ROOT / "schemas/v1.0.2/release-candidate.schema.json").read_text())
+            schema = json.loads((ROOT / "schemas/v1.0.3/release-candidate.schema.json").read_text())
             schema["properties"]["packages"]["items"]["properties"]["platform"]["enum"].append("darwin_arm64")
-            path = root / "schemas/v1.0.2/release-candidate.schema.json"
+            path = root / "schemas/v1.0.3/release-candidate.schema.json"
             path.parent.mkdir(parents=True); path.write_text(json.dumps(schema))
             with self.assertRaisesRegex(ValueError, "platform contract"):
-                release.selected_release_platforms(root, "1.0.2")
+                release.selected_release_platforms(root, "1.0.3")
 
     def test_release_highlights_state_package_choices_and_real_signature_disposition(self):
         target = self.candidate(); api = GitHubFixture()
@@ -439,6 +439,27 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertIn('"schema_version": "' + VERSION + '"', ingestion)
         self.assertFalse(release.read_json(self.root / 'build/release/version-preparation.json')['published'])
 
+    def test_next_preparation_preserves_frozen_release_tests_and_plain_fixtures(self):
+        originals = {}
+        for name in ('tests/release_history_test.py', 'tests/recovery_release_history_test.py',
+                     'tests/fixtures/release-history/original.json', 'tests/fixtures/releases/original.json'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            raw = (json.dumps({'schema_version': VERSION, 'tag': 'v' + VERSION}) + '\n').encode() if name.endswith('.json') else ("recorded_version = '" + VERSION + "'\n").encode()
+            target.write_bytes(raw)
+            originals[target] = raw
+        release.prepare(NEXT_VERSION, '2026-10-10', 'Candidate update.', self.root)
+        for target, raw in originals.items():
+            with self.subTest(path=target.relative_to(self.root)):
+                self.assertEqual(target.read_bytes(), raw)
+
+    def test_next_preparation_keeps_exactly_one_complete_changelog_link(self):
+        link = f'[Full changelog](https://github.com/{release.REPOSITORY}/blob/v{NEXT_VERSION}/CHANGELOG.md)'
+        release.prepare(NEXT_VERSION, '2026-10-10', 'Candidate update.\n\n' + link, self.root)
+        highlights = (self.root / 'build/release/highlights.md').read_text(encoding='utf-8')
+        self.assertTrue(highlights.rstrip().endswith(link))
+        self.assertEqual(highlights.count(link), 1)
+
     def test_preparation_does_not_rewrite_generic_baseline_test_fixture(self):
         target = self.root / 'tests/check.test.mjs'
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -489,6 +510,17 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertTrue(common['description'].startswith(f'Shared logical types for the v{VERSION} contract.'))
         self.assertEqual((self.root / f'schemas/v{CURRENT}/common.schema.json').read_bytes(),
                          (ROOT / f'schemas/v{CURRENT}/common.schema.json').read_bytes())
+
+    def test_next_preparation_advances_owned_download_tag_without_rewriting_upstream(self):
+        target = self.root / 'tests/owned_download_fixture.py'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        owned = f'https://github.com/{release.REPOSITORY}/releases/download/v{VERSION}/insonic_{VERSION}_windows_amd64_cli.zip'
+        upstream = f'https://github.com/other/tool/releases/download/v{VERSION}/tool.zip'
+        target.write_text(f"download = '{owned}'\nupstream = '{upstream}'\n", encoding='utf-8')
+        release.prepare(NEXT_VERSION, '2026-10-10', 'Candidate update.', self.root)
+        text = target.read_text(encoding='utf-8')
+        self.assertIn(f'https://github.com/{release.REPOSITORY}/releases/download/v{NEXT_VERSION}/insonic_{NEXT_VERSION}_windows_amd64_cli.zip', text)
+        self.assertIn(upstream, text)
 
     def test_next_preparation_advances_owned_asset_tags_and_documentation_routes(self):
         target = self.root / 'tests/owned_release_fixture.py'
