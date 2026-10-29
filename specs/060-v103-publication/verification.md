@@ -1,44 +1,62 @@
 # Verification: S060 v1.0.3 acceptance and publication
 
-**Date**: 2026-10-29
-**Status**: Specified and planned; candidate, CPU, publication and final PR delivery are pending.
+**Date**: 2026-10-29.
+**Product status**: Published and independently verified.
+**PR boundary**: Evidence PR #199 remains open and unmerged. Its final administrative-head CI, permitted second Codex review and cleanup receipts govern owner handoff.
 
-The owner authorized publication from accepted main while reserving evidence-PR merge. The selected source is 72098446d435aa1e3d6d6726a9f07e04e0b227a6; exact-main CI 40912395099 passed and its independent audit is retained on PR #197. Issue #198, milestone 44 and Project 7 track this slice.
+## Delivered behavior and authority
 
-Spec Kit quality is 16/16; one publication-timing question was answered and integrated. The installed plan command directed one read-only research agent. Existing maintained tools support retained-byte publication; no product source/interface change is intended. All actual phase identities, failures, verification results and limits will be recorded here and in recoverable GitHub receipts.
+[Official v1.0.3](https://github.com/shruggietech/insonic/releases/tag/v1.0.3), release ID 428421586, was published at 21:47:53Z from reviewed main 72098446d435aa1e3d6d6726a9f07e04e0b227a6. Its immutable tag and all ten original official assets match the retained, accepted candidate. Software, documentation and master schema identify 1.0.3. Release highlights end with one exact-tag master changelog link.
 
-Blocking analysis: 11 functional requirements, four success criteria and eight acceptance scenarios map to 20 tasks with 100% requirement coverage, no unmapped task, no unresolved ambiguity and no critical/high finding. Built-in requirements quality passes 16/16; no custom reviewer-owned checklist or extension hook is present.
+The exact Windows CLI package passes all 19 original/fresh-restored real CPU stages and six frozen cases, including elected speaker-associated training/model retrieval, matching, original-path withdrawal, current integrity/provenance and owned runtime/temporary cleanup. Independent maintained validation and rehashing confirm all ten candidate files remain unchanged. The original manifest retains inference_qualification=not-executed as its package-time statement; the separate CPU receipt establishes runtime acceptance.
 
-Initial local validation passes root checks, 219 root tests, 18 site tests and public/offline export checks for 169 pages. A separate clean managed worktree selects the exact accepted main source and its release validator passes. Product source, versioned documentation/schema and the existing release changelog/highlights are unchanged.
+Matching original documentation is deployed at completed Pages commit f2316b6bec2f53a6d67afe6db92bf853999a22f0. Promotion verification and a separate verify-public pass agree: 1,229 files, 1,367 required URLs, six product download choices and ten official asset identities verify, including historical routes/schema authority. GitHub's latest stable release independently identifies v1.0.3.
 
-## Initial CI scheduling failure
+## Demonstrated evidence-PR repairs
 
-Run [40953107339 attempt 1](https://github.com/shruggietech/insonic/actions/runs/40953107339) tested head 9272bcb650d457d81a59aa94109091f190591777 and merge revision 55ca08bcec797b9577575e43733cdfddd732ff57. With every component unelected, readiness succeeded but required foundation/docs-build/docs inherited skipped preparation ancestors. Aggregate acceptance correctly failed. Terminal audit: 18 seconds preparation, 11 seconds qualification, 29 seconds combined; 2 successful jobs, 15 skips, 1 failure. Timing passed independently of the failed functional gate.
+With every product component unelected, readiness succeeded but mandatory jobs inherited skipped preparation ancestors. Explicit always() conditions now require successful direct dependencies, including ready=true for readiness consumers. Foundation, docs-build, docs and elected live-site checks execute; aggregate requirements and clocks remain unchanged.
 
-[Recoverable failed-run evidence](https://github.com/shruggietech/insonic/pull/199#issuecomment-6508229296) contains the original digest-verified gate ZIP, receipt, API run/attempt/jobs, bounded failure log excerpt and independent terminal timing. Comment readback, gzip decompression and retained JSON SHA-256 0452162cfe405403bae84c0991d2d88d5bd801a5e217354578bb1139e86e5198 matched before a repair push.
+The live-site verifier's old 1 MiB default rejected the immutable 7,481,000-byte v1.0.2 manifest. A failing-first regression reproduces that size. The bounded default is now 16 MiB; explicit smaller limits, oversized/incomplete-body rejection, approved redirects and body-free HEAD checks remain enforced. These CI/read-only-verifier changes are recorded under Unreleased in this evidence PR. Published product source remains the already-reviewed main revision above.
 
-The evidence-branch repair uses explicit always() conditions with successful direct dependencies for foundation/docs-build/docs and the elected read-only live-site job. Readiness outputs remain required; no aggregate requirement, component election or clock changes. Existing CI scope/acceptance checks passed 43/43 and root check passed. Hosted full PR CI and an explicit all-components-unelected maintenance dispatch must confirm execution before final handoff. Selected release source and frozen 1.0.3 documentation remain 72098446d435aa1e3d6d6726a9f07e04e0b227a6.
+## Chronological durable receipts
 
-## Read-only maintenance verifier failure
+| Terminal event | Authority and result | Recoverable receipt |
+| --- | --- | --- |
+| 20:54:39Z, initial PR CI 40953107339 | Head 9272bcb, tested 55ca08b; required foundation skipped, aggregate rejected. | [Original failed gate, API inventory and audit](https://github.com/shruggietech/insonic/pull/199#issuecomment-6508229296) |
+| 21:07:47Z, maintenance CI 40954286503 | Head 962de41; foundation/docs passed, live metadata bound failed; aggregate rejected. | [Original failed maintenance gate and audit](https://github.com/shruggietech/insonic/pull/199#issuecomment-6508385507) |
+| 21:12:30Z, candidate production 40953106419 | Clean selected main; all producers and ten original assets validate. | [Original artifact identities and producer timing](https://github.com/shruggietech/insonic/pull/199#issuecomment-6508894162) |
+| 21:19:01Z, full PR CI 40954296570 | Head 962de414fdaea81857be72d146fd889b66931ff8, tested eb4a208510962723d1219f9a25fdd22c898dbd3a; 30 success, 18 intentional skips. | [Accepted scheduling repair audit](https://github.com/shruggietech/insonic/pull/199#issuecomment-6508646257) |
+| 21:28:43Z, maintenance CI 40957351363 | Exact head ab5e35b499161577a496810216e9f5814b978c67; seven success, eleven intentional skips, live content/layouts accepted. | [Accepted unelected-component path](https://github.com/shruggietech/insonic/pull/199#issuecomment-6508793213) |
+| Before tag/publication, real CPU acceptance | Nineteen stages and six cases; exact original package/harness; all ten assets unchanged. | [Exact original CPU receipt and independent audit](https://github.com/shruggietech/insonic/pull/199#issuecomment-6508894162) |
+| 21:40:19Z, full PR CI 40957357598 | Head ab5e35b499161577a496810216e9f5814b978c67, tested e035f2ae695e40efc72a7af29aea6325ff662bb9; 30 success, 18 intentional skips. | [Accepted metadata-reader repair audit](https://github.com/shruggietech/insonic/pull/199#issuecomment-6509042955) |
+| Publication and completed public verification | Release 428421586 and exact Pages f2316b6; all original assets and live resources accepted. | [Complete recoverable publication and both public receipts](https://github.com/shruggietech/insonic/pull/199#issuecomment-6509314851) |
 
-Maintenance [run 40954286503 attempt 1](https://github.com/shruggietech/insonic/actions/runs/40954286503) proved successful foundation, docs-build and docs after all component elections were false. It failed in the read-only website job, then correctly failed aggregate acceptance: the unchanged v1.0.2 manifest is 7,481,000 bytes and exceeded the old 1 MiB HTTP metadata default. The live job produced no receipt before this failure.
+Every retained comment was independently read back. Gzip/Brotli decoding matched its retained JSON hash. Both original publication/public JSON receipts were reconstructed byte for byte after sharing their identical route inventory. No workflow expiry is used as the sole retention authority. Each successful full PR audit verifies seven original ZIP size/digests and six strict source/package contexts: 48 terminal, 18 recovery and six storage-failure cases. Unelected maintenance runs establish no native product qualification.
 
-[Recoverable failed maintenance audit](https://github.com/shruggietech/insonic/pull/199#issuecomment-6508385507) retains the original gate ZIP/API run/jobs and independent terminal timing: 19 seconds preparation + 307 seconds qualification = 326 seconds combined; 5 successful, 11 skipped, 2 failed jobs. Exact comment readback, gzip recovery and JSON SHA-256 c162ace006ee8e2af7fc4581646cf804890bb69372ff9430262af0baa0991aa1 matched before another push.
+## Timing and exact-byte identities
 
-The new reader regression failed first at the real manifest size, then all 13 website tests passed with a 16 MiB default. Negative checks retain explicit smaller bounds, reject oversized/incomplete bodies and avoid body reads for HEAD. A read-only live request with the repaired reader verified the original completed deployment and published metadata size/digests. Root check and 44 affected Node checks pass. The evidence-branch website repair is separate from the unchanged trusted-main release publication path.
+| Phase | Preparation seconds | Qualification seconds | Combined seconds |
+| --- | --- | --- | --- |
+| Candidate production | 10 | 1,091 | 1,101 |
+| Real CPU and fresh restore | 181.766 | 949.672 | 1,131.438 |
+| Accepted metadata-reader full CI | 256 | 767 | 1,023 |
+| Accepted maintenance path | 26 | 304 | 330 |
 
-The corrected read-only verifier also completed full content and download-link checks on the existing v1.0.2 deployment, reaching links-verified with all six product choices. This is a maintenance-verifier result for the existing deployment, separate from pending v1.0.3 public verification.
+The release workflow lacks CI's shared readiness aggregate. Its conservative qualification boundary is the first actual repository check; later parallel preparation stays inside qualification. CPU and CI retain their maintained independent phase boundaries, 1,800-second target, 3,600-second hard limit and terminal timestamp authority. Ordinary product deadlines and injected failure clocks are unchanged.
 
-## Complete publication candidate
+| Identity | SHA-256 |
+| --- | --- |
+| Accepted Windows CLI archive | 1a3de9b26915fa8e8f59a6544c35a21714129745e4788773ba8fcaa6b614af55 |
+| Accepted CLI executable | ee27fc320a2d7a7efafd0dd551ba2a6b29d0f65c8512e3009d265d69bb1ec201 |
+| Original CPU receipt | a9d3b4cc884a0109c75522c980076e79e32d872a8c8db1d46156aae53706a094 |
+| Recoverable publication JSON | 0c45d48750ef03c36162faccea1c1543578c09da21f1cf8d3b96d7066a55a1ea |
 
-Release-candidate [run 40953106419 attempt 1](https://github.com/shruggietech/insonic/actions/runs/40953106419) succeeded from exact reviewed main 72098446d435aa1e3d6d6726a9f07e04e0b227a6. Original candidate artifact 12933866569 is 865,406,301 bytes, SHA-256 5f89bbd7752bce5268837ae994859e181d729d3d3c6b6b87a59703d4f1530878. Original Windows CLI receipt artifact 12932917672 is 145,094 bytes, SHA-256 5db4040c6e2641b8cdefc2db758bf1b10b6a2eb5a14c9ee03487b904b871b23e. Both API size/digests and confined regular-file extraction verify.
+## Validation and remaining dimensions
 
-Maintained trusted-main load_candidate validates all ten original official files, four package variants, applicable MSI/setup, inventories, source/signing/terminal/recovery/storage receipts and both release-target documentation exports. The exact package-cli-receipt.json from its original bundle equals the manifest package object. Its 7,575,448-byte manifest remains unchanged, including package-time inference_qualification=not-executed; real CPU proof is separate.
+Local root check and 219 Node tests pass. All 13 website Python tests pass after the demonstrated regression failed first; 44 affected Node acceptance/scope/website checks pass. Site tests pass 18/18, with public/offline export validation of 169 pages. Hosted full qualification and the independent publication/runtime receipts above supply their separate authority. Final local integrity checks and final administrative-head external CI/review receipts are retained on the PR before handoff.
 
-Conservative release-wide timing begins qualification at the first repository check (20:54:19Z), retaining later parallel preparation inside qualification: 10 seconds preparation + 1,091 seconds qualification = 1,101 seconds combined, terminal 21:12:30Z. Original assets/receipts remain outside workflow expiry through CPU acceptance and verified publication. The clean local verifier required an empty owned build directory for temporary source-code comparison; no official asset or selected source changed.
+Spec Kit maps eleven functional requirements, four success criteria, eight acceptance scenarios, eleven design/repair decisions and five constitution principles. Published product implementation inherits the reviewed S059 main convergence; S060 operational convergence assesses actual acceptance/publication receipts. Final convergence and delivery receipts are recorded on the PR without changing released bytes.
 
-## Accepted CI scheduling repair
+Codex automatic round one completed at 9272bcb650d457d81a59aa94109091f190591777 with no findings. At most one manual second round is permitted; its actual source and resolved findings belong in the final PR receipt. Security review status is unreported. No third round or PR merge is authorized.
 
-Full PR [run 40954296570 attempt 1](https://github.com/shruggietech/insonic/actions/runs/40954296570) accepts head 962de414fdaea81857be72d146fd889b66931ff8 through test revision eb4a208510962723d1219f9a25fdd22c898dbd3a: 30 successful jobs, 18 intentional skips. Independent needs evaluation and terminal timing pass: 280 seconds preparation + 715 seconds qualification = 995 seconds combined.
-
-[Durable accepted audit](https://github.com/shruggietech/insonic/pull/199#issuecomment-6508646257) verifies seven original ZIP size/digests and six strict source/package contexts (48 terminal, 18 import-recovery, six storage-failure cases). Exact comment readback and decompression match 101,519 JSON bytes, SHA-256 9eb68a27c26e76b27d8fe374426df274efb084120d8b9b6d287f95e1d9691118. This completed run was retained before pushing the demonstrated website-reader repair. Final applicable CI must revalidate the final evidence source.
+Broader acoustic quality, GPU/OCR, authenticated external providers, owner-installed behavior and physical exhaustion remain unverified under #147. No owner libraries or model inputs changed, no local GUI acceptance ran, and Downloads was not used. Owned candidate/scratch/source-checkout cleanup follows verified external retention and final delivery; the primary evidence branch remains open for owner merge.

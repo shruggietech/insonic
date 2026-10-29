@@ -2,7 +2,7 @@
 
 **Feature Branch**: `codex/060-v103-publication`
 **Created**: 2026-10-29
-**Status**: Specified
+**Status**: Implemented; exact-main release/publication verified; final PR delivery gates tracked on GitHub
 **Input**: Owner-authorized S060: execute the recommended patch acceptance/publication under Spec Kit autopilot, automatically push/open its official evidence PR, complete CI and at most two Codex rounds, and reserve that PR merge for the owner. The owner explicitly authorizes publication from accepted main while the evidence PR remains open.
 
 ## User Scenarios & Testing
