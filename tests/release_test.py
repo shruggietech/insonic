@@ -604,6 +604,23 @@ class ReleaseDeliveryTests(unittest.TestCase):
             self.assertFalse((self.root / 'candidate').exists())
         release.write_json(self.receipts[0], original)
 
+
+    def test_current_package_requires_truthful_storage_failure_qualification(self):
+        original = release.read_json(self.receipts[0])
+        for mutation in ('missing','wrong-image','physical-exhaustion','injected','cleanup'):
+            receipt=copy.deepcopy(original)
+            proof=receipt['cli_contract']['storage_contracts']
+            if mutation=='missing':receipt['cli_contract'].pop('storage_contracts')
+            elif mutation=='wrong-image':proof['executable_sha256']='f'*64
+            elif mutation=='physical-exhaustion':proof['physical_exhaustion']=True
+            elif mutation=='injected':proof['origin']='injected-ENOSPC'
+            else:proof['cleanup']=False
+            release.write_json(self.receipts[0],receipt)
+            with self.subTest(mutation=mutation),self.assertRaisesRegex(ValueError,'[Ss]torage'):
+                self.candidate()
+            self.assertFalse((self.root/'candidate').exists())
+        release.write_json(self.receipts[0],original)
+
     def test_msi_missing_duplicate_format_source_payload_and_qualification_rejected(self):
         msi_path = self.receipts[-1]; original = release.read_json(msi_path)
         for receipts in (self.receipts[:-1], self.receipts + [msi_path]):

@@ -3,6 +3,7 @@ package artifact
 
 import (
 	"context"
+	"errors"
 	"github.com/gofrs/flock"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
@@ -92,6 +93,10 @@ func (s *Filesystem) OpenRange(ctx context.Context, p catalog.Publication, offse
 	return sectionCloser{contextReader{ctx, io.NewSectionReader(f, offset, length)}, f}, nil
 }
 func (s *Filesystem) PublishImmutable(ctx context.Context, p catalog.Publication, source *os.File, save func(catalog.Publication) (catalog.Publication, error)) (catalog.Publication, error) {
+	return s.publishImmutable(ctx, p, source, s.root.Remove)
+}
+
+func (s *Filesystem) publishImmutable(ctx context.Context, p catalog.Publication, source *os.File, discard func(string) error) (published catalog.Publication, returned error) {
 	if !validKey(p.Key) {
 		return p, contracts.Fail("invalid_request")
 	}
@@ -113,7 +118,11 @@ func (s *Filesystem) PublishImmutable(ctx context.Context, p catalog.Publication
 	if e != nil {
 		return p, redact(ctx, e)
 	}
-	defer s.root.Remove(stage)
+	defer func() {
+		if err := discard(stage); err != nil && !os.IsNotExist(err) {
+			returned = redact(ctx, errors.Join(returned, err))
+		}
+	}()
 	if _, e = source.Seek(0, 0); e == nil {
 		_, e = copyContext(ctx, f, source)
 	}
