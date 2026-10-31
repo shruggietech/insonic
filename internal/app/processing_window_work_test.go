@@ -11,9 +11,29 @@ import (
 
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/workspace"
 )
+
+func TestWindowElectionRejectsUnmatchedExplicitAudioSelection(t *testing.T) {
+	zero, video, missing, selected, channel := 0, 1, 9, 2, 1
+	facts, _ := json.Marshal(library.Facts{Streams: []library.Stream{{Index: zero, Kind: "audio"}, {Index: video, Kind: "video"}, {Index: selected, Kind: "audio"}}})
+	entry := catalog.LibraryEntry{Facts: facts}
+	for _, index := range []*int{&video, &missing} {
+		_, err := electWindowOptions(RecordingOptions{Windows: &processing.WindowOptions{}, Audio: processing.AudioOptions{StreamIndex: index, Channel: &channel}}, entry)
+		if err == nil || contracts.SafeError(err).Code != "unsupported_audio" {
+			t.Fatalf("unmatched stream defaulted: %v", err)
+		}
+	}
+	got, err := electWindowOptions(RecordingOptions{Windows: &processing.WindowOptions{}, Audio: processing.AudioOptions{StreamIndex: &selected, Channel: &channel}}, entry)
+	if err != nil || len(got.Windows.Tracks) != 1 || got.Windows.Tracks[0].StreamIndex != selected || got.Windows.Tracks[0].Channel == nil || *got.Windows.Tracks[0].Channel != channel {
+		t.Fatalf("explicit source lost: %+v %v", got, err)
+	}
+	if _, err = electWindowOptions(RecordingOptions{Windows: &processing.WindowOptions{}, Audio: processing.AudioOptions{Channel: &channel}}, catalog.LibraryEntry{Facts: json.RawMessage(`{"streams":[]}`)}); err == nil {
+		t.Fatal("channel election defaulted without an audio stream")
+	}
+}
 
 func TestWindowElectionPreservesShortRequestsAndZeroContext(t *testing.T) {
 	short, long := int64(10_000_000), int64(60_000_000)

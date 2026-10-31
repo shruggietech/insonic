@@ -12,9 +12,10 @@ import (
 // origin. Their final endpoint is not the physical elapsed container duration.
 func windowSourceDurationMS(raw json.RawMessage, sourceDigest string) (*int64, error) {
 	var envelope struct {
-		Policy       string `json:"policy"`
-		SourceDigest string `json:"source_digest"`
-		Tracks       []struct {
+		Policy           string `json:"policy"`
+		SourceDigest     string `json:"source_digest"`
+		SuppliedDocument bool   `json:"supplied_document,omitempty"`
+		Tracks           []struct {
 			StreamIndex       int    `json:"stream_index"`
 			Channel           *int   `json:"channel"`
 			SourceSampleRate  int64  `json:"source_sample_rate"`

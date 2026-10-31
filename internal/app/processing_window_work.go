@@ -50,6 +50,9 @@ func electWindowOptions(o RecordingOptions, entry catalog.LibraryEntry) (Recordi
 				}
 			}
 		}
+		if len(normalized.Tracks) == 0 && (o.Audio.StreamIndex != nil || o.Audio.Channel != nil) {
+			return o, contracts.Fail("unsupported_audio")
+		}
 	}
 	o.Windows = &normalized
 	return o, nil
@@ -197,6 +200,7 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 		}
 	}
 	reuseTranscript := mode == "reuse" || mode == "supplied" && entry.SubtitlePublicationID == nil
+	suppliedTimeline := mode == "supplied" && entry.SubtitlePublicationID != nil || reuseTranscript && suppliedWindowTranscript(previous)
 	execution, e := a.recordingExecutorWithTools(input.Tools)
 	if e != nil {
 		return nil, e
@@ -214,7 +218,12 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 		if previous.State != "ready" {
 			return nil, contracts.Fail("not_found")
 		}
-		if e = compatibleWindowReuse(previous, windows.Plan); e != nil {
+		if input.Options.Diarization == "reuse" {
+			e = compatibleWindowReuse(previous, windows.Plan)
+		} else {
+			e = compatibleWindowTranscriptReuse(previous, windows.Plan)
+		}
+		if e != nil {
 			return nil, e
 		}
 	}
@@ -345,7 +354,7 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 		} `json:"cue_sources"`
 	}
 	json.Unmarshal(previous.Provenance, &prior)
-	if reuseTranscript {
+	if reuseTranscript && !suppliedTimeline {
 		provenance["cue_sources"] = prior.CueSources
 		for _, c := range prior.CueSources {
 			cueTracks[c.CueID] = c.Source.TrackOrdinal
@@ -439,7 +448,12 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 			if err != nil {
 				return nil, err
 			}
-			assembled, err := assembleWindowDocument(ctx, execution.Subtitles, doc, duration, turns, participation, cueTracks, voiceTracks)
+			var assembled subtitles.Assembly
+			if suppliedTimeline {
+				assembled, err = assembleSuppliedWindowDocument(ctx, execution.Subtitles, doc, turns, participation, cueTracks, voiceTracks)
+			} else {
+				assembled, err = assembleWindowDocument(ctx, execution.Subtitles, doc, duration, turns, participation, cueTracks, voiceTracks)
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -472,7 +486,7 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 		provenance["pipeline_election"] = input.Election
 	}
 	provenance["model_elections"] = modelSelectionSummaries(input.ModelSelections)
-	sourceMap, _ := json.Marshal(windowSourceMap{Policy: "windowed-canonical-source-clock-v1", SourceDigest: entry.Digest, Tracks: windows.Plan.Tracks})
+	sourceMap, _ := json.Marshal(windowSourceMap{Policy: "windowed-canonical-source-clock-v1", SourceDigest: entry.Digest, Tracks: windows.Plan.Tracks, SuppliedDocument: suppliedTimeline})
 	prov, _ := json.Marshal(provenance)
 	record := catalog.Recording{ID: entry.ID, SourceRevision: entry.Revision, SourceDigest: entry.Digest, State: state, Document: final, DocumentDigest: digest, SourceMap: sourceMap, Provenance: prov, Diagnostics: flattenDiagnostics(diagnostics)}
 	current, e := a.Catalog.CommitRecording(ctx, claim, input.Expected, record)

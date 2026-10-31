@@ -19,7 +19,7 @@ func (f fixtureSubtitles) AssembleScoped(_ context.Context, raw []byte, duration
 func TestWindowReuseRequiresSameNativeSourceSelection(t *testing.T) {
 	track := processing.TrackPlan{StreamIndex: 2, SourceSampleRate: 48000, SourceSampleCount: 480000, StartNumerator: "1", StartDenominator: "3", EndSample: 480000}
 	plan := processing.ProcessingPlan{Identity: processing.PlanIdentity{SourceDigest: strings.Repeat("a", 64)}, Tracks: []processing.TrackPlan{track}}
-	raw, _ := json.Marshal(windowSourceMap{"windowed-canonical-source-clock-v1", plan.Identity.SourceDigest, plan.Tracks})
+	raw, _ := json.Marshal(windowSourceMap{Policy: "windowed-canonical-source-clock-v1", SourceDigest: plan.Identity.SourceDigest, Tracks: plan.Tracks})
 	previous := catalog.Recording{SourceMap: raw}
 	if err := compatibleWindowReuse(previous, plan); err != nil {
 		t.Fatal(err)

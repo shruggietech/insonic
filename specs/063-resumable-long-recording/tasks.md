@@ -10,7 +10,7 @@
 
 ## Phase 2: Shared foundations
 
-- [x] T004 Freeze public window/plan/result and catalog checkpoint interfaces in internal/processing/windows.go and internal/catalog/processing_windows.go; bind all identity-bearing inputs (FR-001, FR-003).
+- [x] T004 Freeze public window/plan/result and catalog checkpoint interfaces in internal/processing/windows.go and internal/catalog/processing_window_work.go; bind all identity-bearing inputs (FR-001, FR-003).
 - [x] T005 [P] Add hidden supervised bounded stream-output tests and implementation in internal/process/stream.go and internal/process/stream_test.go (FR-004, FR-005, FR-013).
 - [x] T006 [P] Add typed plan/checkpoint domain migration, schema and admission/proof validation in internal/catalog/, schemas/v1.0.3/catalog-snapshot.schema.json (FR-008, FR-009, FR-010).
 
@@ -22,24 +22,24 @@
 - [x] T010 [P] [US1] Add native PCM comparisons and tenfold-duration resource-bound tests in internal/processing/windows_native_test.go (FR-004, FR-005, SC-002).
 - [x] T011 [P] [US1] Add mapped-relative segment/word contracts, validation and local/hosted production in internal/processing/results.go, internal/pipeline/http.go, scripts/processing-worker.py and associated tests (FR-006).
 - [x] T012 [US1] Add repeated phrase, pause, multilingual, track overlap, ambiguity and changed-output tests before deterministic reconciliation in internal/processing/stitching_test.go and stitching.go (FR-006, FR-007, SC-003).
-- [x] T013 [US1] Connect shared app window orchestration and final cue provenance/current acceptance in internal/app/processing_windows.go with integration tests (FR-007, FR-014).
+- [x] T013 [US1] Connect shared app window orchestration and final cue provenance/current acceptance in internal/app/processing_window_work.go with integration tests (FR-007, FR-014).
 - [x] T014 [US1] Normalize automatic long-source selection and explicit short-source windows through runtime, saved pipeline, CLI help and JSON schemas in internal/app/election.go, internal/pipeline/definition.go, cmd/insonic/command_guidance.json, schemas/v1.0.3/ (FR-002, FR-014).
 
 ## Phase 4: US2 durable resume
 
-- [x] T015 [P] [US2] Add stale owner, source/document changes, forged snapshot/proof, cross-plan substitution and partial publication tests in internal/catalog/processing_windows_test.go (FR-003, FR-008, FR-009, SC-004).
-- [x] T016 [US2] Implement fenced plan/checkpoint commits, digest/size/kind verification, stable logical IDs and generation-qualified publications in internal/catalog/processing_windows.go (FR-008, FR-009).
-- [x] T017 [US2] Implement app publication/rehash/resume and compact progress with fault-boundary tests in internal/app/processing_windows.go and processing_windows_test.go (FR-008, FR-009, SC-004).
+- [x] T015 [P] [US2] Add stale owner, source/document changes, forged snapshot/proof, cross-plan substitution and partial publication tests in internal/catalog/processing_window_work_test.go (FR-003, FR-008, FR-009, SC-004).
+- [x] T016 [US2] Implement fenced plan/checkpoint commits, digest/size/kind verification, stable logical IDs and generation-qualified publications in internal/catalog/processing_window_work.go (FR-008, FR-009).
+- [x] T017 [US2] Implement app publication/rehash/resume and compact progress with fault-boundary tests in internal/app/processing_window_work.go and processing_window_work_test.go (FR-008, FR-009, SC-004).
 - [x] T018 [US2] Implement final acceptance/replacement retirement and artifact reference/cleanup rules in internal/catalog/processing_windows_state.go, exploration_outbox.go and library_state.go (FR-005, FR-010).
-- [x] T019 [US2] Add backup selection, snapshot integrity and portable restore coverage in internal/catalog/backup.go and internal/backup/processing_windows_test.go, preserving ready checkpoint bytes across catalog/storage backends (FR-010, FR-013).
-- [x] T020 [US2] Prove cancellation retains only verified windows and explicit retry skips them in internal/app/processing_windows_test.go (FR-009, FR-010, SC-004).
+- [x] T019 [US2] Add backup selection, snapshot integrity and portable restore coverage in internal/catalog/backup.go and internal/catalog/processing_window_work_test.go, preserving ready checkpoint bytes across catalog/storage backends (FR-010, FR-013).
+- [x] T020 [US2] Prove cancellation retains only verified windows and explicit retry skips them in internal/app/processing_window_work_test.go (FR-009, FR-010, SC-004).
 
 ## Phase 5: US3 finite resource recovery
 
 - [x] T021 [P] [US3] Add CUDA OOM/batch/CPU/deadline/route preservation tests in internal/processing/device_policy_test.go and scripts/test-processing-worker.py (FR-011, FR-012, SC-005).
 - [x] T022 [US3] Implement at most one compatible pyannote batch reduction before allowed CPU fallback in internal/processing/device_policy.go, scripts/processing-worker.py (FR-011, FR-012).
 - [x] T023 [US3] Extend actual-device attempt receipts/validators and runtime schemas consistently in internal/contracts/device_attempt.go and schemas/v1.0.3/runtime-response.schema.json; preserve historical forms (FR-012, FR-014).
-- [x] T024 [US3] Prove checkpoint reuse through compatible device recovery and finite active execution in internal/app/processing_windows_test.go (FR-003, FR-011, SC-005).
+- [x] T024 [US3] Prove checkpoint reuse through compatible device recovery and finite active execution in internal/app/processing_window_work_test.go (FR-003, FR-011, SC-005).
 
 ## Phase 6: Convergence and delivery
 
@@ -47,7 +47,7 @@
 - [x] T026 Run npm run check, npm test, affected Go test/vet, Python worker tests, frontend/site checks; record scoped evidence in specs/063-resumable-long-recording/verification.md (SC-006).
 - [x] T027 Run elected native media and applicable alternate-backend/backup fixtures; separately retain elected actual CPU/NVIDIA engine evidence or state exact unverified limits in specs/063-resumable-long-recording/verification.md (SC-002, SC-006).
 - [x] T028 Converge requirements, implementation and task evidence; check encoding, formatting and git diff; commit on codex/063-resumable-long-recording (all requirements).
-- [ ] T029 Push and open official PR, attach it, map #212-#216 to In review/S063, and retain CI receipts under .local/s063/ (FR-014).
+- [x] T029 Push and open official PR, attach it, map #212-#216 to In review/S063, and retain CI receipts under .local/s063/ (FR-014).
 - [ ] T030 Address every review comment, use at most two rounds, verify final-head CI and unresolved threads, then hand off for owner merge without merging (SC-006).
 
 ## Dependencies and parallel execution

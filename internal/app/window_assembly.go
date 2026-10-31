@@ -13,9 +13,10 @@ import (
 )
 
 type windowSourceMap struct {
-	Policy       string                 `json:"policy"`
-	SourceDigest string                 `json:"source_digest"`
-	Tracks       []processing.TrackPlan `json:"tracks"`
+	SuppliedDocument bool                   `json:"supplied_document,omitempty"`
+	Policy           string                 `json:"policy"`
+	SourceDigest     string                 `json:"source_digest"`
+	Tracks           []processing.TrackPlan `json:"tracks"`
 }
 type windowVoiceSource struct {
 	LocalSpeakerID string `json:"local_speaker_id"`
@@ -70,4 +71,57 @@ func assembleWindowDocument(ctx context.Context, engine subtitleEngine, doc []by
 		return scoped.AssembleScoped(ctx, doc, duration, turns, participation, cueTracks, voiceTracks)
 	}
 	return subtitles.Assembly{}, contracts.Fail("unsupported_capability")
+}
+
+// suppliedWindowTranscript identifies text whose native timing was admitted
+// independently of an acoustic track selection. It does not authorize reuse of
+// diarization observations from a different source or track.
+func suppliedWindowTranscript(previous catalog.Recording) bool {
+	var source struct {
+		Policy           string `json:"policy"`
+		SuppliedDocument bool   `json:"supplied_document"`
+	}
+	return json.Unmarshal(previous.SourceMap, &source) == nil && (source.Policy == "supplied-document-source-clock;no-retiming" || source.SuppliedDocument)
+}
+func compatibleWindowTranscriptReuse(previous catalog.Recording, plan processing.ProcessingPlan) error {
+	if suppliedWindowTranscript(previous) {
+		if previous.SourceDigest != plan.Identity.SourceDigest {
+			return contracts.Condition("conflict", "source_map_incompatible")
+		}
+		return nil
+	}
+	return compatibleWindowReuse(previous, plan)
+}
+
+// Preserve the native supplied-document media clock, including its absence.
+// Acoustic turns are already validated against their selected source windows.
+func assembleSuppliedWindowDocument(ctx context.Context, engine subtitleEngine, doc []byte, turns []subtitles.Turn, participation []subtitles.Participation, cueTracks, voiceTracks map[string]int) (subtitles.Assembly, error) {
+	result, err := assembleWindowDocument(ctx, engine, doc, nil, turns, participation, cueTracks, voiceTracks)
+	if err != nil {
+		return result, err
+	}
+	var before, after map[string]json.RawMessage
+	if json.Unmarshal(doc, &before) != nil || json.Unmarshal(result.Document, &after) != nil {
+		return subtitles.Assembly{}, contracts.Fail("invalid_request")
+	}
+	if timing, ok := before["media_timing"]; ok {
+		after["media_timing"] = timing
+	} else {
+		delete(after, "media_timing")
+	}
+	result.Document, err = json.Marshal(after)
+	if err != nil {
+		return subtitles.Assembly{}, contracts.Fail("invalid_request")
+	}
+	if validator, ok := engine.(interface {
+		Validate(context.Context, []byte) error
+	}); ok {
+		err = validator.Validate(ctx, result.Document)
+	} else {
+		err = subtitles.ValidateDocument(result.Document)
+	}
+	if err != nil {
+		return subtitles.Assembly{}, err
+	}
+	return result, nil
 }
