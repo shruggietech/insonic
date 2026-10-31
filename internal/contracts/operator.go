@@ -85,6 +85,7 @@ var operatorReasons = map[string]string{
 	"source_map_incompatible":             "The retained source mapping does not match the selected stream, channels, sample window or processing policy. Inspect the recording and elect compatible reuse or new diarization.",
 	"backup_checksum":                     "The backup bytes do not match their recorded checksum. Restore an intact backup or reacquire the damaged object.",
 	"backup_size":                         "The backup object size does not match its recorded size. Select a complete intact backup.",
+	"backup_cleanup":                      "Backup or restore also could not remove owned temporary output. Resolve the reported primary cause, inspect the operation destination for residual staging or progress, and retry the identical request.",
 	"backup_identity":                     "The backup object identity does not match its inventory. Select an intact backup for the current restore plan.",
 	"model_not_acquired":                  "The model is registered but its bytes are not acquired. Use models acquire with the original manifest file, or inspect/retry its existing acquisition work.",
 	"model_damaged":                       "Verified model bytes do not match their manifest. Reacquire the exact pinned bundle before using it.",

@@ -109,7 +109,7 @@ func redact(ctx context.Context, e error) error {
 	if errors.As(e, &original) {
 		return original
 	}
-	if capacityFailure(e) {
+	if contracts.CapacityFailure(e) {
 		return contracts.Fail("insufficient_space")
 	}
 	return contracts.Fail("unavailable")

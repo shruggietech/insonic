@@ -205,6 +205,20 @@
       "expectations": [
         "A failed import admits no incomplete recording; clearing the exact obstruction permits one ordinary re-import, preserves source/sentinel/provenance and requires natural runtime and owned fixture cleanup. No physical volume exhaustion claim."
       ]
+    },
+    {
+      "id": "backup-recovery",
+      "owners": [
+        {
+          "path": "scripts/cli_backup_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Owned accepted immutable bytes, source withdrawal and confined backup-parent/publication/progress obstructions exercise actual CLI failures separately from native error injection.",
+      "expectations": [
+        "Incomplete authority is refused; exact retries verify unchanged bundle and restored bytes, retain identities and clean owned fixtures without a physical exhaustion claim."
+      ]
     }
   ],
   "scenarios": [
@@ -346,6 +360,16 @@
       "fixtures": [
         "storage-failure",
         "pcm-subtitles"
+      ]
+    },
+    {
+      "id": "backup",
+      "owner": {
+        "path": "scripts/cli_backup_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "backup-recovery"
       ]
     }
   ]

@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -65,10 +66,14 @@ func fail(e error) error {
 	if e == nil {
 		return nil
 	}
-	if _, ok := e.(*contracts.Error); ok {
-		return e
+	var original *contracts.Error
+	if errors.As(e, &original) {
+		return &ioFailure{contracts.SafeError(original), e}
 	}
-	return contracts.Fail("unavailable")
+	if contracts.CapacityFailure(e) {
+		return &ioFailure{contracts.Fail("insufficient_space"), e}
+	}
+	return &ioFailure{contracts.Fail("unavailable"), e}
 }
 
 func strict(raw []byte, v any) error {
@@ -226,26 +231,15 @@ func transfer(ctx context.Context, store *catalog.Store, owner string) (context.
 }
 
 func writePrivate(root *os.Root, key string, raw []byte) error {
-	f, e := root.OpenFile(key, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
-	if e != nil {
-		return contracts.Fail("conflict")
-	}
-	_, e = f.Write(raw)
-	if e == nil {
-		e = f.Sync()
-	}
-	ce := f.Close()
-	if e == nil {
-		e = ce
-	}
-	if e != nil {
-		root.Remove(key)
-	}
-	return fail(e)
+	return writePrivateWithIO(realFiles(), root, key, raw)
 }
 
 func Create(ctx context.Context, w *workspace.Workspace, store *catalog.Store, provider contracts.SecretProvider, o CreateOptions) (Manifest, error) {
-	var m Manifest
+	return createWithIO(ctx, w, store, provider, o, realFiles())
+}
+
+func createWithIO(ctx context.Context, w *workspace.Workspace, store *catalog.Store, provider contracts.SecretProvider, o CreateOptions, ops fileOperations) (m Manifest, result error) {
+	defer func() { result = fail(result) }()
 	if o.Mode == "" {
 		o.Mode = "self-contained"
 	}
@@ -256,6 +250,9 @@ func Create(ctx context.Context, w *workspace.Workspace, store *catalog.Store, p
 	if _, e := os.Lstat(o.Directory); e == nil {
 		old, e := Inspect(ctx, o.Directory)
 		if e == nil && old.ID == o.ID && old.WorkspaceID == w.Config.WorkspaceID && old.Mode == o.Mode {
+			if e = bundleDurability(ops, o.Directory); e != nil {
+				return m, e
+			}
 			if old.Mode == "self-contained" {
 				if e = Release(ctx, store, o.Directory); e != nil {
 					return m, e
@@ -264,6 +261,8 @@ func Create(ctx context.Context, w *workspace.Workspace, store *catalog.Store, p
 			return old, nil
 		}
 		return m, contracts.Fail("conflict")
+	} else if !os.IsNotExist(e) {
+		return m, fail(e)
 	}
 	ctx, finish, e := transfer(ctx, store, contracts.ID())
 	if e != nil {
@@ -354,7 +353,7 @@ func Create(ctx context.Context, w *workspace.Workspace, store *catalog.Store, p
 	if e != nil {
 		return m, fail(e)
 	}
-	defer os.RemoveAll(stage)
+	defer func() { result = cleanupError(result, ops.removeAll(stage)) }()
 	if e = workspace.SecureDirectory(stage, true); e != nil {
 		return m, e
 	}
@@ -400,18 +399,20 @@ func Create(ctx context.Context, w *workspace.Workspace, store *catalog.Store, p
 		if e != nil {
 			return m, e
 		}
-		f, e := root.OpenFile(object.File, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+		f, e := ops.openFile(root, object.File)
 		if e != nil {
 			body.Close()
 			return m, fail(e)
 		}
-		e = hashStream(ctx, f, body, p.Size, p.Digest)
+		e = hashStream(ctx, outputWriter{ops, f}, body, p.Size, p.Digest)
 		body.Close()
 		if e == nil {
-			e = f.Sync()
+			e = ops.syncFile(f)
 		}
-		ce := f.Close()
-		if e == nil {
+		ce := ops.closeFile(f)
+		if e != nil && ce != nil {
+			e = cleanupError(e, ce)
+		} else if e == nil {
 			e = ce
 		}
 		if e != nil {
@@ -425,7 +426,7 @@ func Create(ctx context.Context, w *workspace.Workspace, store *catalog.Store, p
 	}
 	h := sha256.Sum256(raw)
 	m.CatalogSHA256 = hex.EncodeToString(h[:])
-	if e = writePrivate(root, "catalog.json", raw); e != nil {
+	if e = writePrivateWithIO(ops, root, "catalog.json", raw); e != nil {
 		return m, e
 	}
 	m.Digest, e = manifestDigest(m)
@@ -436,7 +437,7 @@ func Create(ctx context.Context, w *workspace.Workspace, store *catalog.Store, p
 	if e != nil {
 		return m, contracts.Fail("invalid_request")
 	}
-	if e = writePrivate(root, "manifest.json", raw); e != nil {
+	if e = writePrivateWithIO(ops, root, "manifest.json", raw); e != nil {
 		return m, e
 	}
 	// Test the staged completed representation before its public directory exists.
@@ -450,16 +451,19 @@ func Create(ctx context.Context, w *workspace.Workspace, store *catalog.Store, p
 		return m, contracts.Fail("cancelled")
 	}
 	root.Close()
-	if e = syncDirectory(filepath.Join(stage, "objects")); e != nil {
+	if e = ops.syncDir(filepath.Join(stage, "objects")); e != nil {
 		return m, fail(e)
 	}
-	if e = syncDirectory(stage); e != nil {
+	if e = ops.syncDir(stage); e != nil {
 		return m, fail(e)
 	}
-	if e = publishDirectory(stage, o.Directory); e != nil {
-		return m, contracts.Fail("conflict")
+	if e = ops.publish(stage, o.Directory); e != nil {
+		if os.IsExist(e) {
+			return m, contracts.Fail("conflict")
+		}
+		return m, fail(e)
 	}
-	if e = syncDirectory(parent); e != nil {
+	if e = ops.syncDir(parent); e != nil {
 		return m, fail(e)
 	}
 	if o.Mode == "self-contained" {
@@ -701,6 +705,11 @@ func ReleaseID(ctx context.Context, store *catalog.Store, id string) error {
 }
 
 func RestoreWorkspace(ctx context.Context, w *workspace.Workspace, provider contracts.SecretProvider, directory string) (Manifest, error) {
+	return restoreWithIO(ctx, w, provider, directory, realFiles())
+}
+
+func restoreWithIO(ctx context.Context, w *workspace.Workspace, provider contracts.SecretProvider, directory string, ops fileOperations) (m Manifest, result error) {
+	defer func() { result = fail(result) }()
 	m, snap, e := readBundle(ctx, directory)
 	if e != nil {
 		return m, e
@@ -759,7 +768,7 @@ func RestoreWorkspace(ctx context.Context, w *workspace.Workspace, provider cont
 		if e = store.Empty(ctx); e != nil {
 			return m, e
 		}
-		destination, e := openStorage(ctx, selected.Config.Profiles.Storage, selected.Control, provider)
+		destination, e := ops.storage(ctx, selected.Config.Profiles.Storage, selected.Control, provider)
 		if e != nil {
 			return m, e
 		}
@@ -792,7 +801,7 @@ func RestoreWorkspace(ctx context.Context, w *workspace.Workspace, provider cont
 				key := p.ProfileID + ":" + strconv.FormatInt(p.ProfileRevision, 10)
 				s := stores[key]
 				if s == nil {
-					s, e = openStorage(ctx, profiles[key], "", provider)
+					s, e = ops.storage(ctx, profiles[key], "", provider)
 					if e != nil {
 						return m, e
 					}
@@ -802,20 +811,23 @@ func RestoreWorkspace(ctx context.Context, w *workspace.Workspace, provider cont
 				if e != nil {
 					return m, e
 				}
-				source, e = os.CreateTemp(selected.Control, ".restore-object-*")
+				source, e = ops.createTemp(selected.Control, ".restore-object-*")
 				if e != nil {
 					body.Close()
 					return m, fail(e)
 				}
-				e = hashStream(ctx, source, body, p.Size, p.Digest)
+				e = hashStream(ctx, outputWriter{ops, source}, body, p.Size, p.Digest)
 				body.Close()
+				if e == nil {
+					e = ops.syncFile(source)
+				}
 				if e == nil {
 					_, e = source.Seek(0, io.SeekStart)
 				}
 				if e != nil {
-					source.Close()
-					os.Remove(source.Name())
-					return m, e
+					e = cleanupError(e, ops.closeFile(source))
+					e = cleanupError(e, ops.remove(source.Name()))
+					return m, fail(e)
 				}
 			}
 			target := p
@@ -837,12 +849,12 @@ func RestoreWorkspace(ctx context.Context, w *workspace.Workspace, provider cont
 			target, e = loadRestoreProgress(progressDirectory, m.Digest, destinationDigest, target)
 			if e == nil {
 				target, e = destination.PublishImmutable(ctx, target, source, func(p catalog.Publication) (catalog.Publication, error) {
-					return saveRestoreProgress(progressDirectory, m.Digest, destinationDigest, p)
+					return saveRestoreProgressWithIO(ops, progressDirectory, m.Digest, destinationDigest, p)
 				})
 			}
-			source.Close()
+			e = cleanupError(e, ops.closeFile(source))
 			if m.Mode == "reference-only" {
-				os.Remove(source.Name())
+				e = cleanupError(e, ops.remove(source.Name()))
 			}
 			if e != nil {
 				return m, e
@@ -851,7 +863,7 @@ func RestoreWorkspace(ctx context.Context, w *workspace.Workspace, provider cont
 			if e = artifact.Verify(ctx, destination, target); e != nil {
 				return m, e
 			}
-			if _, e = saveRestoreProgress(progressDirectory, m.Digest, destinationDigest, target); e != nil {
+			if _, e = saveRestoreProgressWithIO(ops, progressDirectory, m.Digest, destinationDigest, target); e != nil {
 				return m, e
 			}
 			relocated = append(relocated, target)
@@ -882,36 +894,17 @@ func RestoreWorkspace(ctx context.Context, w *workspace.Workspace, provider cont
 		return m, contracts.Fail("invalid_request")
 	}
 	configurationDirectory := filepath.Join(w.Root, ".insonic")
-	f, e := os.CreateTemp(configurationDirectory, ".restore-workspace-*")
-	if e != nil {
-		return m, fail(e)
-	}
-	name := f.Name()
-	defer os.Remove(name)
-	_, e = f.Write(append(raw, '\n'))
-	if e == nil {
-		e = f.Sync()
-	}
-	ce := f.Close()
-	if e == nil {
-		e = ce
-	}
-	if e != nil {
-		return m, fail(e)
-	}
-	if e = replaceConfiguration(name, filepath.Join(configurationDirectory, "workspace.json")); e != nil {
-		return m, fail(e)
-	}
-	if e = syncDirectory(configurationDirectory); e != nil {
-		return m, fail(e)
+	if e = replacePrivate(ops, configurationDirectory, ".restore-workspace-*", filepath.Join(configurationDirectory, "workspace.json"), append(raw, '\n')); e != nil {
+		return m, e
 	}
 	if e = store.CompletePortableActivation(ctx, activation, snap.Digest, &selected); e != nil {
 		return m, e
 	}
 	w.Config = selected.Config
+	var cleanup error
 	for _, object := range m.Artifacts {
-		os.Remove(filepath.Join(progressDirectory, object.Publication.ID+".json"))
+		cleanup = cleanupError(cleanup, ops.remove(filepath.Join(progressDirectory, object.Publication.ID+".json")))
 	}
-	os.Remove(progressDirectory)
-	return m, nil
+	cleanup = cleanupError(cleanup, ops.remove(progressDirectory))
+	return m, cleanup
 }

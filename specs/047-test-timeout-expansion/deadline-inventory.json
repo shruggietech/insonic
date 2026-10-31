@@ -476,6 +476,16 @@
       "files": [
         "scripts/cli_storage_qualification.py"
       ]
+    },
+    {
+      "id": "backup-restore-failure-qualification",
+      "disposition": "shared-expanded-test-budget",
+      "origin": "one monotonic backup campaign start",
+      "parent": "earlier original qualification phase; nested invocation launch time is subtracted",
+      "effective": "600s shared campaign;60s readiness;30s cleanup;existing runtime idle observation;unchanged maintenance operation bounds",
+      "files": [
+        "scripts/cli_backup_qualification.py"
+      ]
     }
   ],
   "workflow_owners": {

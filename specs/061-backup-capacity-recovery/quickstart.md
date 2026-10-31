@@ -1,0 +1,36 @@
+# S061 validation
+
+1. Select `specs/061-backup-capacity-recovery` through the local Spec Kit feature selector. Confirm the branch and #200 mapping.
+2. Use the pinned Go 1.27.1 compiler with CGO and the selected host compiler. Run `go test ./internal/contracts ./internal/artifact ./internal/backup ./cmd/insonic` and affected `go vet` checks. Native tests inject bounded errors only in owned fixtures; they launch no GUI.
+3. Run `python -m unittest discover -s tests -p '*backup*test.py'`, affected CLI qualification and release-validator tests, `npm run check` and `npm test`.
+4. Run affected documentation/site checks. Source/package CI executes the actual obstruction campaign through the selected CLI under the existing original qualification deadline.
+5. Require strict complete receipts and green exact-head CI, resolve all actionable external review findings within two Codex rounds, retain/read back compact evidence, and remove only verified owned staging.
+6. Leave the official PR open with auto-merge disabled for owner review. No release/tag is authorized.
+
+## Local verification (2026-10-31)
+
+Failing-first regressions reproduced lost native capacity classification and an actual confined SQLite page-limit restore failure. Repairs pass five affected Go packages and vet; the later portable page-limit test also proves rollback, identical retry and retained fencing after lease release. All 219 root Node tests, 50 CLI Python tests, 98 release/history Python tests, 12 timing tests and 18 site tests pass. Public/offline documentation builds and export checks pass for 169 pages. Root text/schema checks and Git whitespace checks pass.
+
+The focused headless development CLI campaign passed all three actual filesystem-obstruction cases, source withdrawal, exact retry and restored-byte checks, with natural runtime exit and fixture removal. This development image was built before commit; exact-source Windows/Linux source/package acceptance remains the CI gate. Native injected faults, confined database page limits and actual filesystem obstructions do not establish physical exhaustion or live provider quota behavior. Local GUI, GPU/acoustic and attended installed-product acceptance were not run.
+
+The initial local root run exposed the new timer owner missing from the maintained inventory and a non-home scratch prerequisite for this checkout. Both are resolved; the complete root suite passes with a verified owned temporary parent outside the user profile. No product deadline was changed.
+
+## Initial hosted failure and correction
+
+[Implementation CI 41173748041](https://github.com/shruggietech/insonic/actions/runs/41173748041) failed (19 success, 19 skipped, 10 failed including aggregate failures). All six source/package CLI contexts reached the new backup campaign but failed restore retry. Existing core, backend and native desktop checks passed. The [failed attempt retention](https://github.com/shruggietech/insonic/pull/201#issuecomment-6539874594) was independently read back, decompressed and hash-checked before replacement CI.
+
+Fixture-created private roots were the gap: intermediate Unix permissions and elevated Windows ownership do not establish product admission. The corrected fixture creates each owned ancestor privately, uses the already product-owned fresh workspace control directory as its explicitly configured destination filesystem root, and lets restore create protected progress through a preceding actual publication refusal. It avoids starting a destination application owner, which can seed a catalog that must remain empty for restore. A resolved-parent regression also covers equivalent Windows short-path spelling. The retained receipt records the selected destination root; product private-directory checks and deadlines are unchanged. Corrected hosted acceptance remains pending.
+
+The corrected headless development campaign passes all three cases with natural runtime exit and owned fixture removal. CLI Python checks now run 52 tests (51 pass and the Unix-mode assertion is explicitly skipped on Windows); root text/schema checks pass. Hosted Windows/Linux confirmation is still required.
+
+## Corrected hosted matrix and convergence
+
+[Corrected implementation CI 41175421619](https://github.com/shruggietech/insonic/actions/runs/41175421619) passes 30 jobs with 18 intentional skips. Its [independently read-back retention](https://github.com/shruggietech/insonic/pull/201#issuecomment-6540113031) verifies seven original archive digests and six strict source/package contexts, including all 18 backup/restore cases. Terminal timing is 258 s preparation + 772 s qualification = 1,030 s combined. API head is `f5e3cbce1749a877608ae8371989831c419c0b67`; tested merge revision is `e5585ebc619a119feb1b9a48a67c2acfc80eb484`. These identities remain distinct.
+
+Spec Kit convergence found early filesystem/catalog initialization still replacing capacity causes with generic unavailability. T016 forwards those errors through the existing tested classifiers and observes the initial SQLite file close. Affected artifact/catalog/backup package tests, vet and root checks pass. Final exact-branch qualification and Codex round 2 remain required before owner handoff.
+
+## Reviewed implementation and owner handoff
+
+[Reviewed-code CI 41177160301](https://github.com/shruggietech/insonic/actions/runs/41177160301) passes 30 jobs with 18 intentional skips on head `4841455fd3d921376380e0320f132360d870c956`, tested merge revision `4b92f256c75ff415ef34d0f54a39b50185f97873`. The [readback-verified terminal audit](https://github.com/shruggietech/insonic/pull/201#issuecomment-6540277842) retains seven original ZIP identities, six strict contexts and 18 backup/restore cases. Terminal accounting is 186 s preparation + 707 s qualification = 893 s combined.
+
+Both authorized Codex rounds completed without findings or unresolved comments; [round 2](https://github.com/shruggietech/insonic/pull/201#issuecomment-6540160130) reviewed the complete implementation at `4841455f`. No separate security receipt is reported. No third round is authorized. The final record-only update changes planning/task status; final branch-revision CI and its independently read-back evidence will be retained in the [PR conversation](https://github.com/shruggietech/insonic/pull/201) before owner notification. Auto-merge remains disabled. Release/tag publication and merging are outside this slice.

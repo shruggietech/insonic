@@ -64,14 +64,16 @@ func OpenSQLite(ctx context.Context, path, id string) (*Store, error) {
 		return nil, contracts.Fail("invalid_request")
 	}
 	if e = os.MkdirAll(filepath.Dir(path), 0700); e != nil {
-		return nil, contracts.Fail("unavailable")
+		return nil, sanitize(e)
 	}
 	// Create privately before SQLite opens it; reject links/nonregular selected files.
 	f, e := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
 	if e == nil {
-		f.Close()
+		if e = f.Close(); e != nil {
+			return nil, sanitize(e)
+		}
 	} else if !os.IsExist(e) {
-		return nil, contracts.Fail("unavailable")
+		return nil, sanitize(e)
 	}
 	info, e := os.Lstat(path)
 	if e != nil || !info.Mode().IsRegular() {
@@ -87,7 +89,7 @@ func OpenSQLite(ctx context.Context, path, id string) (*Store, error) {
 	u.RawQuery = q.Encode()
 	db, e := sql.Open("sqlite3", u.String())
 	if e != nil {
-		return nil, contracts.Fail("unavailable")
+		return nil, sanitize(e)
 	}
 	db.SetMaxOpenConns(4)
 	s := &Store{db: db, workspace: id, backend: "sqlite"}
@@ -149,7 +151,7 @@ func OpenPostgreSQL(ctx context.Context, c PostgreSQLConfig, id string, secrets 
 	s := &Store{db: db, workspace: id, backend: "postgresql", schema: c.Schema}
 	if e = db.PingContext(ctx); e != nil {
 		db.Close()
-		return nil, contracts.Fail("unavailable")
+		return nil, sanitize(e)
 	}
 	if migrate {
 		if _, e = db.ExecContext(ctx, "CREATE SCHEMA IF NOT EXISTS \""+c.Schema+"\""); e == nil {
@@ -251,10 +253,16 @@ func sanitize(e error) error {
 		return contracts.Fail("not_found")
 	}
 	var pg *pgconn.PgError
+	if errors.As(e, &pg) && pg.Code == "53100" {
+		return contracts.Fail("insufficient_space")
+	}
 	if errors.As(e, &pg) && (strings.HasPrefix(pg.Code, "23") || pg.Code == "22003") {
 		return contracts.Fail("conflict")
 	}
 	var sq sqlite3.Error
+	if errors.As(e, &sq) && sq.Code == sqlite3.ErrFull || contracts.CapacityFailure(e) {
+		return contracts.Fail("insufficient_space")
+	}
 	if errors.As(e, &sq) && sq.Code == sqlite3.ErrConstraint {
 		return contracts.Fail("conflict")
 	}

@@ -10,6 +10,16 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-29: Allow the read-only website verifier to inspect complete published release manifests up to 16 MiB, retaining explicit smaller bounds, exact sizes/digests and bounded reads.
 
+- 2026-10-31: Preserve native and catalog capacity causes during backup/restore, reject incomplete output, observe secondary cleanup failures, and repeat durability confirmation on a completed backup retry. Retain existing capture pins, restore progress and activation fencing while allowing identical recovery after capacity returns.
+
+- 2026-10-31: Retain the same capacity classification while initializing filesystem/catalog destinations and observe failure to close the initial private SQLite file.
+
+### Changed
+
+- 2026-10-31: Qualify bounded native backup/restore I/O failures and actual confined source/package filesystem obstructions separately. Require complete recovery receipts bound to exact platform/image/package authority; keep only the four digest-pinned original v1.0.3 package receipts exempt from the new field. Existing qualification timing, product deadlines, release assets and owner-controlled merge remain unchanged.
+
+- 2026-10-31: Create every owned obstruction-fixture ancestor with private permissions, including intermediate directories, and let product initialization own protected storage/progress roots. This preserves elevated Windows ownership normalization and Unix private-directory admission while exercising the intended failure and retry.
+
 ## [1.0.3] - 2026-10-29
 
 ### Fixed
