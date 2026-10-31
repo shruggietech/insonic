@@ -111,7 +111,7 @@ def package_url(url, initial=False):
     return p
 
 
-def package_response(url, *, head=False, limit=1 << 20):
+def package_response(url, *, head=False, limit=16 << 20):
     package_url(url, initial=True)
     for index in range(5):
         p = package_url(url, initial=index == 0)

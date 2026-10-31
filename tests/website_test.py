@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('website', ROOT / 'scripts/website.py')
@@ -66,6 +66,33 @@ class WebsiteTest(unittest.TestCase):
         website.package_url('https://release-assets.githubusercontent.com/path?signature=secret')
         for url in ['http://github.com/path', 'https://evil.test/path', 'https://user:pass@github.com/path', 'https://github.com/another/repo/releases/download/x/a', 'https://release-assets.githubusercontent.com/path?secret=x#fragment']:
             with self.assertRaises(ValueError): website.package_url(url, initial=True)
+
+    def test_metadata_reader_accepts_full_manifest_and_retains_bounded_reads(self):
+        url = 'https://github.com/shruggietech/insonic/releases/download/v1.0.2/release-manifest.json'
+        payload = b' ' * 7481000
+        response = Mock(status=200)
+        response.getheader.return_value = str(len(payload))
+        response.read.return_value = payload
+        connection = Mock()
+        connection.getresponse.return_value = response
+        with patch.object(website.http.client, 'HTTPSConnection', return_value=connection):
+            self.assertEqual(website.package_response(url), payload)
+            response.read.assert_called_once_with((16 << 20) + 1)
+            response.reset_mock()
+            response.getheader.return_value = str((16 << 20) + 1)
+            with self.assertRaisesRegex(ValueError, 'exceeds bound'):
+                website.package_response(url)
+            response.read.assert_not_called()
+            response.getheader.return_value = str(len(payload))
+            with self.assertRaisesRegex(ValueError, 'exceeds bound'):
+                website.package_response(url, limit=1 << 20)
+            response.read.assert_not_called()
+            self.assertEqual(website.package_response(url, head=True), len(payload))
+            response.read.assert_not_called()
+            response.getheader.return_value = str(len(payload) + 1)
+            with self.assertRaisesRegex(ValueError, 'incomplete'):
+                website.package_response(url)
+        self.assertEqual(connection.close.call_count, 5)
 
     def test_unqualified_receipt_never_enters_destination_transport(self):
         with tempfile.TemporaryDirectory() as temporary:

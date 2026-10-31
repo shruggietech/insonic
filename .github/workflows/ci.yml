@@ -103,6 +103,7 @@ jobs:
         run: node scripts/ci-acceptance.mjs ready
   foundation:
     needs: readiness
+    if: always() && needs.readiness.result == 'success' && needs.readiness.outputs.ready == 'true'
     name: foundation
     runs-on: ubuntu-latest
     timeout-minutes: 65
@@ -121,6 +122,7 @@ jobs:
       - run: npm test
   docs-build:
     needs: readiness
+    if: always() && needs.readiness.result == 'success' && needs.readiness.outputs.ready == 'true'
     name: docs-build
     runs-on: ubuntu-latest
     timeout-minutes: 65
@@ -167,6 +169,7 @@ jobs:
   docs:
     name: docs
     needs: docs-build
+    if: always() && needs.docs-build.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 65
     steps:
@@ -499,7 +502,7 @@ jobs:
           go test -v -p 1 -tags integration ./internal/qualification ./internal/backendsetup ./internal/catalog ./internal/artifact ./internal/models ./internal/library ./internal/graph ./internal/app ./internal/backup
   live-site:
     needs: readiness
-    if: github.event_name == 'workflow_dispatch' && inputs.site_smoke
+    if: always() && needs.readiness.result == 'success' && needs.readiness.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.site_smoke
     name: read-only live website
     runs-on: ubuntu-24.04
     timeout-minutes: 65
