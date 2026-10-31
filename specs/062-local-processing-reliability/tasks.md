@@ -45,7 +45,7 @@
 
 - [x] T019 Update CHANGELOG.md and verify UTF-8/LF, schema contracts, frontend/site and npm run check/npm test plus Go/Python regressions; retain results in specs/062-local-processing-reliability/verification.md (FR-009 to FR-011).
 - [ ] T020 Qualify Windows/Linux source/package journeys and supported backend integrity with existing scripts/cli_contract_qualification.py and CI; retain independent receipts and separate timing (FR-010, FR-011).
-- [ ] T021 Run separately elected real CPU/NVIDIA processing/enrollment/matching acceptance through scripts/qualify-processing.py or maintained owned fixtures and record actual device/model evidence and limits in specs/062-local-processing-reliability/verification.md (SC-001, SC-002, SC-005).
+- [x] T021 Run separately elected real CPU/NVIDIA processing/enrollment/matching acceptance through scripts/qualify-processing.py or maintained owned fixtures and record actual device/model evidence and limits in specs/062-local-processing-reliability/verification.md (SC-001, SC-002, SC-005).
 - [ ] T022 Commit/push one S062 branch, publish official PR closing #202-#208, resolve every review/CI finding, request at most one additional Codex review and retain exact-head merge handoff in specs/062-local-processing-reliability/verification.md.
 
 ## Dependencies and parallel execution

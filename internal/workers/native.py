@@ -16,6 +16,9 @@ import sys
 
 WINDOWS = os.name == "nt"
 _receipt_files = None
+_linker_handles = []
+_linker_cuda_files = set()
+LINUX_CUDA_SONAMES = ("libcublas.so.12", "libcudnn.so.9", "libnvrtc.so.12")
 
 
 class NativeFailure(ValueError):
@@ -63,6 +66,92 @@ def _cuda(path):
     return path.name.lower().startswith(("cublas", "cudnn", "libcublas", "libcudnn", "nvrtc", "libnvrtc"))
 
 
+def linux_linker_path(soname):
+    """Ask the system loader for one SONAME's actual absolute mapped file."""
+    try:
+        loaded = ctypes.CDLL(soname)
+    except OSError as error:
+        message = str(error).lower()
+        if getattr(error, "errno", None) == 2 or "cannot open shared object file" in message and "no such file or directory" in message:
+            return None
+        if any(marker in message for marker in ("wrong elf class", "invalid elf header", "elf file", "undefined symbol", "version `")):
+            raise NativeFailure("cuda_library_incompatible") from None
+        raise NativeFailure("engine_failed") from None
+
+    # glibc exposes dlinfo in libc on current systems and libdl on older ones.
+    # Unlike CDLL._name or find_library, link_map records the resolved file.
+    class LinkMap(ctypes.Structure):
+        pass
+
+    LinkMap._fields_ = [("address", ctypes.c_void_p), ("name", ctypes.c_char_p), ("dynamic", ctypes.c_void_p),
+                       ("next", ctypes.POINTER(LinkMap)), ("previous", ctypes.POINTER(LinkMap))]
+
+    for provider in (None, "libdl.so.2"):
+        try:
+            api = ctypes.CDLL(provider).dlinfo
+        except (OSError, AttributeError):
+            continue
+        api.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+        api.restype = ctypes.c_int
+        link = ctypes.POINTER(LinkMap)()
+        if api(loaded._handle, 2, ctypes.byref(link)) != 0 or not link or not link.contents.name:
+            return None
+        path = Path(os.fsdecode(link.contents.name))
+        if path.is_absolute() and path.is_file():
+            _linker_handles.append(loaded)
+            # Record CUDA dependencies the loader actually mapped, including
+            # a companion resolved from a different system-cache directory.
+            seen = set()
+            while link.contents.previous:
+                identity = ctypes.addressof(link.contents)
+                if identity in seen or len(seen) >= 4096:
+                    raise NativeFailure("input_limit")
+                seen.add(identity)
+                link = link.contents.previous
+            seen.clear()
+            while link:
+                identity = ctypes.addressof(link.contents)
+                if identity in seen or len(seen) >= 4096:
+                    raise NativeFailure("input_limit")
+                seen.add(identity)
+                if link.contents.name:
+                    dependency = Path(os.fsdecode(link.contents.name))
+                    if dependency.is_absolute() and _native(dependency) and _cuda(dependency) and dependency.is_file():
+                        _linker_cuda_files.add(dependency.resolve())
+                link = link.contents.next
+            return path.resolve()
+        return None
+    return None
+
+
+def linux_linker_files(sonames):
+    # Fixed engine SONAMEs use the platform's existing loader configuration.
+    # Never change LD_LIBRARY_PATH, execute a shell, or search cwd/import paths.
+    result, directories = set(), set()
+    for soname in sonames:
+        path = linux_linker_path(soname)
+        if path is not None and path.is_absolute() and path.is_file():
+            result.add(path.resolve())
+            directories.add(path.parent.resolve())
+    result.update(_linker_cuda_files)
+    directories.update(path.parent for path in _linker_cuda_files)
+    # cuDNN lazily loads CUDA-family components; cuBLAS and NVRTC have their
+    # own companion libraries. Freeze those siblings without electing every
+    # unrelated system library in a shared /usr/lib directory.
+    for directory in sorted(directories):
+        try:
+            for count, path in enumerate(directory.iterdir(), 1):
+                if count > 16384 or len(result) > 4096:
+                    raise NativeFailure("input_limit")
+                if _native(path) and _cuda(path) and path.is_file():
+                    result.add(path.resolve())
+        except OSError:
+            raise NativeFailure("cuda_library_missing") from None
+    if len(result) > 4096:
+        raise NativeFailure("input_limit")
+    return result
+
+
 def native_files():
     if _receipt_files is not None:
         result = []
@@ -103,6 +192,12 @@ def native_files():
             result.update(path.resolve() for path in files)
         if len(result) > 4096:
             raise NativeFailure("input_limit")
+    if not WINDOWS:
+        missing = [name for name in LINUX_CUDA_SONAMES if not any(path.name == name or path.name.startswith(name + ".") for path in result)]
+        if missing:
+            result.update(linux_linker_files(missing))
+    if len(result) > 4096:
+        raise NativeFailure("input_limit")
     return sorted(result)
 
 

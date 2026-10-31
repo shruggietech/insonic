@@ -1,0 +1,335 @@
+{
+  "kind": "local-processing-engine-acceptance",
+  "state": "passed",
+  "candidate_sha256": "80a2ec9b5866f79b9e65a0aaac1e6d35c4383b915b6eaa874bde74b806dfc5df",
+  "worker_sha256": "a0f14e7c223f8febb65670fe5d34b1afaf53d62b001ccb9a4e04cce3e457b70e",
+  "fixture_manifest_sha256": "5abce92ea60ff0de4639161c85af383457f4e5b36c3ff6c00cfa018631dd6ada",
+  "fixtures": {
+    "enrollment": "453d47cd8fc7329ac868128a4ac919d7ced28fda9ee72303d2189f064f8d1324",
+    "heldout": "dbd3048279d25cb4adaa25e246db50ffa01b7714e6f091691abe908027951daf",
+    "silence": "ee7bea4232762775f8fce9b3e27e4d3948c8ac6a45a87ca769f703d6eed0b448"
+  },
+  "readiness_includes_inference": false,
+  "rows": [
+    {
+      "check": "owned-fixtures-imported",
+      "count": 3
+    },
+    {
+      "check": "recording-omitted-auto",
+      "observations": {
+        "transcription": {
+          "requested_device": "auto",
+          "attempted_devices": [
+            "cuda"
+          ],
+          "device": "cuda"
+        },
+        "diarization": {
+          "requested_device": "auto",
+          "attempted_devices": [
+            "cuda"
+          ],
+          "device": "cuda"
+        }
+      },
+      "document_digest": "3c286a2ca117ea44a0682b88889d6ef8a501be372f80688bafc24c5a3547caca"
+    },
+    {
+      "check": "recording-cpu",
+      "observations": {
+        "transcription": {
+          "requested_device": "cpu",
+          "attempted_devices": [
+            "cpu"
+          ],
+          "device": "cpu"
+        },
+        "diarization": {
+          "requested_device": "cpu",
+          "attempted_devices": [
+            "cpu"
+          ],
+          "device": "cpu"
+        }
+      },
+      "document_digest": "3401751327c76899104e76f031aaa42c6d6b810ad1b77e86310b809bd5d7e089"
+    },
+    {
+      "check": "unsupported-language-preserves-document",
+      "error": "unsupported_language",
+      "document_digest": "3c286a2ca117ea44a0682b88889d6ef8a501be372f80688bafc24c5a3547caca",
+      "revision_unchanged": true
+    },
+    {
+      "check": "digital-silence-omitted-auto",
+      "observations": {
+        "transcription": {
+          "requested_device": "auto",
+          "attempted_devices": [
+            "cuda"
+          ],
+          "device": "cuda"
+        },
+        "diarization": {
+          "requested_device": "auto",
+          "attempted_devices": [
+            "cuda"
+          ],
+          "device": "cuda"
+        }
+      },
+      "state": "no-speech",
+      "document_is_null": true,
+      "diagnostics": [
+        {
+          "code": "digital_silence",
+          "count": 1
+        },
+        {
+          "code": "speech_coverage_fraction",
+          "count": 1,
+          "value": 0
+        },
+        {
+          "code": "overlap_fraction",
+          "count": 1,
+          "value": 0
+        },
+        {
+          "code": "no_speech",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "check": "digital-silence-cpu",
+      "observations": {
+        "transcription": {
+          "requested_device": "cpu",
+          "attempted_devices": [
+            "cpu"
+          ],
+          "device": "cpu"
+        },
+        "diarization": {
+          "requested_device": "cpu",
+          "attempted_devices": [
+            "cpu"
+          ],
+          "device": "cpu"
+        }
+      },
+      "state": "no-speech",
+      "document_is_null": true,
+      "diagnostics": [
+        {
+          "code": "digital_silence",
+          "count": 1
+        },
+        {
+          "code": "speech_coverage_fraction",
+          "count": 1,
+          "value": 0
+        },
+        {
+          "code": "overlap_fraction",
+          "count": 1,
+          "value": 0
+        },
+        {
+          "code": "no_speech",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "check": "enrollment-cuda",
+      "observations": [
+        {
+          "requested_device": "cuda",
+          "attempted_devices": [
+            "cuda"
+          ],
+          "device": "cuda"
+        }
+      ],
+      "profile_files": {
+        "manifest.json": "dbd42f19b0a5b1ef3b7f78169900a5d81c8a63d57340281392a86fdd46c179ed",
+        "profile.json": "496aa1ea7e68ed38632e9c1529da46a52cdebe637e82057638e6c35c3aa50376"
+      }
+    },
+    {
+      "check": "matching-cuda",
+      "observations": [
+        {
+          "requested_device": "cuda",
+          "attempted_devices": [
+            "cuda"
+          ],
+          "device": "cuda"
+        }
+      ],
+      "mapping_count": 0,
+      "decisions": [
+        {
+          "evidence_us": 7326000,
+          "score": 0.6861261512625638,
+          "state": "unknown"
+        }
+      ]
+    },
+    {
+      "check": "enrollment-cpu",
+      "observations": [
+        {
+          "requested_device": "cpu",
+          "attempted_devices": [
+            "cpu"
+          ],
+          "device": "cpu"
+        }
+      ],
+      "profile_files": {
+        "manifest.json": "c5b61af1d54e1a97843fec863a8ea3e65b07f2fccfb0326294e5545e096043a0",
+        "profile.json": "6184b15d8bb0db77fdae0eea304344e76a2a43d491bc1e96e14b31f86e1c72f8"
+      }
+    },
+    {
+      "check": "matching-cpu",
+      "observations": [
+        {
+          "requested_device": "cpu",
+          "attempted_devices": [
+            "cpu"
+          ],
+          "device": "cpu"
+        }
+      ],
+      "mapping_count": 0,
+      "decisions": [
+        {
+          "evidence_us": 7326000,
+          "score": 0.6861296233553811,
+          "state": "unknown"
+        }
+      ]
+    },
+    {
+      "check": "gpu-hidden-recording-fallback",
+      "observations": {
+        "transcription": {
+          "requested_device": "auto",
+          "attempted_devices": [
+            "cuda",
+            "cpu"
+          ],
+          "device": "cpu",
+          "fallback_reason": "cuda_no_device"
+        },
+        "diarization": {
+          "requested_device": "auto",
+          "attempted_devices": [
+            "cuda",
+            "cpu"
+          ],
+          "device": "cpu",
+          "fallback_reason": "cuda_no_device"
+        }
+      },
+      "document_digest": "5a49f156ae6266599f4a8e944094ace4c5550ed210ea39fb559079f3e7dde1dd"
+    },
+    {
+      "check": "gpu-hidden-enrollment-fallback",
+      "observations": [
+        {
+          "requested_device": "auto",
+          "attempted_devices": [
+            "cuda",
+            "cpu"
+          ],
+          "device": "cpu",
+          "fallback_reason": "cuda_no_device"
+        }
+      ]
+    },
+    {
+      "check": "gpu-hidden-matching-fallback",
+      "observations": [
+        {
+          "requested_device": "auto",
+          "attempted_devices": [
+            "cuda",
+            "cpu"
+          ],
+          "device": "cpu",
+          "fallback_reason": "cuda_no_device"
+        }
+      ],
+      "mapping_count": 0,
+      "decisions": [
+        {
+          "evidence_us": 7326000,
+          "score": 0.6861296233553811,
+          "state": "unknown"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Headless Windows CPU and NVIDIA checks only; no GUI or Linux native runtime acceptance.",
+    "Small licensed fixture baseline, not broad recognition or speaker accuracy qualification.",
+    "Heldout same-reader matching was unknown on CPU and CUDA at the frozen 0.75 threshold; this campaign makes no positive identification accuracy claim."
+  ],
+  "final_readiness_seconds": 16.532,
+  "preparation_seconds": 378.272,
+  "qualification_started_utc": "2026-10-31T11:07:23Z",
+  "target_seconds": 1800,
+  "hard_limit_seconds": 3600,
+  "finalization_reserve_seconds": 60,
+  "qualification_seconds": 383.21,
+  "clock_continuation": "Original UTC second boundary, conservative by less than one second; includes harness correction interval.",
+  "harness_corrections": [
+    "Accepted error envelope code invalid_request with reason unsupported_language; prior check confused reason with code."
+  ],
+  "preparation_active_invocations_seconds": 67.641,
+  "preparation_timing_origin": "First actual prerequisite command; includes setup harness corrections and final readiness. Candidate compile timing is separate.",
+  "candidate_build_seconds": [
+    20.956,
+    6.316
+  ],
+  "qualification_finished_utc": "2026-10-31T11:13:46Z",
+  "owned_runtime_released": true,
+  "combined_seconds": 761.482,
+  "target_exceeded": false,
+  "source_correspondence": {
+    "commit": "7f8c4f25a68c79d3bedcbbc39e1e0f31b4736ded",
+    "candidate_input_count": 701,
+    "commit_input_count": 701,
+    "exact_match": true,
+    "different_paths": [],
+    "input_inventory_sha256": "30f8b8fd511b2254c9df94efa723b552aa2580304c9eec02dae3287e18198667"
+  },
+  "fallback_notices": [
+    {
+      "kind": "recordings.process",
+      "notices": [
+        "CUDA could not execute (cuda_no_device); completed on CPU.",
+        "CUDA could not execute (cuda_no_device); completed on CPU."
+      ]
+    },
+    {
+      "kind": "models.train",
+      "notices": [
+        "CUDA could not execute (cuda_no_device); completed on CPU."
+      ]
+    },
+    {
+      "kind": "recordings.match",
+      "notices": [
+        "CUDA could not execute (cuda_no_device); completed on CPU."
+      ]
+    }
+  ],
+  "followup_boundary": "Full engine matrix binds the recorded candidate and source commit. A later read-only configured-inspection routing fix is qualified separately."
+}

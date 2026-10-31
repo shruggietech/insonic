@@ -13,6 +13,7 @@ import (
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/workers"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -77,15 +78,18 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 		if strictPayload(req.Data, &input) != nil {
 			return nil, contracts.Fail("invalid_request")
 		}
+		var receipt library.PinnedFile
 		if input.PythonPath == "" {
 			if c, e := ReadProcessingTools(a.Workspace); e == nil {
 				input.PythonPath = c.Processing.RecognitionPython.Path
+				receipt = c.Processing.RecognitionEnvironment
 				if input.Role == "diarization" {
 					input.PythonPath = c.Processing.DiarizationPython.Path
+					receipt = c.Processing.DiarizationEnvironment
 				}
 			}
 		}
-		return s.Inspect(ctx, input.Role, input.PythonPath, false)
+		return s.Inspect(ctx, input.Role, input.PythonPath, false, receipt)
 	case "workers.plan", "workers.setup":
 		var input workers.Election
 		if strictPayload(req.Data, &input) != nil || input.Validate() != nil {

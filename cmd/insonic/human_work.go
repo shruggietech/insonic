@@ -28,6 +28,12 @@ func humanWorkSummary(b *humanBuffer, root map[string]any, errorShown bool) bool
 		b.line("Phase: %s", phase)
 	}
 	result, _ := root["result"].(map[string]any)
+	if recordingID, _ := result["recording_id"].(string); contracts.ValidID(recordingID) {
+		switch outcome, _ := result["state"].(string); outcome {
+		case "ready", "no-speech", "no-timed-subtitles":
+			b.line("Outcome: %s", humanLabel(outcome))
+		}
+	}
 	for _, field := range [][2]string{{"recording_id", "Recording ID"}, {"media_id", "Media ID"}, {"model_id", "Model ID"}, {"version_id", "Model version ID"}, {"dataset_id", "Dataset ID"}, {"speaker_id", "Speaker ID"}} {
 		if value, ok := result[field[0]].(string); ok && contracts.ValidID(value) {
 			b.line("%s: %s", field[1], value)

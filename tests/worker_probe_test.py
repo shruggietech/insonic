@@ -220,6 +220,20 @@ class WorkerProbeDiagnostics(unittest.TestCase):
         self.assertEqual(result["files"], [])
         self.assertNotIn("secret-token", json.dumps(result["probe"]))
 
+    def test_snapshot_receipt_hashes_discovered_native_closure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            exe = Path(directory) / "python"
+            exe.write_bytes(b"interpreter")
+            dependency = Path(directory) / "libcublasLt.so.12.9.0"
+            dependency.write_bytes(b"system linker mapped CUDA dependency")
+            with self.ready(), patch.object(native, "native_files", return_value=[dependency]), \
+                 patch.object(probe.metadata, "distributions", return_value=[]), \
+                 patch.object(sys, "executable", str(exe)), patch.object(sys, "_base_executable", str(exe), create=True), \
+                 patch.object(sys, "prefix", directory), patch.object(sys, "base_prefix", directory):
+                result = probe.inspect("recognition", True)
+            self.assertEqual(result["probe"]["reason"], "success")
+            self.assertIn({"path": str(dependency.resolve()), "sha256": hashlib.sha256(dependency.read_bytes()).hexdigest()}, result["files"])
+
     def test_inventory_walk_errors_are_not_silently_omitted(self):
         def broken(*args, **kwargs):
             kwargs["onerror"](OSError("secret-token"))

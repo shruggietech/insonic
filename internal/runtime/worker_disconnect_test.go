@@ -12,13 +12,14 @@ import (
 
 	"github.com/shruggietech/insonic/internal/contracts"
 	qt "github.com/shruggietech/insonic/internal/qualificationtiming"
+	"github.com/shruggietech/insonic/internal/workers"
 	"github.com/shruggietech/insonic/internal/workspace"
 )
 
 // The actual owned test executable acts as a blocked interpreter. No shell or
 // inherited test-only environment variable is needed by the clean probe child.
 func init() {
-	if len(os.Args) != 8 || os.Args[1] != "-I" || os.Args[2] != "-B" || os.Args[3] != "-c" || !strings.HasPrefix(os.Args[4], "# SPDX-License-Identifier: Apache-2.0") || os.Args[5] != "recognition" || os.Args[6] != "inspect" {
+	if len(os.Args) != 10 || os.Args[1] != "-I" || os.Args[2] != "-B" || os.Args[3] != "-c" || !strings.HasPrefix(os.Args[4], workers.NativeBootstrap()) || os.Args[5] != "recognition" || os.Args[6] != "inspect" || os.Args[8] != "" || os.Args[9] != "" {
 		return
 	}
 	point := func(stage string) map[string]any {

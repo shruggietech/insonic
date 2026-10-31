@@ -1,0 +1,55 @@
+{
+  "candidate_sha256": "cfdf504b8dc30c64be0a7a64e0f787290253abde03d758b4123d4de62ceeb8e2",
+  "version": "1.0.3",
+  "qualification_target_seconds": 1800,
+  "qualification_limit_seconds": 3600,
+  "finalization_reserve_seconds": 60,
+  "preparation_seconds": 1.172,
+  "readiness_complete_unix_ms": 1793445927740,
+  "operator": {
+    "state": "passed",
+    "result": {
+      "state": "passed",
+      "issues": [
+        116,
+        120,
+        121,
+        134,
+        144,
+        207
+      ],
+      "credential_temperatures": [
+        "cold",
+        "warm"
+      ],
+      "concise_terminal_work": "passed",
+      "missing_work_guidance": "passed",
+      "unknown_command_help": "passed",
+      "artifact_lifecycle_reasons": [
+        "artifact_grace_period",
+        "artifact_retained"
+      ],
+      "recording_outcomes": [
+        "no-timed-subtitles"
+      ],
+      "capture_sections": [
+        "metadata",
+        "facts",
+        "dates"
+      ],
+      "exact_model_identities": [
+        "3e503bd0-1806-540e-a4f4-4ac646d515d6",
+        "0fedccba-6218-5d15-a35f-c2f6af34653a"
+      ],
+      "media_fixtures_elected": true,
+      "elapsed_seconds": 89.094
+    }
+  },
+  "terminal_unix_ms": 1793446016833,
+  "qualification_seconds": 89.094,
+  "combined_seconds": 90.266,
+  "candidate_unchanged": true,
+  "target_exceeded": false,
+  "hard_limit_exceeded": false,
+  "state": "passed"
+}

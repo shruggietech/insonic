@@ -9,11 +9,15 @@ import time
 import uuid
 
 
-def validate_work_outcome(text, work_id, state):
+def validate_work_outcome(text, work_id, state, *, recording_outcome=None):
     """Reject duplicate outcomes and inapplicable recovery in installed output."""
     lines = text.splitlines()
     if lines.count('State: ' + state.capitalize()) != 1 or sum(line.startswith('State:') for line in lines) != 1:
         raise ValueError('Work output omitted or repeated its outcome')
+    if recording_outcome is not None:
+        expected = 'Outcome: ' + recording_outcome.replace('-', ' ').capitalize()
+        if lines.count(expected) != 1 or sum(line.startswith('Outcome:') for line in lines) != 1:
+            raise ValueError('Work output omitted or repeated its recording outcome')
     if any(line.strip() == 'Error:' for line in lines):
         raise ValueError('Work output printed an empty error')
     if state in {'succeeded', 'failed', 'cancelled', 'interrupted'} and any(
@@ -147,10 +151,24 @@ def qualify(invoke, workspace, version, *, media=False):
         identity_cases.append(model_id)
 
     capture_cases = []
+    recording_outcomes = []
     if media:
         from cli_media_qualification import pcm_fixture
         audio, subtitle = directory / 'capture café.wav', directory / 'rich.srt'
         pcm_fixture(audio, 2)
+        untimed = directory / 'zero duration.srt'
+        untimed.write_text('1\n00:00:00,000 --> 00:00:00,000\nUntimed operator fixture.\n\n',
+                           encoding='utf-8', newline='\n')
+        queued = invoke(['media', 'import', audio, '--new-entry', '--no-pipeline', '--subtitle', untimed])['result']
+        untimed_id = invoke(['work', 'wait', queued['work_id']])['result']['result']['items'][0]['media_id']
+        assembly_id = str(uuid.uuid4())
+        assembled = supplied(['--request-id', assembly_id, 'recordings', 'assemble', untimed_id], {'turns': []})['result']
+        if assembled['state'] != 'no-timed-subtitles':
+            raise ValueError('Untimed fixture did not retain its no-timed-subtitles outcome')
+        for action in ['show', 'wait']:
+            validate_work_outcome(invoke(['work', action, assembly_id], machine=False), assembly_id, 'succeeded',
+                                  recording_outcome='no-timed-subtitles')
+        recording_outcomes.append('no-timed-subtitles')
         subtitle.write_text(''.join(f'{i + 1}\n00:00:00,{i:03d} --> 00:00:00,{i + 1:03d}\noperator-rich-transcript café\n\n'
                                     for i in range(131)), encoding='utf-8', newline='\n')
         queued = invoke(['media', 'import', audio, '--new-entry', '--no-pipeline'])['result']
@@ -202,5 +220,5 @@ def qualify(invoke, workspace, version, *, media=False):
     return {'state': 'passed', 'issues': [116, 120, 121, 134, 144, 207], 'credential_temperatures': ['cold', 'warm'],
             'concise_terminal_work': 'passed', 'missing_work_guidance': 'passed', 'unknown_command_help': 'passed',
             'artifact_lifecycle_reasons': ['artifact_grace_period', 'artifact_retained'],
-            'capture_sections': capture_cases, 'exact_model_identities': identity_cases, 'media_fixtures_elected': media,
+            'recording_outcomes': recording_outcomes, 'capture_sections': capture_cases, 'exact_model_identities': identity_cases, 'media_fixtures_elected': media,
             'elapsed_seconds': round(time.monotonic() - started, 3)}

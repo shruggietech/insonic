@@ -21,6 +21,16 @@ class WorkOutcomeTests(unittest.TestCase):
             with self.subTest(detail=detail), self.assertRaises(ValueError):
                 validate_work_outcome(text + detail, 'example', 'succeeded')
 
+    def test_recording_outcomes_are_distinct_from_successful_work(self):
+        base = 'Work: example\nState: Succeeded\nComplete JSON: insonic work show example --json\n'
+        for outcome in ['ready', 'no-speech', 'no-timed-subtitles']:
+            line = 'Outcome: ' + outcome.replace('-', ' ').capitalize() + '\n'
+            with self.subTest(outcome=outcome):
+                validate_work_outcome(base + line, 'example', 'succeeded', recording_outcome=outcome)
+                for text in [base, base + line + line, base + 'Outcome: Failed\n']:
+                    with self.assertRaises(ValueError):
+                        validate_work_outcome(text, 'example', 'succeeded', recording_outcome=outcome)
+
     def test_missing_complete_readback_is_not_acceptance(self):
         with self.assertRaises(ValueError):
             validate_work_outcome('State: Succeeded\n', 'example', 'succeeded')

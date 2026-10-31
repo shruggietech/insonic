@@ -324,3 +324,48 @@ func TestDefaultPreviewReusesRegisteredCredentialIdentity(t *testing.T) {
 		t.Fatal(out, e)
 	}
 }
+
+func TestWorkerInspectionUsesOnlyImplicitConfiguredReceipt(t *testing.T) {
+	a := configuredApp(t)
+	selected := workerToolsFixture(t, a)
+	selected.Processing.RecognitionPython = selected.Processing.Worker
+	selected.Processing.DiarizationPython = selected.Processing.Worker
+	receiptPath := filepath.Join(t.TempDir(), "invalid-receipt.json")
+	if err := os.WriteFile(receiptPath, []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	receipt, err := workers.Hash(context.Background(), receiptPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected.Processing.DiarizationEnvironment = receipt
+	receipt.SHA256 = strings.Repeat("0", 64)
+	selected.Processing.RecognitionEnvironment = receipt
+	raw, _ := json.Marshal(selected)
+	if err = os.WriteFile(filepath.Join(a.Workspace.Control, "processing-tools.json"), raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range []struct{ role, failure string }{{"recognition", "checksum_mismatch"}, {"diarization", "invalid_request"}} {
+		for _, explicit := range []bool{false, true} {
+			input := map[string]string{"role": row.role}
+			if explicit {
+				input["python_path"] = selected.Processing.Worker.Path
+			}
+			raw, _ = json.Marshal(input)
+			result, err := a.workerDispatch(context.Background(), contracts.Request{Operation: "workers.inspect", Data: raw})
+			if err != nil {
+				t.Fatal(err)
+			}
+			inspection := result.(workers.Inspection)
+			if inspection.Probe == nil {
+				t.Fatal("missing inspection evidence")
+			}
+			if explicit && inspection.Probe.Stage == "receipt_verification" {
+				t.Fatal("explicit discovery inherited a configured receipt")
+			}
+			if !explicit && (inspection.Probe.Stage != "receipt_verification" || inspection.Error != row.failure) {
+				t.Fatalf("%s default inspection lost its receipt: %+v", row.role, inspection)
+			}
+		}
+	}
+}

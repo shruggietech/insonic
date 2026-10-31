@@ -22,7 +22,7 @@ func TestS062CompletedWorkGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "Work wait completed.\nWork: " + s062WorkID + "\nOperation: recording.process\nState: Succeeded\nRecording ID: " + s062RecordingID + "\nComplete JSON: insonic work show " + s062WorkID + " --json\n"
+	want := "Work wait completed.\nWork: " + s062WorkID + "\nOperation: recording.process\nState: Succeeded\nOutcome: Ready\nRecording ID: " + s062RecordingID + "\nComplete JSON: insonic work show " + s062WorkID + " --json\n"
 	if text != want {
 		t.Fatalf("want:\n%s\ngot:\n%s", want, text)
 	}
@@ -173,6 +173,26 @@ func TestS062InvalidDeviceAttemptNeverReachesHumanOutput(t *testing.T) {
 		text, err := renderHuman(response)
 		if err != nil || strings.Contains(text, "private") || strings.Contains(text, "Attempted devices:") || strings.Contains(text, "Fallback cause:") {
 			t.Fatal(mode, text, err)
+		}
+	}
+}
+
+func TestS062RecordingWorkOutcomeGolden(t *testing.T) {
+	previous := operatorContext
+	defer func() { operatorContext = previous }()
+	for _, outcome := range []string{"ready", "no-speech", "no-timed-subtitles"} {
+		for _, action := range []string{"show", "wait"} {
+			operatorContext = invocation{Path: []string{"work", action}, Args: []string{"work", action, s062WorkID}}
+			response := contracts.Response{Result: map[string]any{"id": s062WorkID, "kind": "recordings.process", "state": "succeeded", "error": "", "result": map[string]any{"recording_id": s062RecordingID, "state": outcome, "provenance": map[string]any{"private_internal_detail": true}}}}
+			text, err := renderHuman(response)
+			readback := "insonic work show " + s062WorkID + " --json"
+			if action == "show" {
+				readback = "insonic --json work show " + quoteCLI(s062WorkID)
+			}
+			want := "Work " + action + " completed.\nWork: " + s062WorkID + "\nOperation: recordings.process\nState: Succeeded\nOutcome: " + humanLabel(outcome) + "\nRecording ID: " + s062RecordingID + "\nComplete JSON: " + readback + "\n"
+			if err != nil || text != want {
+				t.Fatalf("%s %s got:\n%s\nwant:\n%s\nerr:%v", outcome, action, text, want, err)
+			}
 		}
 	}
 }

@@ -1,0 +1,60 @@
+{
+  "candidate_sha256": "80a2ec9b5866f79b9e65a0aaac1e6d35c4383b915b6eaa874bde74b806dfc5df",
+  "version": "1.0.3",
+  "preparation_seconds": 2.203,
+  "operator": {
+    "state": "passed",
+    "result": {
+      "state": "passed",
+      "issues": [
+        116,
+        120,
+        121,
+        134,
+        144,
+        207
+      ],
+      "credential_temperatures": [
+        "cold",
+        "warm"
+      ],
+      "concise_terminal_work": "passed",
+      "missing_work_guidance": "passed",
+      "unknown_command_help": "passed",
+      "artifact_lifecycle_reasons": [
+        "artifact_grace_period",
+        "artifact_retained"
+      ],
+      "capture_sections": [
+        "metadata",
+        "facts",
+        "dates"
+      ],
+      "exact_model_identities": [
+        "7fa8f0df-b7ec-5d87-a8ad-0abc91b4aa7a",
+        "899dc066-b194-5025-9594-fb8a9e0d2b2d"
+      ],
+      "media_fixtures_elected": true,
+      "elapsed_seconds": 91.844
+    }
+  },
+  "docs": {
+    "state": "passed",
+    "result": {
+      "preset_lifecycle_destination_precedence_refresh": "passed",
+      "pipeline_actual_child_supplied_bypass": "passed",
+      "documented_advanced_inputs": "passed",
+      "deterministic_training_fetch": "passed",
+      "trainer_output_integrity": "passed",
+      "training_only_readiness": "passed",
+      "model_setup_readback": "passed",
+      "short_wait_budget": "passed",
+      "acoustic_accuracy": "not-tested"
+    }
+  },
+  "qualification_seconds": 91.86,
+  "combined_seconds": 94.063,
+  "qualification_target_seconds": 1800,
+  "qualification_limit_seconds": 3600,
+  "finalization_reserve_seconds": 60
+}

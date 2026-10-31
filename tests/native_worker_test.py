@@ -3,6 +3,8 @@
 import hashlib
 import importlib.util
 import json
+import os
+import sys
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -20,6 +22,66 @@ def load_native():
 
 
 class NativeWorkerTests(unittest.TestCase):
+    def test_linux_existing_elected_files_do_not_probe_conflicting_system_copy(self):
+        native = load_native()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            files = [Path(name) for name in ("libcublas.so.12", "libcudnn.so.9", "libnvrtc.so.12")]
+            for name in files:
+                (root / name).write_bytes(b"elected environment")
+            distribution = SimpleNamespace(files=files, locate_file=lambda name: root / name)
+            with patch.object(native, "WINDOWS", False), patch.object(native.metadata, "distribution", return_value=distribution), \
+                 patch.dict(os.environ, {"LD_LIBRARY_PATH": ""}), patch.object(native, "linux_linker_path", side_effect=AssertionError("unneeded system override")) as resolver:
+                self.assertEqual(native.native_files(), sorted((root / name).resolve() for name in files))
+                resolver.assert_not_called()
+
+    @unittest.skipUnless(sys.platform == "linux", "Linux system-loader API")
+    def test_linux_system_loader_reports_real_absolute_loaded_path(self):
+        native = load_native()
+        path = native.linux_linker_path("libc.so.6")
+        self.assertTrue(path.is_absolute())
+        self.assertTrue(path.is_file())
+        self.assertEqual(path, path.resolve())
+
+    def test_linux_loader_distinguishes_missing_and_incompatible_library(self):
+        native = load_native()
+        for message, code in (("libcudnn.so.9: cannot open shared object file: No such file or directory", None),
+                              ("libcudnn.so.9: wrong ELF class: ELFCLASS32", "cuda_library_incompatible"),
+                              ("libcudnn.so.9: undefined symbol: cudnnGetVersion", "cuda_library_incompatible")):
+            with self.subTest(code=code), patch.object(native.ctypes, "CDLL", side_effect=OSError(message)):
+                if code:
+                    with self.assertRaisesRegex(native.NativeFailure, code):
+                        native.linux_linker_path("libcudnn.so.9")
+                else:
+                    self.assertIsNone(native.linux_linker_path("libcudnn.so.9"))
+
+    def test_linux_discovery_freezes_system_cuda_closure_without_ambient_override(self):
+        native = load_native()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            names = ("libcublas.so.12.9.0", "libcublasLt.so.12.9.0", "libcudnn.so.9.1.0", "libcudnn_engines_runtime_compiled.so.9.1.0", "libnvrtc-builtins.so.12.9", "unrelated.so")
+            for name in names:
+                (root / name).write_bytes(name.encode())
+            dependency_directory = root / "separate-linker-directory"
+            dependency_directory.mkdir()
+            dependency = dependency_directory / "libcublasLt.so.12.8.0"
+            dependency.write_bytes(b"mapped dependency from another directory")
+            native._linker_cuda_files.add(dependency.resolve())
+            resolved = {"libcublas.so.12": root / names[0], "libcudnn.so.9": root / names[2]}
+            with patch.object(native, "WINDOWS", False), patch.object(native.metadata, "distribution", side_effect=native.metadata.PackageNotFoundError), \
+                 patch.dict(os.environ, {"LD_LIBRARY_PATH": ""}), patch.object(native, "linux_linker_path", side_effect=lambda name: resolved.get(name)) as resolver:
+                files = native.native_files()
+                self.assertEqual(files, sorted([(root / name).resolve() for name in names[:-1]] + [dependency.resolve()]))
+                self.assertEqual(resolver.call_count, 3)
+                self.assertEqual(os.environ["LD_LIBRARY_PATH"], "")
+                receipt = root / "receipt.json"
+                receipt.write_text(json.dumps({"inspection": {"files": [{"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for path in files]}}), encoding="utf-8")
+                native.set_receipt(str(receipt), hashlib.sha256(receipt.read_bytes()).hexdigest())
+                (root / "libcudnn_new_component.so.9").write_bytes(b"not elected")
+                resolver.reset_mock()
+                self.assertEqual(native.native_files(), files)
+                resolver.assert_not_called()
+
     def test_classifier_never_uses_arbitrary_engine_failure_for_retry(self):
         native = load_native()
         for failure in [ValueError("bad model"), RuntimeError("input path /cuda/private failed"),
