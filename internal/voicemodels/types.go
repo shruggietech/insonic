@@ -58,6 +58,7 @@ type DatasetOptions struct {
 	Recipe    Recipe `json:"recipe,omitzero"`
 }
 type TrainOptions struct {
+	Device           string          `json:"device,omitempty"`
 	DatasetID        string          `json:"dataset_id"`
 	FamilyID         string          `json:"family_id,omitempty"`
 	Name             string          `json:"name"`
@@ -71,12 +72,14 @@ type TrainOptions struct {
 	CheckpointID     string          `json:"checkpoint_id,omitempty"`
 }
 type TrainingConfiguration struct {
+	Device      string          `json:"device,omitempty"`
 	Adapter     Adapter         `json:"adapter"`
 	BaseModelID string          `json:"base_model_id,omitempty"`
 	Kind        string          `json:"output_kind"`
 	Parameters  json.RawMessage `json:"parameters,omitempty"`
 }
 type MatchOptions struct {
+	Device        string  `json:"device,omitempty"`
 	RecordingID   string  `json:"recording_id"`
 	ModelID       string  `json:"model_id"`
 	ModelDigest   string  `json:"model_digest,omitempty"`
@@ -123,6 +126,7 @@ type Service struct {
 	Prepare                   func(context.Context, catalog.LibraryEntry, processing.AudioOptions) (*Audio, error)
 	Embed                     func(context.Context, string, processing.SourceMap, string, string) ([]float64, error)
 	EmbedBatch                func(context.Context, []PreparedInput, string, string) ([][]float64, error)
+	EmbedBatchWithPolicy      func(context.Context, []PreparedInput, string, string, string) (processing.EmbeddingResult, error)
 	LocalRunner               func(context.Context, Adapter, AdapterRequest) (Output, error)
 }
 
@@ -146,19 +150,20 @@ type Checkpoint struct {
 	Artifact      Artifact `json:"artifact"`
 }
 type Output struct {
-	PreparationPublication *catalog.Publication    `json:"-"`
-	State                  string                  `json:"state,omitempty"`
-	StartedAt              *catalog.Instant        `json:"-"`
-	CompletedAt            *catalog.Instant        `json:"-"`
-	ContractVersion        string                  `json:"contract_version"`
-	Kind                   string                  `json:"kind"`
-	Architecture           string                  `json:"architecture"`
-	Consumers              []string                `json:"consumers"`
-	SupportedOperations    []string                `json:"supported_operations"`
-	Artifacts              []Artifact              `json:"artifacts"`
-	HostedHandle           string                  `json:"hosted_handle,omitempty"`
-	Checkpoints            []Checkpoint            `json:"checkpoints,omitempty"`
-	Diagnostics            []processing.Diagnostic `json:"diagnostics,omitempty"`
+	DeviceExecutions       []processing.DeviceExecution `json:"device_executions,omitempty"`
+	PreparationPublication *catalog.Publication         `json:"-"`
+	State                  string                       `json:"state,omitempty"`
+	StartedAt              *catalog.Instant             `json:"-"`
+	CompletedAt            *catalog.Instant             `json:"-"`
+	ContractVersion        string                       `json:"contract_version"`
+	Kind                   string                       `json:"kind"`
+	Architecture           string                       `json:"architecture"`
+	Consumers              []string                     `json:"consumers"`
+	SupportedOperations    []string                     `json:"supported_operations"`
+	Artifacts              []Artifact                   `json:"artifacts"`
+	HostedHandle           string                       `json:"hosted_handle,omitempty"`
+	Checkpoints            []Checkpoint                 `json:"checkpoints,omitempty"`
+	Diagnostics            []processing.Diagnostic      `json:"diagnostics,omitempty"`
 }
 type Profile struct {
 	Kind        string    `json:"kind"`

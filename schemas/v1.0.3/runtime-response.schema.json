@@ -131,7 +131,14 @@
             "cancelled",
             "output_limit",
             "operation_failed",
-            "insufficient_space"
+            "insufficient_space",
+            "cuda_no_device",
+            "cuda_library_missing",
+            "cuda_library_incompatible",
+            "cuda_compute_unsupported",
+            "cuda_resource_exhausted",
+            "unsupported_language",
+            "engine_failed"
           ],
           "description": "Stable machine-readable failure category."
         },
@@ -335,7 +342,12 @@
             "worker_probe_cpu_unavailable",
             "worker_probe_inventory_limit",
             "worker_probe_inventory_unreadable",
-            "worker_probe_checkpoint_invalid"
+            "worker_probe_checkpoint_invalid",
+            "artifact_retained",
+            "artifact_active_lease",
+            "artifact_grace_period",
+            "artifact_retirement_active",
+            "unsupported_language"
           ],
           "description": "Allowlisted locally generated operation condition; never external text."
         },
@@ -401,6 +413,106 @@
               ]
             }
           }
+        },
+        "device_attempt": {
+          "type": "object",
+          "description": "Generated device attempts retained after failure; does not claim successful execution.",
+          "additionalProperties": false,
+          "required": [
+            "requested_device",
+            "attempted_devices"
+          ],
+          "properties": {
+            "requested_device": {
+              "enum": [
+                "cpu",
+                "cuda",
+                "auto"
+              ],
+              "description": "Frozen local device policy."
+            },
+            "attempted_devices": {
+              "type": "array",
+              "description": "Ordered concrete device attempts that actually started.",
+              "minItems": 1,
+              "maxItems": 2,
+              "items": {
+                "enum": [
+                  "cpu",
+                  "cuda"
+                ]
+              }
+            },
+            "fallback_reason": {
+              "enum": [
+                "cuda_no_device",
+                "cuda_library_missing",
+                "cuda_library_incompatible",
+                "cuda_compute_unsupported",
+                "cuda_resource_exhausted"
+              ],
+              "description": "Generated CUDA failure that selected the CPU retry; cancellation may prevent its launch."
+            }
+          },
+          "oneOf": [
+            {
+              "properties": {
+                "requested_device": {
+                  "const": "cpu",
+                  "description": "Explicit or historical CPU policy."
+                },
+                "attempted_devices": {
+                  "const": [
+                    "cpu"
+                  ],
+                  "description": "Only CPU was attempted."
+                }
+              },
+              "not": {
+                "required": [
+                  "fallback_reason"
+                ]
+              }
+            },
+            {
+              "properties": {
+                "requested_device": {
+                  "enum": [
+                    "auto",
+                    "cuda"
+                  ],
+                  "description": "NVIDIA-preferred policy."
+                },
+                "attempted_devices": {
+                  "const": [
+                    "cuda"
+                  ],
+                  "description": "CUDA was attempted; CPU did not start."
+                }
+              }
+            },
+            {
+              "required": [
+                "fallback_reason"
+              ],
+              "properties": {
+                "requested_device": {
+                  "enum": [
+                    "auto",
+                    "cuda"
+                  ],
+                  "description": "NVIDIA-preferred policy."
+                },
+                "attempted_devices": {
+                  "const": [
+                    "cuda",
+                    "cpu"
+                  ],
+                  "description": "CUDA failed and CPU was attempted."
+                }
+              }
+            }
+          ]
         }
       }
     }

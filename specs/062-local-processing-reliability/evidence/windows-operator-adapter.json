@@ -1,0 +1,17 @@
+{
+  "candidate_sha256": "cfdf504b8dc30c64be0a7a64e0f787290253abde03d758b4123d4de62ceeb8e2",
+  "scope": "real installed untimed fixture through maintained source/package invocation adapter",
+  "qualification_target_seconds": 1800,
+  "qualification_limit_seconds": 3600,
+  "finalization_reserve_seconds": 60,
+  "preparation_seconds": 2.469,
+  "readiness_complete_unix_ms": 1793447078539,
+  "recording_outcome": "no-timed-subtitles",
+  "state": "passed",
+  "terminal_unix_ms": 1793447086629,
+  "qualification_seconds": 8.094,
+  "combined_seconds": 10.563,
+  "candidate_unchanged": true,
+  "target_exceeded": false,
+  "hard_limit_exceeded": false
+}

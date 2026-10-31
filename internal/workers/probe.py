@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 """Inspect only selected installed libraries; never load a model or download."""
-import ctypes
 import hashlib
 import importlib.metadata as metadata
 import json
@@ -135,12 +134,22 @@ def inspect(role, snapshot, progress_path=None):
                   "hardware_count": 0, "dependency_state": "not_probed"}}, "engine_available": False}
     observation = Observation(snapshot, progress_path)
     reason = "success"
+    native = sys.modules.get("insonic_native")
+    libraries = None
+    cuda_error = None
     selected = ("faster-whisper", "ctranslate2", "av") if role == "recognition" else (
         "pyannote-audio", "torch", "torchaudio", "torchcodec")
     try:
         observation.record("package_versions")
         for name in selected:
             result["packages"][name] = metadata.version(name)
+        if native is None:
+            raise ProbeFailure("import_failed")
+        try:
+            libraries = native.NativeLibraries()
+            libraries.__enter__()
+        except native.NativeFailure as failure:
+            cuda_error = native.cuda_failure(failure) or "engine_failed"
         if role == "recognition":
             if result["packages"]["faster-whisper"] != "1.2.1" or result["packages"]["ctranslate2"] != "4.8.2":
                 raise ProbeFailure("version_mismatch")
@@ -156,16 +165,14 @@ def inspect(role, snapshot, progress_path=None):
                 count = ctranslate2.get_cuda_device_count()
                 result["devices"]["cuda"]["hardware_count"] = count
                 if count:
-                    libraries = ("cublas64_12.dll", "cudnn64_9.dll") if os.name == "nt" else (
-                        "libcublas.so.12", "libcudnn.so.9")
-                    handles = [ctypes.CDLL(name) for name in libraries]
-                    available = bool(ctranslate2.get_supported_compute_types("cuda"))
-                    result["devices"]["cuda"].update(available=available,
-                        dependency_state="libraries_available" if available else "unsupported_compute_type")
+                    if cuda_error:
+                        raise native.NativeFailure(cuda_error)
+                    libraries.recognition(ctranslate2)
+                    result["devices"]["cuda"].update(available=True, dependency_state="libraries_available")
                 else:
-                    result["devices"]["cuda"]["dependency_state"] = "no_device"
-            except Exception:
-                result["devices"]["cuda"]["dependency_state"] = "missing_cuda_libraries"
+                    result["devices"]["cuda"]["dependency_state"] = "cuda_no_device"
+            except Exception as error:
+                result["devices"]["cuda"]["dependency_state"] = native.cuda_failure(error) or "engine_failed"
         else:
             if result["packages"]["pyannote-audio"] != "4.0.7":
                 raise ProbeFailure("version_mismatch")
@@ -182,18 +189,22 @@ def inspect(role, snapshot, progress_path=None):
             torch.nn.functional.conv1d(waveform.reshape(1, 1, -1), torch.ones(1, 1, 3))
             observation.record("cuda_prerequisites")
             try:
-                available = bool(torch.cuda.is_available())
+                available = bool(torch.cuda.is_available()) and not cuda_error
                 result["devices"]["cuda"].update(available=available,
                     hardware_count=torch.cuda.device_count(),
-                    dependency_state="libraries_available" if available else "cuda_unavailable")
-            except Exception:
-                result["devices"]["cuda"]["dependency_state"] = "cuda_unavailable"
+                    dependency_state="libraries_available" if available else cuda_error or "cuda_no_device")
+            except Exception as error:
+                result["devices"]["cuda"]["dependency_state"] = native.cuda_failure(error) or "engine_failed"
         result["engine_available"] = True
         result["devices"]["cpu"].update(available=True, dependency_state="libraries_available")
         if snapshot:
             observation.record("dependency_inventory")
             files = {str(Path(sys.executable).resolve())}
             inventory_distributions(files, metadata.distributions(), observation)
+            if libraries is not None:
+                files.update(str(path) for path in libraries.files)
+            if len(files) > 30000:
+                raise ProbeFailure("inventory_limit")
             # Include interpreter configuration/native runtime identity too.
             for base in (Path(sys.prefix), Path(sys.base_prefix)):
                 for name in ("pyvenv.cfg", "python312.dll", "python3.dll"):
@@ -226,6 +237,9 @@ def inspect(role, snapshot, progress_path=None):
         reason = {"package_versions": "package_missing", "library_import": "import_failed",
                   "cpu_prerequisites": "cpu_unavailable", "dependency_inventory": "inventory_unreadable",
                   "dependency_hashing": "inventory_unreadable"}.get(observation.value["stage"], "process_failed")
+    finally:
+        if libraries is not None:
+            libraries.__exit__(None, None, None)
     result["probe"] = observation.finish(reason)
     if result["probe"]["reason"] != "success":
         result["engine_available"] = False

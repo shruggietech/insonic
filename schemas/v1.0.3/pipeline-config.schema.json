@@ -88,6 +88,14 @@
             "parameters": {
               "$ref": "common.schema.json#/$defs/nonsecretOptions",
               "description": "Effective training parameters."
+            },
+            "device": {
+              "enum": [
+                "auto",
+                "cpu",
+                "cuda"
+              ],
+              "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
             }
           },
           "required": [
@@ -478,10 +486,11 @@
       "properties": {
         "device": {
           "enum": [
+            "auto",
             "cpu",
             "cuda"
           ],
-          "description": "Device."
+          "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
         },
         "language": {
           "type": "string",
@@ -513,10 +522,11 @@
       "properties": {
         "device": {
           "enum": [
+            "auto",
             "cpu",
             "cuda"
           ],
-          "description": "Device."
+          "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
         },
         "min_speakers": {
           "type": "integer",

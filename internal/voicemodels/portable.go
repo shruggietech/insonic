@@ -12,6 +12,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/models"
+	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/schemas"
 )
 
@@ -189,6 +190,12 @@ func BuildModelManifest(workspaceID string, work catalog.Work, dataset catalog.S
 		"training": map[string]any{"training_run_id": catalog.SpeakerTrainingRunID(work.ID), "job_id": work.ID, "producing_attempt_id": attemptID, "pipeline_id": pipelineID, "pipeline_revision": pipelineRevision, "dataset": map[string]any{"dataset_snapshot_id": dataset.Dataset.ID, "manifest_sha256": dataset.ManifestDigest, "originating_speaker_id": dataset.Dataset.SpeakerID, "speaker_identity_revision": dataset.SpeakerRevision, "state": "current"}, "preparation": preparation, "provider": provider, "base_model": base, "parameters": parameters, "started_at": started, "completed_at": completed},
 		"outputs":  outputs, "compatibility": map[string]any{"model_kind": output.Kind, "architecture": output.Architecture, "supported_operations": operations, "consumers": consumers, "runtime_dependencies": []any{}, "sample_rate_hz": sampleRate, "channel_count": channels, "languages": []string{}},
 		"checkpoints": checkpoints, "license_declarations": []any{map[string]any{"scope": "output", "declared_license": nil, "attribution": nil, "source_basis": "configured-adapter"}}, "evaluations": []any{}, "diagnostics": diagnostics,
+	}
+	if len(output.DeviceExecutions) > 0 {
+		if _, err := processing.AccumulateDeviceExecutions(nil, output.DeviceExecutions); err != nil {
+			return nil, err
+		}
+		manifest["training"].(map[string]any)["device_executions"] = output.DeviceExecutions
 	}
 	if options.Adapter.License != "" {
 		manifest["license_declarations"].([]any)[0].(map[string]any)["declared_license"] = options.Adapter.License

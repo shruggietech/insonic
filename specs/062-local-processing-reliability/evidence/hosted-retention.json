@@ -1,0 +1,70 @@
+{
+  "source_head": "bd844df175a9193f7e37f2862274a73045a0fea1",
+  "tested_merge_revision": "32788a7a78f02b5f13bea50e53c8dca1eafb14a0",
+  "verified_common_tree": "87829f637b625f092e0d799cf1cc2a99142bbbb2",
+  "run": 41198684083,
+  "attempt": 1,
+  "receipt_json_count": 285,
+  "artifacts": [
+    {
+      "id": 13042490396,
+      "name": "package-receipts-ubuntu-24.04-desktop-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "953f1109149ac75524f439d2a80d6cd3b8e46a176804aea0d5a4db99a70096d4",
+      "json_count": 10
+    },
+    {
+      "id": 13042420341,
+      "name": "native-receipts-desktop-ubuntu-24.04-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "27a024e86c5bdc0eed67ede8ead3309daaa968f0f41da4bd582ac2a48ff55202",
+      "json_count": 11
+    },
+    {
+      "id": 13042361062,
+      "name": "native-receipts-engine-ubuntu-24.04-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "bcbdc1a1c64b2fe07cd377289467cdcf48742e81e9256e2e5415e083c72f279e",
+      "json_count": 7
+    },
+    {
+      "id": 13042111419,
+      "name": "ci-acceptance-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "c76f10e9d4d93ba4751bb512d190fd57146bad70b3c0f6c34471dfbe41c34f65",
+      "json_count": 1
+    },
+    {
+      "id": 13041898004,
+      "name": "native-receipts-desktop-windows-2022-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "89a7dba80efdee0b5809719ae746915bb7a0e464f119cd8f334aa4ded123a0e1",
+      "json_count": 27
+    },
+    {
+      "id": 13041838001,
+      "name": "package-receipts-windows-2022-cli-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "e115ddfe8662989a485997e1baf79f8f8b42b8209ea94900e0132914df4496a2",
+      "json_count": 7
+    },
+    {
+      "id": 13041773033,
+      "name": "package-receipts-ubuntu-24.04-cli-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "5f0dff5da1b0e57bc63c049d21a2ae8b21a141dbe29b12e121b2630b76da31a5",
+      "json_count": 6
+    },
+    {
+      "id": 13041694019,
+      "name": "native-receipts-engine-windows-2022-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "f7e19b8b4b9abacc4e3b013efc294429844d9eabf4fe5dd4428a911bf0c457eb",
+      "json_count": 8
+    },
+    {
+      "id": 13042281141,
+      "name": "documentation-ui-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "dd3d3e52ba73d47c14bb57f11b6c882726e38cac1c242ea64dad010fc90b16c1",
+      "json_count": 1
+    },
+    {
+      "id": 13041524205,
+      "name": "installer-receipts-windows-2022-32788a7a78f02b5f13bea50e53c8dca1eafb14a0-1",
+      "sha256": "f4c6c96c573ff3227a7ad52cf7348c6b44c5bb10e9bb153df56d8f21f6d832b8",
+      "json_count": 207
+    }
+  ]
+}

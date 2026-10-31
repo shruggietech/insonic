@@ -453,3 +453,38 @@ test('managed worker closure validates and publishes both document alternatives'
  const damaged=structuredClone(closure);damaged.profiles[0].runtime.sha256='not-a-digest';
  assert.equal(master(damaged),false);
 });
+
+
+test('local automatic device policies and bounded speaker execution provenance are consistent',()=>{
+  for (const operation of ['processing.readiness']) {
+    const request=example('runtime-request');request.operation=operation;request.data={recognition_device:'auto',diarization_device:'cpu'};
+    assert.equal(master(request),true,JSON.stringify(master.errors));
+    request.data.recognition_device='other';assert.equal(master(request),false);
+  }
+  const model=example('speaker-model');
+  model.training.device_executions=[{requested_device:'auto',attempted_devices:['cuda','cpu'],device:'cpu',fallback_reason:'cuda_no_device',count:1}];
+  assert.equal(master(model),true,JSON.stringify(master.errors));
+  const execution=model.training.device_executions[0];
+  execution.device='cuda';assert.equal(master(model),false,'fallback cannot claim CUDA output');
+  execution.device='cpu';delete execution.fallback_reason;assert.equal(master(model),false,'fallback needs a cause');
+  execution.requested_device='cpu';execution.attempted_devices=['cpu'];assert.equal(master(model),true,JSON.stringify(master.errors));
+  execution.attempted_devices=['cpu','cuda'];assert.equal(master(model),false,'CPU policy cannot attempt CUDA');
+  execution.attempted_devices=['cpu'];execution.count=0;assert.equal(master(model),false);
+  delete model.training.device_executions;assert.equal(master(model),true,'historical absence remains valid');
+});
+
+
+test('failed local work retains bounded attempted devices without claiming successful execution',()=>{
+  const response=example('runtime-response');delete response.result;
+  response.error={code:'engine_failed',message:'Generated failure.',device_attempt:{requested_device:'auto',attempted_devices:['cuda','cpu'],fallback_reason:'cuda_resource_exhausted'}};
+  assert.equal(master(response),true,JSON.stringify(master.errors));
+  const attempt=response.error.device_attempt;
+  delete attempt.fallback_reason;assert.equal(master(response),false,'CPU retry needs its CUDA cause');
+  attempt.attempted_devices=['cuda'];assert.equal(master(response),true);
+  attempt.fallback_reason='cuda_no_device';assert.equal(master(response),true,'cancellation may prevent CPU launch');
+  attempt.device='cpu';assert.equal(master(response),false,'failed work cannot claim an actual successful device');delete attempt.device;
+  attempt.fallback_reason='raw engine text';assert.equal(master(response),false);delete attempt.fallback_reason;
+  attempt.attempted_devices=[];assert.equal(master(response),false);
+  attempt.requested_device='cpu';attempt.attempted_devices=['cpu'];assert.equal(master(response),true);
+  attempt.attempted_devices=['cuda'];assert.equal(master(response),false);
+});

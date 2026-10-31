@@ -4,6 +4,7 @@ import importlib.util
 import json
 import hashlib
 import os
+import sys
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -11,6 +12,10 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+native_spec = importlib.util.spec_from_file_location("insonic_native", ROOT / "internal/workers/native.py")
+native = importlib.util.module_from_spec(native_spec)
+native_spec.loader.exec_module(native)
+sys.modules["insonic_native"] = native
 spec = importlib.util.spec_from_file_location("worker_probe", ROOT / "internal/workers/probe.py")
 probe = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(probe)
@@ -127,6 +132,7 @@ class WorkerProbeDiagnostics(unittest.TestCase):
         from types import SimpleNamespace
         import sys
         stack = ExitStack()
+        stack.enter_context(patch.object(native, "native_files", return_value=[]))
         stack.enter_context(patch.object(probe.metadata, "version", side_effect=lambda name: {
             "faster-whisper": "1.2.1", "ctranslate2": "4.8.2", "av": "18.1.0"}[name]))
         stack.enter_context(patch.dict(sys.modules, {
@@ -135,6 +141,45 @@ class WorkerProbeDiagnostics(unittest.TestCase):
             "faster_whisper": SimpleNamespace(WhisperModel=object),
         }))
         return stack
+
+    def test_cuda_reason_distinguishes_missing_library_from_other_failures(self):
+        with self.ready():
+            sys.modules["ctranslate2"].get_cuda_device_count = lambda: 1
+            result = probe.inspect("recognition", False)
+        self.assertEqual(result["devices"]["cuda"]["dependency_state"], "cuda_library_missing")
+        self.assertTrue(result["engine_available"])
+        with self.ready():
+            sys.modules["ctranslate2"].get_cuda_device_count = lambda: (_ for _ in ()).throw(RuntimeError("private/path unrelated problem"))
+            result = probe.inspect("recognition", False)
+        self.assertEqual(result["devices"]["cuda"]["dependency_state"], "engine_failed")
+        self.assertNotIn("private/path", json.dumps(result))
+
+    def test_cuda_readiness_uses_shared_loader_and_requires_float16(self):
+        with self.ready(), patch.object(native.NativeLibraries, "recognition") as selected:
+            sys.modules["ctranslate2"].get_cuda_device_count = lambda: 1
+            result = probe.inspect("recognition", False)
+            selected.assert_called_once_with(sys.modules["ctranslate2"])
+        self.assertTrue(result["devices"]["cuda"]["available"])
+        self.assertEqual(result["devices"]["cuda"]["dependency_state"], "libraries_available")
+
+    def test_configured_readiness_does_not_elect_new_library_outside_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cublas, cudnn = root / "cublas64_12.dll", root / "cudnn64_9.dll"
+            cublas.write_bytes(b"elected")
+            cudnn.write_bytes(b"new dependency after election")
+            receipt = root / "receipt.json"
+            receipt.write_text(json.dumps({"inspection": {"files": [{"path": str(cublas), "sha256": hashlib.sha256(cublas.read_bytes()).hexdigest()}]}}), encoding="utf-8")
+            with patch.object(native, "_receipt_files", None):
+                native.set_receipt(str(receipt), hashlib.sha256(receipt.read_bytes()).hexdigest())
+                with patch.object(native, "WINDOWS", True), patch.object(native.os, "add_dll_directory", return_value=SimpleNamespace(close=lambda: None), create=True), \
+                     patch.object(native.ctypes, "CDLL", return_value=object()), \
+                     patch.object(probe.metadata, "version", side_effect=lambda name: {"faster-whisper": "1.2.1", "ctranslate2": "4.8.2", "av": "18.1.0"}[name]), \
+                     patch.dict(sys.modules, {"av": SimpleNamespace(), "ctranslate2": SimpleNamespace(get_cuda_device_count=lambda: 1, get_supported_compute_types=lambda _: {"int8", "float16"}), "faster_whisper": SimpleNamespace(WhisperModel=object)}):
+                    result = probe.inspect("recognition", False)
+                self.assertTrue(result["devices"]["cpu"]["available"])
+                self.assertFalse(result["devices"]["cuda"]["available"])
+                self.assertEqual(result["devices"]["cuda"]["dependency_state"], "cuda_library_missing")
 
     def test_import_failure_has_no_external_text(self):
         import builtins
@@ -174,6 +219,49 @@ class WorkerProbeDiagnostics(unittest.TestCase):
         self.assertFalse(result["engine_available"])
         self.assertEqual(result["files"], [])
         self.assertNotIn("secret-token", json.dumps(result["probe"]))
+
+    def test_snapshot_receipt_hashes_discovered_native_closure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            exe = Path(directory) / "python"
+            exe.write_bytes(b"interpreter")
+            dependency = Path(directory) / "libcublasLt.so.12.9.0"
+            dependency.write_bytes(b"system linker mapped CUDA dependency")
+            with self.ready(), patch.object(native, "native_files", return_value=[dependency]), \
+                 patch.object(probe.metadata, "distributions", return_value=[]), \
+                 patch.object(sys, "executable", str(exe)), patch.object(sys, "_base_executable", str(exe), create=True), \
+                 patch.object(sys, "prefix", directory), patch.object(sys, "base_prefix", directory):
+                result = probe.inspect("recognition", True)
+            self.assertEqual(result["probe"]["reason"], "success")
+            self.assertIn({"path": str(dependency.resolve()), "sha256": hashlib.sha256(dependency.read_bytes()).hexdigest()}, result["files"])
+
+    def test_snapshot_preserves_linux_lazy_loader_alias_pin(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            exe, target, alias = root / "python", root / "libcudnn_ops.so.9.1", root / "libcudnn_ops.so.9"
+            exe.write_bytes(b"interpreter")
+            target.write_bytes(b"elected native bytes")
+            try:
+                alias.symlink_to(target.name)
+            except OSError:
+                self.skipTest("file symlinks unavailable")
+            with self.ready(), patch.object(native, "native_files", return_value=[target, alias]), \
+                 patch.object(probe.metadata, "distributions", return_value=[]), \
+                 patch.object(sys, "executable", str(exe)), patch.object(sys, "_base_executable", str(exe), create=True), \
+                 patch.object(sys, "prefix", directory), patch.object(sys, "base_prefix", directory):
+                result = probe.inspect("recognition", True)
+            self.assertEqual(result["probe"]["reason"], "success")
+            self.assertIn({"path": str(alias), "sha256": hashlib.sha256(target.read_bytes()).hexdigest()}, result["files"])
+            receipt = root / "receipt.json"
+            receipt.write_text(json.dumps({"inspection": result}), encoding="utf-8")
+            with patch.object(native, "WINDOWS", False), patch.object(native, "_receipt_files", None):
+                native.set_receipt(str(receipt), hashlib.sha256(receipt.read_bytes()).hexdigest())
+                self.assertIn(alias, native.native_files())
+                replacement = root / "replacement"
+                replacement.write_bytes(b"not elected")
+                alias.unlink()
+                alias.symlink_to(replacement.name)
+                with self.assertRaisesRegex(native.NativeFailure, "checksum_mismatch"):
+                    native.set_receipt(str(receipt), hashlib.sha256(receipt.read_bytes()).hexdigest())
 
     def test_inventory_walk_errors_are_not_silently_omitted(self):
         def broken(*args, **kwargs):

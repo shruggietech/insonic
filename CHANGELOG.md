@@ -14,11 +14,17 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-31: Retain the same capacity classification while initializing filesystem/catalog destinations and observe failure to close the initial private SQLite file.
 
+- 2026-10-31: Resolve CUDA native libraries from the elected Python environment on Windows and the Linux system loader, bind lazy component aliases to verified receipt bytes, preserve typed worker failures and reject unsupported recognition languages before execution. Discard recognition output for exact silence, retain valid recognition when diarization finds no speech, and expose the disagreement. Correct model-setup commands and distinguish shipped engines from upstream alternatives.
+
+- 2026-10-31: Keep normal durable-work output concise and actionable, remove wait/cancel suggestions for terminal work, and explain artifact grace, active-lease and retained-reference refusals without weakening retirement rules.
+
 ### Changed
 
 - 2026-10-31: Qualify bounded native backup/restore I/O failures and actual confined source/package filesystem obstructions separately. Require complete recovery receipts bound to exact platform/image/package authority; keep only the four digest-pinned original v1.0.3 package receipts exempt from the new field. Existing qualification timing, product deadlines, release assets and owner-controlled merge remain unchanged.
 
 - 2026-10-31: Create every owned obstruction-fixture ancestor with private permissions, including intermediate directories, and let product initialization own protected storage/progress roots. This preserves elevated Windows ownership normalization and Unix private-directory admission while exercising the intended failure and retry.
+
+- 2026-10-31: Prefer NVIDIA for newly admitted local recognition, diarization and speaker embedding work, with one fresh CPU retry for classified CUDA execution failures under the original deadline. Preserve explicit CPU execution and historical admitted CPU work, and record requested, attempted and actual devices in processing and speaker-model provenance.
 
 ## [1.0.3] - 2026-10-29
 

@@ -275,6 +275,7 @@
         "tests/media_source_build_test.py",
         "tests/media_transfer_test.py",
         "tests/native_launch_diagnostic_test.py",
+        "tests/native_worker_test.py",
         "tests/package_desktop_test.py",
         "tests/package_wait_test.py",
         "tests/pages_test.py",
@@ -360,6 +361,7 @@
         "internal/launcher/documentation_other.go",
         "internal/library/acquisition.go",
         "internal/library/admission.go",
+        "internal/library/admission_recovery.go",
         "internal/library/canonical.go",
         "internal/library/date.go",
         "internal/library/embedded.go",
@@ -378,6 +380,7 @@
         "internal/processing/adapters.go",
         "internal/processing/audio.go",
         "internal/processing/config.go",
+        "internal/processing/device_policy.go",
         "internal/processing/types.go",
         "internal/runtime/deadline.go",
         "internal/runtime/runtime.go",
@@ -394,8 +397,7 @@
         "internal/voicemodels/types.go",
         "internal/workers/platform.go",
         "internal/workers/probe.go",
-        "internal/workers/setup.go",
-        "internal/library/admission_recovery.go"
+        "internal/workers/setup.go"
       ],
       "platform": "Windows and Linux where the owner is supported",
       "callers": "ordinary CLI/runtime/desktop requests and explicit fixtures"

@@ -64,43 +64,51 @@ func ValidLocalSpeakerID(s string) bool {
 }
 
 type Error struct {
-	Code        string            `json:"code"`
-	Reason      string            `json:"reason,omitempty"`
-	Message     string            `json:"message"`
-	Diagnostics []Diagnostic      `json:"diagnostics,omitempty"`
-	Validation  *InputViolation   `json:"validation,omitempty"`
-	Asset       *AssetObservation `json:"asset,omitempty"`
+	Code          string            `json:"code"`
+	Reason        string            `json:"reason,omitempty"`
+	Message       string            `json:"message"`
+	Diagnostics   []Diagnostic      `json:"diagnostics,omitempty"`
+	Validation    *InputViolation   `json:"validation,omitempty"`
+	Asset         *AssetObservation `json:"asset,omitempty"`
+	DeviceAttempt *DeviceAttempt    `json:"device_attempt,omitempty"`
 }
 
 func (e *Error) Error() string { return e.Code + ": " + e.Message }
 func Fail(code string) *Error {
 	message := map[string]string{
-		"unsupported_platform":     "This host platform is unsupported. Use a Windows or Linux x86-64 package.",
-		"checksum_mismatch":        "The acquired bytes do not match the elected checksum. Replace damaged bytes or correct the manifest before retrying.",
-		"acquisition_timeout":      "Acquisition exceeded its configured deadline. Retry after checking the source or timeout.",
-		"mixed_item_failure":       "Some work items failed. Inspect work results for each item before retrying.",
-		"timing_unavailable":       "The selected stream has no usable source-clock timing.",
-		"invalid_audio":            "The selected audio is invalid or cannot be decoded.",
-		"audio_limit":              "The audio exceeds the configured resource limit.",
-		"unsupported_audio":        "The selected audio layout is unsupported.",
-		"model_unavailable":        "The elected managed model is unavailable.",
-		"model_acquisition_failed": "A required model acquisition failed or was cancelled. Retry this work to recover its frozen model bundle.",
-		"unsupported_capability":   "The selected adapter does not support this operation.",
-		"unsupported_retrieval":    "This exact speaker version has no downloadable output; its hosted provider handle remains inspectable.",
-		"empty_dataset":            "No usable independently confirmed current speaker evidence remains after the elected filters.",
-		"unsupported_resume":       "The selected training adapter does not support checkpoint resume.",
-		"incompatible_checkpoint":  "The checkpoint does not match the elected dataset, adapter, base model or training parameters.",
-		"training_incomplete":      "The adapter published resumable checkpoints without completing a speaker model.",
-		"text_unavailable":         "The selected training adapter requires text that is unavailable in the current cue.",
-		"input_limit":              "The processing input exceeds the configured limit.",
-		"invalid_engine_output":    "The local engine returned an invalid result.",
-		"invalid_timing":           "The local engine returned invalid source-clock timing.",
-		"engine_ci_forbidden":      "Model execution is disabled in CI.",
-		"engine_unavailable":       "The configured local engine is unavailable.",
-		"insufficient_space":       "The elected local destination has insufficient free space. Free space or select another workspace/storage location, then retry.",
-		"unsupported_device":       "The selected processing device is unsupported.",
-		"invalid_embedding":        "The local engine returned invalid speaker embeddings.",
-		"invalid_request":          "The request is invalid.", "incompatible_version": "The contract version is unsupported.",
+		"unsupported_platform":      "This host platform is unsupported. Use a Windows or Linux x86-64 package.",
+		"checksum_mismatch":         "The acquired bytes do not match the elected checksum. Replace damaged bytes or correct the manifest before retrying.",
+		"acquisition_timeout":       "Acquisition exceeded its configured deadline. Retry after checking the source or timeout.",
+		"mixed_item_failure":        "Some work items failed. Inspect work results for each item before retrying.",
+		"timing_unavailable":        "The selected stream has no usable source-clock timing.",
+		"invalid_audio":             "The selected audio is invalid or cannot be decoded.",
+		"audio_limit":               "The audio exceeds the configured resource limit.",
+		"unsupported_audio":         "The selected audio layout is unsupported.",
+		"model_unavailable":         "The elected managed model is unavailable.",
+		"model_acquisition_failed":  "A required model acquisition failed or was cancelled. Retry this work to recover its frozen model bundle.",
+		"unsupported_capability":    "The selected adapter does not support this operation.",
+		"unsupported_retrieval":     "This exact speaker version has no downloadable output; its hosted provider handle remains inspectable.",
+		"empty_dataset":             "No usable independently confirmed current speaker evidence remains after the elected filters.",
+		"unsupported_resume":        "The selected training adapter does not support checkpoint resume.",
+		"incompatible_checkpoint":   "The checkpoint does not match the elected dataset, adapter, base model or training parameters.",
+		"training_incomplete":       "The adapter published resumable checkpoints without completing a speaker model.",
+		"text_unavailable":          "The selected training adapter requires text that is unavailable in the current cue.",
+		"input_limit":               "The processing input exceeds the configured limit.",
+		"invalid_engine_output":     "The local engine returned an invalid result.",
+		"invalid_timing":            "The local engine returned invalid source-clock timing.",
+		"engine_ci_forbidden":       "Model execution is disabled in CI.",
+		"engine_unavailable":        "The configured local engine is unavailable.",
+		"insufficient_space":        "The elected local destination has insufficient free space. Free space or select another workspace/storage location, then retry.",
+		"unsupported_device":        "The selected processing device is unsupported.",
+		"cuda_no_device":            "No usable NVIDIA device is visible to the selected worker. Inspect device visibility or use CPU processing.",
+		"cuda_library_missing":      "A required CUDA native library is missing from the selected environment. Prepare compatible cuBLAS/cuDNN or use CPU processing.",
+		"cuda_library_incompatible": "The selected CUDA native libraries are incompatible. Prepare the documented compatible environment or use CPU processing.",
+		"cuda_compute_unsupported":  "The selected NVIDIA device does not support the required compute type. Use a compatible device or CPU processing.",
+		"cuda_resource_exhausted":   "The NVIDIA device could not provide the required resources. Free device memory, reduce the elected processing load or use CPU processing.",
+		"unsupported_language":      "recognition.language must be auto or a supported faster-whisper language code, such as en, es or fr. See local processing setup for the supported choices.",
+		"engine_failed":             "The local engine failed without a recognized device or input cause. Inspect worker readiness and the elected model before retrying; the prior accepted result is unchanged.",
+		"invalid_embedding":         "The local engine returned invalid speaker embeddings.",
+		"invalid_request":           "The request is invalid.", "incompatible_version": "The contract version is unsupported.",
 		"workspace_mismatch": "The request belongs to another workspace.", "not_found": "The item is unavailable in this workspace.",
 		"conflict": "The operation conflicts with current state. Inspect the selected item and its current revision before retrying.", "unavailable": "The selected dependency is unavailable.",
 		"cancelled": "The operation was cancelled.", "output_limit": "The operation output limit was exceeded.", "operation_failed": "The operation failed.",

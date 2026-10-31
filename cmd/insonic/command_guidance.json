@@ -560,6 +560,11 @@
       "meaning": "Read a bounded protected credential object from stdin.",
       "default": "no protected input read",
       "conditions": "required when the elected backend plan needs secrets; never put secret values in arguments"
+    },
+    "--diarization-device": {
+      "meaning": "Select auto, cpu or cuda for local transcript attribution; auto/cuda permit one observable CPU fallback.",
+      "default": "auto for new local diarization work",
+      "conditions": "used with diarized attribution; explicit cpu stays CPU"
     }
   }
 }

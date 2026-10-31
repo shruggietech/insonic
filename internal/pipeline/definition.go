@@ -163,6 +163,11 @@ func ValidateStage(s Stage, operation string) error {
 		}
 	}
 	if operation == "transcription" {
+		if s.Mode == "local" {
+			if err := processing.ValidateLocalLanguage(s.Recognition.Language); err != nil {
+				return err
+			}
+		}
 		if s.Diarization != (processing.DiarizationOptions{}) {
 			return contracts.Fail("invalid_request")
 		}

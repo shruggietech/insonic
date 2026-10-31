@@ -167,6 +167,41 @@ func TestBrokenProbeRedactsOutput(t *testing.T) {
 		t.Fatal(r, e)
 	}
 }
+
+func TestInspectionBindsConfiguredReceiptBeforeNativeProbe(t *testing.T) {
+	d := t.TempDir()
+	python := filepath.Join(d, "python")
+	if err := os.WriteFile(python, []byte("fixture"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	pin, _ := Hash(context.Background(), python)
+	receipt := Receipt{Kind: "worker-environment", Version: contracts.Version, Inspection: Inspection{Role: "recognition", Python: pin, Compatible: true, EngineAvailable: true, Files: []library.PinnedFile{pin}}}
+	raw, _ := json.Marshal(receipt)
+	name := filepath.Join(d, "elected receipt.json")
+	if err := os.WriteFile(name, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	bound, _ := Hash(context.Background(), name)
+	called := false
+	s := Service{Directory: d, Run: func(_ context.Context, spec process.Spec) (process.CaptureResult, error) {
+		called = true
+		if len(spec.Args) != 9 || spec.Args[7] != bound.Path || spec.Args[8] != bound.SHA256 || !strings.Contains(spec.Args[3], "_native.set_receipt(sys.argv[4],sys.argv[5])") || strings.Contains(spec.Args[3], bound.Path) {
+			t.Fatal("probe did not bind receipt operands", spec.Args)
+		}
+		return process.CaptureResult{}, contracts.Fail("operation_failed")
+	}}
+	if _, err := s.Inspect(context.Background(), "recognition", python, false, bound); err != nil || !called {
+		t.Fatal("verified receipt did not reach probe", err)
+	}
+	called = false
+	if err := os.WriteFile(name, []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	out, err := s.Inspect(context.Background(), "recognition", python, false, bound)
+	if err != nil || called || out.EngineAvailable || out.Error != "checksum_mismatch" || out.Probe.Stage != "receipt_verification" {
+		t.Fatal("changed receipt reached probe", out, err)
+	}
+}
 func TestEnvironmentReceiptDetectsMutation(t *testing.T) {
 	d := t.TempDir()
 	p := filepath.Join(d, "python")
@@ -183,6 +218,49 @@ func TestEnvironmentReceiptDetectsMutation(t *testing.T) {
 	os.WriteFile(p, []byte("changed"), 0700)
 	if VerifyReceipt(context.Background(), rp, pin) == nil {
 		t.Fatal("changed environment accepted")
+	}
+}
+
+func TestEnvironmentReceiptPreservesLoaderAliasBinding(t *testing.T) {
+	dir := t.TempDir()
+	python, original, replacement := filepath.Join(dir, "python"), filepath.Join(dir, "libcudnn_ops.so.9.1"), filepath.Join(dir, "libcudnn_ops.so.9.2")
+	for path, body := range map[string]string{python: "interpreter", original: "original bytes", replacement: "replacement bytes"} {
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	alias := filepath.Join(dir, "libcudnn_ops.so.9")
+	if err := os.Symlink(original, alias); err != nil {
+		t.Skip("file symlinks unavailable", err)
+	}
+	pythonPin, _ := Hash(context.Background(), python)
+	originalPin, _ := Hash(context.Background(), original)
+	aliasPin, _ := Hash(context.Background(), alias)
+	if aliasPin.Path != alias {
+		t.Fatal("hashing collapsed loader alias")
+	}
+	receipt := Receipt{Kind: "worker-environment", Version: contracts.Version, Inspection: Inspection{Role: "recognition", Python: pythonPin, Compatible: true, EngineAvailable: true, Files: []library.PinnedFile{pythonPin, originalPin, aliasPin}}}
+	raw, _ := json.Marshal(receipt)
+	path := filepath.Join(dir, "receipt.json")
+	if err := os.WriteFile(path, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	pin, _ := Hash(context.Background(), path)
+	if err := VerifyReceipt(context.Background(), pin, pythonPin); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(alias); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(replacement, alias); err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyReceipt(context.Background(), pin, pythonPin); contracts.SafeError(err).Code != "checksum_mismatch" {
+		t.Fatal("retargeted loader binding accepted", err)
+	}
+	retained, _ := Hash(context.Background(), original)
+	if retained.SHA256 != originalPin.SHA256 {
+		t.Fatal("original versioned bytes changed")
 	}
 }
 func TestElectionRejectsAmbiguousAndRelativePaths(t *testing.T) {

@@ -22,7 +22,7 @@ type InputViolation struct {
 
 func inputReason(reason string) bool {
 	switch reason {
-	case "json_empty", "json_syntax", "json_encoding", "json_duplicate_key", "json_extra_document", "input_shape", "input_unknown_field", "input_required", "input_type", "input_enum", "input_range", "input_length", "input_version", "input_constraint", "input_bytes", "credential_value_limit", "credential_input_shape":
+	case "unsupported_language", "json_empty", "json_syntax", "json_encoding", "json_duplicate_key", "json_extra_document", "input_shape", "input_unknown_field", "input_required", "input_type", "input_enum", "input_range", "input_length", "input_version", "input_constraint", "input_bytes", "credential_value_limit", "credential_input_shape":
 		return true
 	}
 	return false

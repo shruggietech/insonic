@@ -1,0 +1,275 @@
+{
+  "kind": "local-processing-followup-acceptance",
+  "state": "passed",
+  "build_seconds": 3.352,
+  "candidate_sha256": "cfdf504b8dc30c64be0a7a64e0f787290253abde03d758b4123d4de62ceeb8e2",
+  "worker_sha256": "a0f14e7c223f8febb65670fe5d34b1afaf53d62b001ccb9a4e04cce3e457b70e",
+  "native_helper_sha256": "9a839f7d7af7a4d12da95c2ba839bb5671b43949853748f457f738a7b969569d",
+  "input_inventory_sha256": "bbf02fea15abb8956ed50e1b96786d644d3d0733d6c602bd4dacc8154f561a34",
+  "input_count": 701,
+  "rows": [
+    {
+      "check": "recognition-configured-inspect",
+      "elapsed_seconds": 3.359,
+      "cpu_available": true,
+      "cuda_available": true,
+      "probe": {
+        "budget_ms": 60000,
+        "child": {
+          "checkpoints": [
+            {
+              "elapsed_ms": 0,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "package_versions"
+            },
+            {
+              "elapsed_ms": 860,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "library_import"
+            },
+            {
+              "elapsed_ms": 1031,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "cpu_prerequisites"
+            },
+            {
+              "elapsed_ms": 1031,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "cuda_prerequisites"
+            },
+            {
+              "elapsed_ms": 1141,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "complete"
+            }
+          ],
+          "elapsed_ms": 1141,
+          "files": 0,
+          "hashed_bytes": 0,
+          "hashed_files": 0,
+          "mode": "inspect",
+          "reason": "success",
+          "stage": "complete"
+        },
+        "elapsed_ms": 3237,
+        "mode": "inspect",
+        "reason": "success",
+        "stage": "complete"
+      },
+      "environment_receipt_sha256": "f508654e6094ace138e7a2811e178d77f807c5c18e81505deca236278e2a29bf"
+    },
+    {
+      "check": "recognition-explicit-inspect",
+      "elapsed_seconds": 1.047,
+      "cpu_available": true,
+      "cuda_available": true,
+      "probe": {
+        "budget_ms": 60000,
+        "child": {
+          "checkpoints": [
+            {
+              "elapsed_ms": 0,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "package_versions"
+            },
+            {
+              "elapsed_ms": 140,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "library_import"
+            },
+            {
+              "elapsed_ms": 281,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "cpu_prerequisites"
+            },
+            {
+              "elapsed_ms": 281,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "cuda_prerequisites"
+            },
+            {
+              "elapsed_ms": 375,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "complete"
+            }
+          ],
+          "elapsed_ms": 375,
+          "files": 0,
+          "hashed_bytes": 0,
+          "hashed_files": 0,
+          "mode": "inspect",
+          "reason": "success",
+          "stage": "complete"
+        },
+        "elapsed_ms": 933,
+        "mode": "inspect",
+        "reason": "success",
+        "stage": "complete"
+      },
+      "environment_receipt_sha256": null
+    },
+    {
+      "check": "diarization-configured-inspect",
+      "elapsed_seconds": 15.297,
+      "cpu_available": true,
+      "cuda_available": true,
+      "probe": {
+        "budget_ms": 60000,
+        "child": {
+          "checkpoints": [
+            {
+              "elapsed_ms": 0,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "package_versions"
+            },
+            {
+              "elapsed_ms": 1469,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "library_import"
+            },
+            {
+              "elapsed_ms": 8094,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "cpu_prerequisites"
+            },
+            {
+              "elapsed_ms": 8109,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "cuda_prerequisites"
+            },
+            {
+              "elapsed_ms": 8187,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "complete"
+            }
+          ],
+          "elapsed_ms": 8187,
+          "files": 0,
+          "hashed_bytes": 0,
+          "hashed_files": 0,
+          "mode": "inspect",
+          "reason": "success",
+          "stage": "complete"
+        },
+        "elapsed_ms": 15163,
+        "mode": "inspect",
+        "reason": "success",
+        "stage": "complete"
+      },
+      "environment_receipt_sha256": "443dbe1ae63ed8c20a765462e791aadc930c610d4c35c1b93627a9237088ba0b"
+    },
+    {
+      "check": "diarization-explicit-inspect",
+      "elapsed_seconds": 6.031,
+      "cpu_available": true,
+      "cuda_available": true,
+      "probe": {
+        "budget_ms": 60000,
+        "child": {
+          "checkpoints": [
+            {
+              "elapsed_ms": 0,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "package_versions"
+            },
+            {
+              "elapsed_ms": 344,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "library_import"
+            },
+            {
+              "elapsed_ms": 4359,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "cpu_prerequisites"
+            },
+            {
+              "elapsed_ms": 4359,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "cuda_prerequisites"
+            },
+            {
+              "elapsed_ms": 4406,
+              "files": 0,
+              "hashed_bytes": 0,
+              "hashed_files": 0,
+              "stage": "complete"
+            }
+          ],
+          "elapsed_ms": 4406,
+          "files": 0,
+          "hashed_bytes": 0,
+          "hashed_files": 0,
+          "mode": "inspect",
+          "reason": "success",
+          "stage": "complete"
+        },
+        "elapsed_ms": 5889,
+        "mode": "inspect",
+        "reason": "success",
+        "stage": "complete"
+      },
+      "environment_receipt_sha256": null
+    },
+    {
+      "check": "configured-processing-readiness",
+      "elapsed_seconds": 17.469,
+      "inference": "not_run",
+      "cpu_available": true,
+      "cuda_available": true
+    },
+    {
+      "check": "completed-no-speech-human-readback",
+      "outcome": "No speech",
+      "state_count": 1,
+      "new_model_inference": false
+    }
+  ],
+  "evidence_boundary": "Configured inspection routing, Windows CPU/CUDA model-free readiness, and completed work human output only. Full inference matrix retained separately on original candidate. Linux resolver verified by model-free tests, without Linux GPU inference.",
+  "preparation_seconds": 0.422,
+  "qualification_started_utc": "2026-10-31T11:24:05Z",
+  "target_seconds": 1800,
+  "hard_limit_seconds": 3600,
+  "finalization_reserve_seconds": 60,
+  "qualification_seconds": 43.406,
+  "qualification_finished_utc": "2026-10-31T11:24:49Z",
+  "owned_runtime_released": true,
+  "combined_seconds": 43.828
+}

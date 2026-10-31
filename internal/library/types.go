@@ -46,6 +46,7 @@ type Options struct {
 	ReplaceTranscript      *bool              `json:"replace_transcript,omitempty"`
 	SubtitleStreamIndex    *int               `json:"subtitle_stream_index,omitempty"`
 	SubtitleLanguage       string             `json:"subtitle_language,omitempty"`
+	DiarizationDevice      string             `json:"diarization_device,omitempty"`
 	DiarizationModelID     string             `json:"diarization_model_id,omitempty"`
 	DiarizationModelDigest string             `json:"diarization_model_digest,omitempty"`
 
@@ -185,6 +186,9 @@ func merged(base, item Options) Options {
 	if item.SubtitleLanguage != "" {
 		base.SubtitleLanguage = item.SubtitleLanguage
 	}
+	if item.DiarizationDevice != "" {
+		base.DiarizationDevice = item.DiarizationDevice
+	}
 	if item.DiarizationModelID != "" {
 		base.DiarizationModelID = item.DiarizationModelID
 		base.DiarizationModelDigest = item.DiarizationModelDigest
@@ -242,6 +246,9 @@ func merged(base, item Options) Options {
 	return base
 }
 func validOptions(o Options) bool {
+	if o.DiarizationDevice != "" && o.DiarizationDevice != "cpu" && o.DiarizationDevice != "cuda" && o.DiarizationDevice != "auto" {
+		return false
+	}
 	if o.PipelineID != nil && *o.PipelineID != "" && !contracts.ValidID(*o.PipelineID) {
 		return false
 	}

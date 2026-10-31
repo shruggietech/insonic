@@ -19,7 +19,7 @@ import (
 	"github.com/shruggietech/insonic/internal/workspace"
 )
 
-func (s Service) Inspect(parent context.Context, role, python string, snapshot bool) (out Inspection, err error) {
+func (s Service) Inspect(parent context.Context, role, python string, snapshot bool, receipt ...library.PinnedFile) (out Inspection, err error) {
 	out = Inspection{Role: role, Packages: map[string]string{}, Devices: map[string]Device{}}
 	if role != "recognition" && role != "diarization" {
 		return out, contracts.Fail("invalid_request")
@@ -72,6 +72,22 @@ func (s Service) Inspect(parent context.Context, role, python string, snapshot b
 		return fail("interpreter_hash", "interpreter_unreadable")
 	}
 	out.Python = pin
+	bound := library.PinnedFile{}
+	if len(receipt) > 0 {
+		bound = receipt[0]
+	}
+	if bound.Path != "" || bound.SHA256 != "" {
+		out.Probe.Stage = "receipt_verification"
+		if e = VerifyReceipt(ctx, bound, pin); e != nil {
+			if ctx.Err() != nil {
+				return contextResult()
+			}
+			out.Probe.Reason = "inventory_unreadable"
+			out.Error = contracts.SafeError(e).Code
+			out.Correction = "The elected environment no longer matches its verified receipt. Inspect and prepare it again before processing."
+			return out, nil
+		}
+	}
 	out.Probe.Stage = "private_home"
 	home, e := os.MkdirTemp(s.Directory, "worker-probe-")
 	if e != nil {
@@ -100,7 +116,8 @@ func (s Service) Inspect(parent context.Context, role, python string, snapshot b
 		run = process.Capture
 	}
 	out.Probe.Stage = "process_start"
-	r, e := run(ctx, process.Spec{Executable: python, Args: []string{"-I", "-B", "-c", string(code), role, mode, filepath.Join(home, probeCheckpoint)}, Directory: home, CleanEnv: true, Env: env, MaxOutput: 16 << 20})
+	bootstrap := NativeBootstrap() + "import json\ntry:\n _native.set_receipt(sys.argv[4],sys.argv[5])\nexcept _native.NativeFailure as error:\n sys.stderr.write(json.dumps({'error':str(error)})+'\\n')\n sys.exit(1)\n"
+	r, e := run(ctx, process.Spec{Executable: python, Args: []string{"-I", "-B", "-c", bootstrap + string(code), role, mode, filepath.Join(home, probeCheckpoint), bound.Path, bound.SHA256}, Directory: home, CleanEnv: true, Env: env, MaxOutput: 16 << 20})
 	progress, progressErr := readProbeProgress(home, mode)
 	if progressErr == nil && progress != nil {
 		out.Probe.Child = progress
@@ -116,6 +133,17 @@ func (s Service) Inspect(parent context.Context, role, python string, snapshot b
 		return fail("output_validation", "output_limit")
 	}
 	if e != nil {
+		var failure struct {
+			Error string `json:"error"`
+		}
+		decoder := json.NewDecoder(bytes.NewReader(r.Stderr))
+		decoder.DisallowUnknownFields()
+		if bound.Path != "" && r.Started && progress == nil && len(r.Stderr) <= 1024 && catalog.ValidateJSON(r.Stderr) == nil && decoder.Decode(&failure) == nil && decoder.Decode(new(any)) == io.EOF && (failure.Error == "checksum_mismatch" || failure.Error == "invalid_request") {
+			out.Probe.Stage, out.Probe.Reason = "receipt_verification", "inventory_unreadable"
+			out.Error = failure.Error
+			out.Correction = "The elected environment no longer matches its verified receipt. Inspect and prepare it again before processing."
+			return out, nil
+		}
 		reason := "process_failed"
 		if progress == nil && !r.Started {
 			reason = "launch_failed"
@@ -164,7 +192,7 @@ func (s Service) Inspect(parent context.Context, role, python string, snapshot b
 	out.Probe.Stage, out.Probe.Reason = "complete", "success"
 	cuda := out.Devices["cuda"]
 	if !cuda.Available {
-		cuda.Correction = "Use a verified compatible CUDA environment, or explicitly save CPU for future work."
+		cuda.Correction = "CUDA is unavailable for this environment. Automatic processing can use CPU; prepare verified compatible NVIDIA dependencies to enable acceleration."
 	}
 	out.Devices["cuda"] = cuda
 	return out, nil

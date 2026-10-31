@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import type {Obj} from './client';
-export const workerDevices = ['cpu','cuda'];
+export const workerDevices = ['auto','cpu','cuda'];
 export function workerElection(role:string,mode:string,python:string,offline:string):Obj {
   if(!['recognition','diarization'].includes(role)||!['managed','reuse'].includes(mode))throw new Error('Choose a supported environment role and preparation mode.');
   if(mode==='reuse'&&!python.trim())throw new Error('Select the existing interpreter to verify.');

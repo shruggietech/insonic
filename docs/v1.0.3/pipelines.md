@@ -1,6 +1,6 @@
 # Pipelines and adapters
 
-[Local processing setup](processing-setup.md) prepares optional engines and models and reports prerequisites for a selected pipeline. Settings can save an exact builtin Local CPU pipeline; saving it does not begin inference. CPU and CUDA are explicit elections without automatic fallback.
+[Local processing setup](processing-setup.md) prepares optional engines and models and reports prerequisites for a selected pipeline. Settings can save a pipeline with exact builtin models and automatic NVIDIA preference; saving it does not begin inference. New local requests default to `auto`, while explicit `cpu` stays CPU. `auto` and `cuda` can retry once on CPU for classified CUDA failures, with visible device provenance.
 
 ## Configured work and current results
 
@@ -82,11 +82,11 @@ The `insonic-http` adapter uses contract version `1`. An operator configures the
 
 An arbitrary provider API is not automatically compatible with this worker protocol. Provider-specific services can implement it through an adapter. Endpoint inspection validates configuration but reports reachability as not probed. Execution resolves only the elected credential and sends it as a Bearer authorization header. Redirects are refused; endpoint user information, query strings and fragments are rejected. Credentials require HTTPS, with an explicit loopback HTTP exception for locally hosted services. Errors return fixed categories without provider response bodies, credential values or endpoint details.
 
-Local and hosted stages both use bounded audio, response and timeout settings. Omitted limits normalize to 128 MiB audio, 16 MiB response and 600000 milliseconds; explicit limits are validated before submission. A route or capability failure does not choose another provider, model or device.
+Local and hosted stages both use bounded audio, response and timeout settings. Omitted limits normalize to 128 MiB audio, 16 MiB response and 600000 milliseconds; explicit limits are validated before submission. A route or capability failure never chooses another provider or model. Only classified local CUDA failures permit the elected policy's bounded CPU recovery within the same deadline.
 
 ## Local processing and quality diagnostics
 
-Mapped audio records original source digest, selected stream/channels, sample format, tool identity and exact source-time mapping. The selected local recognizer and diarizer receive verified managed model files, not an ambient latest model name. Missing or invalid models, incompatible capabilities and unsupported device selection produce actionable failure. A local failure never chooses hosted routing or another device silently.
+Mapped audio records original source digest, selected stream/channels, sample format, tool identity and exact source-time mapping. The selected local recognizer and diarizer receive verified managed model files, not an ambient latest model name. Missing or invalid models, incompatible capabilities and unsupported device selection produce actionable failure. A local failure never chooses hosted routing. CPU recovery under the local device policy records its attempted devices and generated reason.
 
 Local workers import engine packages lazily only for elected product processing or explicit maintainer qualification. Offline execution prevents ambient model retrieval. Literal argv, protected bounded input, separate bounded output, hidden Windows creation and supervised cancellation apply to every worker. Model files are materialized under confined relative names; temporary stage output is cleaned after success, failure and cancellation.
 
@@ -217,3 +217,8 @@ Save `pipeline-connected.json` for a worker that implements the contract below. 
 ```sh
 insonic pipelines set 66666666-6666-4666-8666-666666666666 --input pipeline-connected.json --json
 ```
+## Local signal and failure outcomes
+
+Verified exact zero-signal audio yields an explicit no-speech result without invented recognition cues. Quiet nonzero audio is not discarded by an arbitrary amplitude threshold. Recognition text paired with a diarizer no-speech observation remains intact and carries a disagreement diagnostic. These observations do not claim general acoustic accuracy.
+
+Unsupported local recognition language codes are rejected before work is queued, with a correction for `recognition.language`; `auto` elects language detection. Generated worker failures distinguish unavailable CUDA devices/libraries, incompatible libraries/compute capability, CUDA resource exhaustion and unrelated engine failure. Human, verbose, debug and JSON work inspection retain these causes without raw engine output. Failed attempts preserve the previous accepted document.

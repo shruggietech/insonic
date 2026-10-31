@@ -70,6 +70,12 @@ func (a *App) electRecordingOptions(o RecordingOptions) (RecordingOptions, *reco
 			return o, nil, e
 		}
 		d.Recognition = effectiveRecognitionStage(d.Recognition)
+		if d.Recognition.Mode == "local" && d.Recognition.Recognition.Device == "" {
+			d.Recognition.Recognition.Device = "auto"
+		}
+		if d.Diarization.Mode == "local" && d.Diarization.Diarization.Device == "" {
+			d.Diarization.Diarization.Device = "auto"
+		}
 		// Full-stage overrides are the single route/model/options override contract.
 		if o.RecognitionModelID != "" || o.DiarizationModelID != "" || o.Recognition.Device != "" || o.Recognition.Language != "" || len(o.Recognition.Hints) > 0 || o.Recognition.ContextDigest != "" || o.Attribution != (processing.DiarizationOptions{}) || o.Quality != nil {
 			return o, nil, contracts.Fail("invalid_request")
@@ -89,7 +95,20 @@ func (a *App) electRecordingOptions(o RecordingOptions) (RecordingOptions, *reco
 	} else if o.PipelineRevision != 0 || o.Overrides.Recognition != nil || o.Overrides.Diarization != nil || o.Overrides.Quality != nil {
 		return o, nil, contracts.Fail("invalid_request")
 	}
+	if o.PipelineID == "" {
+		if o.Recognition.Device == "" {
+			o.Recognition.Device = "auto"
+		}
+		if o.Attribution.Device == "" {
+			o.Attribution.Device = "auto"
+		}
+	}
 	if o.Transcription == "generate" {
+		if election == nil || election.Definition.Recognition.Mode == "local" {
+			if e := processing.ValidateLocalLanguage(o.Recognition.Language); e != nil {
+				return o, nil, e
+			}
+		}
 		if o.PipelineID == "" && o.Recognition.Language == "" {
 			o.Recognition.Language = "en"
 		}

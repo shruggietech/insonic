@@ -15,6 +15,7 @@ import json
 from cli_corpus import finish_server
 from pathlib import Path
 import re
+import shlex
 import sys
 import threading
 import uuid
@@ -29,6 +30,22 @@ def example(version, page, name):
     if len(matches) != 1:
         raise ValueError('Missing or ambiguous documentation input: ' + name)
     return json.loads(matches[0])
+
+
+def model_readback_commands(version, model_id):
+    source = (ROOT / 'docs' / ('v' + version) / 'processing-setup.md').read_text(encoding='utf-8')
+    blocks = re.findall(r'<!-- executable-commands: model-readback -->\s*```sh\s*(.*?)\s*```', source, re.S)
+    if len(blocks) != 1:
+        raise ValueError('Missing or ambiguous model readback documentation')
+    commands = []
+    for line in blocks[0].splitlines():
+        args = shlex.split(line)
+        if not args or args[0] != 'insonic' or args.count('MODEL_UUID') != 1:
+            raise ValueError('Invalid documented model readback command')
+        commands.append([model_id if arg == 'MODEL_UUID' else arg for arg in args[1:]])
+    if len(commands) != 2:
+        raise ValueError('Expected model inspection and verification examples')
+    return commands
 
 
 def qualify(invoke, supplied, workspace, version):
@@ -85,6 +102,15 @@ def qualify(invoke, supplied, workspace, version):
     weights = b'synthetic documented trained artifact'
 
     class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path != '/model':
+                self.send_error(404)
+                return
+            self.send_response(200)
+            self.send_header('Content-Length', str(len(weights)))
+            self.end_headers()
+            self.wfile.write(weights)
+
         def do_POST(self):
             raw = self.rfile.read(int(self.headers['Content-Length']))
             if self.path.startswith('/train'):
@@ -130,6 +156,30 @@ def qualify(invoke, supplied, workspace, version):
     thread.start()
     try:
         endpoint = f'http://127.0.0.1:{server.server_port}'
+        # Execute the exact changed prose commands against an acquired owned fixture.
+        model_manifest = {'kind': 'base-model-manifest', 'schema_version': version,
+            'name': 'Documented inspection fixture', 'model_version': '1',
+            'upstream_revision': 'fixture-v1', 'capabilities': ['transcription'], 'license': 'fixture',
+            'files': [{'role': 'weights', 'sha256': hashlib.sha256(weights).hexdigest(),
+                       'size': len(weights), 'url': endpoint + '/model', 'local_http': True}]}
+        model_path = workspace / 'documented inspection model.json'
+        model_path.write_text(json.dumps(model_manifest) + '\n', encoding='utf-8', newline='\n')
+        acquisition = invoke(['models', 'acquire', model_path])['result']
+        acquired = invoke(['work', 'wait', acquisition['work_id']])['result']['result']
+        for args in model_readback_commands(version, acquired['model_id']):
+            # The documentation already supplies --json; do not add it twice.
+            response = json.loads(invoke(args, machine=False))
+            if response.get('kind') != 'runtime-response' or response.get('error'):
+                raise ValueError('Documented model command returned an invalid response')
+        cuda_election = example(version, 'processing-setup', 'cuda-environment.json')
+        if cuda_election['role'] != 'recognition' or cuda_election['mode'] != 'reuse':
+            raise ValueError('Documented CUDA reuse election differs')
+        # The supported shape is exercised without electing real engines in CI.
+        cuda_inspection = example(version, 'processing-setup', 'cuda-inspection.json')
+        if cuda_inspection != {key: value for key, value in cuda_election.items() if key != 'mode'}:
+            raise ValueError('Documented inspection and reuse inputs disagree')
+        cuda_inspection['python_path'] = str(Path(sys.executable).resolve())
+        supplied(['workers', 'inspect'], cuda_inspection)
         pipeline = example(version, 'pipelines', 'pipeline-connected.json')
         pipeline_id = str(uuid.uuid4())
         pipeline['pipeline']['id'] = pipeline_id
@@ -287,4 +337,4 @@ def qualify(invoke, supplied, workspace, version):
     return {'preset_lifecycle_destination_precedence_refresh': 'passed',
             'pipeline_actual_child_supplied_bypass': 'passed', 'documented_advanced_inputs': 'passed',
             'deterministic_training_fetch': 'passed', 'trainer_output_integrity': 'passed',
-            'training_only_readiness': 'passed', 'short_wait_budget': 'passed', 'acoustic_accuracy': 'not-tested'}
+            'training_only_readiness': 'passed', 'model_setup_readback': 'passed', 'short_wait_budget': 'passed', 'acoustic_accuracy': 'not-tested'}

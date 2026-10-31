@@ -23,9 +23,9 @@ test('default model requests contain protected references without credential val
   assert.equal(valid('models.prepare',{...input,token:'must-not-cross'}).valid,false);
   assert.equal(valid('processing.readiness',{recognition_device:'cuda',diarization_device:'cpu'}).valid,true);
 });
-test('offered devices match executable worker elections, without silent auto fallback',()=>{
-  assert.deepEqual(workerDevices,['cpu','cuda']);
-  assert.equal(valid('processing.readiness',{recognition_device:'auto'}).valid,false);
+test('offered devices match executable worker elections, with observable automatic CUDA preference',()=>{
+  assert.deepEqual(workerDevices,['auto','cpu','cuda']);
+  assert.equal(valid('processing.readiness',{recognition_device:'auto'}).valid,true);
 });
 
 test("worker probe summaries distinguish budget expiry and keep native and child clocks separate",()=>{const summary=workerProbeSummary({role:"diarization",probe:{mode:"snapshot",stage:"dependency_hashing",reason:"deadline",elapsed_ms:60000,budget_ms:60000,child:{elapsed_ms:51000,files:27571,hashed_files:12000,hashed_bytes:42000}}});assert.equal(summary.outcome,"Verification deadline reached");assert.equal(summary.stage,"Dependency verification");assert.equal(summary.native_elapsed_ms,60000);assert.equal(summary.python_elapsed_ms,51000);assert.equal(summary.verified_files,12000);assert.equal(workerProbeSummary({}),undefined);assert.equal(workerProbeSummary({probe:{mode:"inspect",stage:"secret-token",reason:"deadline",elapsed_ms:1,budget_ms:1}}),undefined);});

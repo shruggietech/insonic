@@ -1390,10 +1390,11 @@
                 "properties": {
                   "device": {
                     "enum": [
+                      "auto",
                       "cpu",
                       "cuda"
                     ],
-                    "description": "Explicit device; default CPU and no provider fallback."
+                    "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
                   },
                   "language": {
                     "type": "string",
@@ -1409,10 +1410,11 @@
                 "properties": {
                   "device": {
                     "enum": [
+                      "auto",
                       "cpu",
                       "cuda"
                     ],
-                    "description": "Explicit device; default CPU with no fallback from selected CUDA."
+                    "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
                   },
                   "min_speakers": {
                     "type": "integer",
@@ -4108,7 +4110,7 @@
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 512,
-                        "pattern": "[^\t-\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]",
+                        "pattern": "[^\t-\r    -     　]",
                         "description": "Required title with at least one non-whitespace character."
                       }
                     }
@@ -6145,18 +6147,20 @@
                 "maxLength": 512
               },
               "recognition_device": {
-                "description": "Explicit recognition device.",
                 "enum": [
+                  "auto",
                   "cpu",
                   "cuda"
-                ]
+                ],
+                "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
               },
               "diarization_device": {
-                "description": "Explicit diarization device.",
                 "enum": [
+                  "auto",
                   "cpu",
                   "cuda"
-                ]
+                ],
+                "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
               },
               "dataset_id": {
                 "description": "Optional current training dataset UUID.",
@@ -7463,6 +7467,14 @@
         "checkpoint_id": {
           "$ref": "common.schema.json#/$defs/uuid",
           "description": "Exact compatible checkpoint to resume."
+        },
+        "device": {
+          "enum": [
+            "auto",
+            "cpu",
+            "cuda"
+          ],
+          "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
         }
       },
       "required": [
@@ -7529,6 +7541,14 @@
           "type": "integer",
           "minimum": 1,
           "description": "Minimum current voice evidence duration."
+        },
+        "device": {
+          "enum": [
+            "auto",
+            "cpu",
+            "cuda"
+          ],
+          "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
         }
       },
       "required": [

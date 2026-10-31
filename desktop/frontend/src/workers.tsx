@@ -12,7 +12,7 @@ export function Workers({client,run,onApplied}:{client:Client;run:Run;onApplied?
   const [inventory,setInventory]=useState<Obj>(),[defaults,setDefaults]=useState<Obj[]>([]),[plan,setPlan]=useState<Obj>(),[inspection,setInspection]=useState<Obj>(),[readiness,setReadiness]=useState<Obj>();
   const [role,setRole]=useState('recognition'),[mode,setMode]=useState('managed'),[python,setPython]=useState(''),[offline,setOffline]=useState('');
   const [choice,setChoice]=useState('whisper-tiny'),[local,setLocal]=useState(''),[destination,setDestination]=useState(''),[credential,setCredential]=useState(''),[token,setToken]=useState(''),[preview,setPreview]=useState<Obj>();
-  const [work,setWork]=useState<Obj>(),[pipeline,setPipeline]=useState<Obj>(),[pipelineName,setPipelineName]=useState('Local CPU speech'),[busy,setBusy]=useState(false);
+  const [work,setWork]=useState<Obj>(),[pipeline,setPipeline]=useState<Obj>(),[pipelineName,setPipelineName]=useState('Local speech'),[busy,setBusy]=useState(false);
   const active=useRef<AbortController|undefined>(undefined);
   const load=async(signal?:AbortSignal)=>{setInventory(await client.call('workers.catalog','',undefined,signal));const entries=await client.call('models.defaults','',undefined,signal);setDefaults(Array.isArray(entries)?entries:[]);};
   useEffect(()=>{const controller=new AbortController();void run(()=>load(controller.signal));return()=>{controller.abort();active.current?.abort()}},[client,client.workspace]);
@@ -29,7 +29,7 @@ export function Workers({client,run,onApplied}:{client:Client;run:Run;onApplied?
   };
   return <>
     <Card heading="Local processing setup">
-      <p>Prepare optional transcription or diarization libraries, or verify an existing environment. CPU is the managed default. Imports and supplied subtitles can be used independently.</p>
+      <p>Prepare optional transcription or diarization libraries, or verify an existing environment. Managed environments provide CPU dependencies; a verified CUDA environment enables NVIDIA acceleration. Imports and supplied subtitles can be used independently.</p>
       <Select disabled={busy} label="Processing role" value={role} onChange={setRole} options={[{value:'recognition',label:'Transcription'},{value:'diarization',label:'Diarization and speaker profile enrollment'}]}/>
       <Select disabled={busy} label="Environment preparation" value={mode} onChange={setMode} options={[{value:'managed',label:'Create isolated managed CPU environment'},{value:'reuse',label:'Verify and reuse existing environment'}]}/>
       {mode==='reuse'?<>
@@ -42,7 +42,7 @@ export function Workers({client,run,onApplied}:{client:Client;run:Run;onApplied?
         {busy&&<Button variant="secondary" onClick={()=>active.current?.abort()}>Stop inspection request</Button>}</Actions>
       {plan&&<><Facts value={{destination:plan.destination,download_bytes:plan.download_bytes,profile_download_bytes:plan.profile_download_bytes,local_assets:plan.local_assets,required_space_bytes:plan.required_space_bytes,available_space_bytes:plan.available_space_bytes,prerequisite:plan.prerequisite}}/><details><summary>Exact dependency identities and setup election</summary><Facts value={plan}/></details></>}
       {inspection&&<><ProbeSummary inspection={inspection}/><details><summary>Environment identities and device details</summary><Facts value={inspection}/></details></>}
-      <p>CUDA is an explicit pipeline selection. Device detection, compatible libraries and model execution are separate facts; a failed CUDA job keeps its original election.</p>
+      <p>New local processing prefers NVIDIA and can retry on CPU when CUDA is unavailable or runs out of resources. Explicit CPU stays CPU. Readiness and actual execution remain separate observations.</p>
     </Card>
     <Card heading="Supported local model bundles">
       <Select disabled={busy} label="Exact model bundle" value={choice} onChange={setChoice} options={[{value:'whisper-tiny',label:'Whisper Tiny transcription'},{value:'community-1',label:'Community-1 diarization and speaker profiles'}]}/>
@@ -58,7 +58,7 @@ export function Workers({client,run,onApplied}:{client:Client;run:Run;onApplied?
       <Actions><Button variant="secondary" disabled={busy} onClick={()=>action(async signal=>{const out=await client.call('processing.readiness','',pipeline?{pipeline_id:pipeline.id,pipeline_revision:pipeline.revision}:{},signal);setReadiness(out);return out})}>Inspect task readiness</Button></Actions>
       {readiness&&<>{["recognition","diarization"].map(role=>readiness.environments?.[role]?<ProbeSummary key={role} inspection={readiness.environments[role]}/>:null)}<Facts value={readiness.tasks}/><details><summary>Observed environment and verification details</summary><Facts value={readiness}/></details></>}
       <Input disabled={busy} label="Local pipeline name" value={pipelineName} onChange={setPipelineName}/>
-      <Button disabled={busy||!!pipeline||!pipelineName.trim()||defaults.length<2} onClick={()=>action(async signal=>{const id=uuid();const rec=defaults.find(x=>x.choice.id==='whisper-tiny')!,dia=defaults.find(x=>x.choice.id==='community-1')!;const out=await client.call('pipelines.set',id,{expected_revision:0,pipeline:{id,name:pipelineName.trim(),preset:'local',configuration:{recognition:{adapter:'faster-whisper',contract_version:'1',mode:'local',model_id:rec.model_id,recognition:{device:'cpu'}},diarization:{adapter:'pyannote',contract_version:'1',mode:'local',model_id:dia.model_id,diarization:{device:'cpu'}}}}},signal);setPipeline(out);return out})}>Save local CPU pipeline</Button>
+      <Button disabled={busy||!!pipeline||!pipelineName.trim()||defaults.length<2} onClick={()=>action(async signal=>{const id=uuid();const rec=defaults.find(x=>x.choice.id==='whisper-tiny')!,dia=defaults.find(x=>x.choice.id==='community-1')!;const out=await client.call('pipelines.set',id,{expected_revision:0,pipeline:{id,name:pipelineName.trim(),preset:'local',configuration:{recognition:{adapter:'faster-whisper',contract_version:'1',mode:'local',model_id:rec.model_id,recognition:{device:'auto'}},diarization:{adapter:'pyannote',contract_version:'1',mode:'local',model_id:dia.model_id,diarization:{device:'auto'}}}}},signal);setPipeline(out);return out})}>Save local pipeline</Button>
       {pipeline&&<Facts value={pipeline}/>}<p>Saving a pipeline does not acquire its models or run inference. Complete elected acquisitions and inspect readiness, then select the saved pipeline in Library or an import preset.</p>
     </Card>
   </>;

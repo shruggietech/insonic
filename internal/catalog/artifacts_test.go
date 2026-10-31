@@ -54,11 +54,14 @@ func artifactAuthoritySuite(t *testing.T, s *Store, newStore func(string) *Store
 		t.Fatal(e)
 	}
 	admitted := p
+	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), time.Minute, time.Second); !errors.Is(e, ErrRetirementDeferred) || contracts.SafeError(e).Reason != "artifact_grace_period" {
+		t.Fatal("grace-period reason lost", e)
+	}
 	lease, e := s.ArtifactLease(ctx, p.ID, contracts.ID(), contracts.ID(), time.Second, false)
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second); !errors.Is(e, ErrRetirementDeferred) || contracts.SafeError(e).Code != "conflict" {
+	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second); !errors.Is(e, ErrRetirementDeferred) || contracts.SafeError(e).Code != "conflict" || contracts.SafeError(e).Reason != "artifact_active_lease" {
 		t.Fatal("live materialization did not defer retirement with a public conflict", e)
 	}
 	_, e = s.ArtifactLease(ctx, p.ID, lease.ID, lease.Owner, 0, true)
@@ -69,7 +72,7 @@ func artifactAuthoritySuite(t *testing.T, s *Store, newStore func(string) *Store
 	if e = s.ArtifactReference(ctx, p.ID, ref, false); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second); !errors.Is(e, ErrRetirementDeferred) || contracts.SafeError(e).Code != "conflict" {
+	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second); !errors.Is(e, ErrRetirementDeferred) || contracts.SafeError(e).Code != "conflict" || contracts.SafeError(e).Reason != "artifact_retained" {
 		t.Fatal("retained artifact did not defer retirement with a public conflict", e)
 	}
 	if e = s.ArtifactReference(ctx, p.ID, ref, true); e != nil {
@@ -78,6 +81,9 @@ func artifactAuthoritySuite(t *testing.T, s *Store, newStore func(string) *Store
 	p, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second)
 	if e != nil {
 		t.Fatal(e)
+	}
+	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second); !errors.Is(e, ErrRetirementDeferred) || contracts.SafeError(e).Reason != "artifact_retirement_active" {
+		t.Fatal("live retirement reason lost", e)
 	}
 	if e = s.ArtifactReference(ctx, p.ID, contracts.ID(), false); e == nil {
 		t.Fatal("retirement allowed reference")

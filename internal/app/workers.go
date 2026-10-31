@@ -13,6 +13,7 @@ import (
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/workers"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -58,7 +59,7 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 				candidates = append(candidates, p)
 			}
 		}
-		return map[string]any{"catalog": workers.Inventory(), "platform": runtime.GOOS + "_" + runtime.GOARCH, "cpus": runtime.NumCPU(), "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "cpu", "candidates": candidates, "candidate_verification": "not_checked", "models": models.Defaults()}, nil
+		return map[string]any{"catalog": workers.Inventory(), "platform": runtime.GOOS + "_" + runtime.GOARCH, "cpus": runtime.NumCPU(), "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "auto", "candidates": candidates, "candidate_verification": "not_checked", "models": models.Defaults()}, nil
 	case "models.defaults":
 		return a.defaultModels(ctx), nil
 	case "models.prepare":
@@ -77,15 +78,18 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 		if strictPayload(req.Data, &input) != nil {
 			return nil, contracts.Fail("invalid_request")
 		}
+		var receipt library.PinnedFile
 		if input.PythonPath == "" {
 			if c, e := ReadProcessingTools(a.Workspace); e == nil {
 				input.PythonPath = c.Processing.RecognitionPython.Path
+				receipt = c.Processing.RecognitionEnvironment
 				if input.Role == "diarization" {
 					input.PythonPath = c.Processing.DiarizationPython.Path
+					receipt = c.Processing.DiarizationEnvironment
 				}
 			}
 		}
-		return s.Inspect(ctx, input.Role, input.PythonPath, false)
+		return s.Inspect(ctx, input.Role, input.PythonPath, false, receipt)
 	case "workers.plan", "workers.setup":
 		var input workers.Election
 		if strictPayload(req.Data, &input) != nil || input.Validate() != nil {
@@ -120,7 +124,7 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 		c, e := ReadProcessingTools(a.Workspace)
 		if req.Operation == "workers.plan" {
 			input.ExpectedRevision = revision
-			plan := map[string]any{"election": input, "profile": p, "destination": filepath.Join(a.Workspace.Control, "workers"), "required_space_bytes": workers.RequiredSpace(p, input.Mode), "download_bytes": p.DownloadBytes, "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "cpu", "effects": "Only successful verified work publishes the elected role; accepted environments are not updated in place."}
+			plan := map[string]any{"election": input, "profile": p, "destination": filepath.Join(a.Workspace.Control, "workers"), "required_space_bytes": workers.RequiredSpace(p, input.Mode), "download_bytes": p.DownloadBytes, "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "auto", "effects": "Only successful verified work publishes the elected role; accepted environments are not updated in place."}
 			if input.Mode == "managed" {
 				version, err := s.PlatformPrerequisite(ctx, p)
 				if version != "" {
