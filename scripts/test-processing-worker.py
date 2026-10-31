@@ -12,7 +12,9 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 import wave
+from contextlib import nullcontext
 from fractions import Fraction
 from decimal import Decimal
 
@@ -27,6 +29,113 @@ def load(name, filename):
 
 
 class WorkerTests(unittest.TestCase):
+    def test_embedding_minimum_probe_preserves_classified_cuda_failures(self):
+        worker = load("processing_embedding_cuda_failure", "processing-worker.py")
+        helper_spec = importlib.util.spec_from_file_location("native_embedding_fixture", ROOT / "internal/workers/native.py")
+        native = importlib.util.module_from_spec(helper_spec)
+        helper_spec.loader.exec_module(native)
+        pool = type("StatsPool", (), {"register_forward_pre_hook": lambda *args, **kwargs: None})()
+
+        class Model:
+            def modules(self):
+                return [pool]
+
+            def __call__(self, waveform):
+                raise failure
+
+        torch = SimpleNamespace(
+            Generator=lambda **kwargs: SimpleNamespace(manual_seed=lambda seed: None),
+            randn=lambda *args, **kwargs: SimpleNamespace(to=lambda device: None),
+            inference_mode=nullcontext,
+        )
+        pipeline = SimpleNamespace(_embedding=SimpleNamespace(model_=Model(), device="cuda", sample_rate=16000))
+        with patch.dict(sys.modules, {"insonic_native": native}):
+            for failure in (RuntimeError("CUDA out of memory"), RuntimeError("CUDA error: no kernel image is available for execution on the device")):
+                with self.subTest(failure=str(failure)):
+                    with self.assertRaises(RuntimeError) as observed:
+                        worker.guard_pyannote_embeddings(pipeline, torch, None)
+                    self.assertIs(observed.exception, failure)
+            failure = RuntimeError("Kernel size can't be greater than actual input size")
+            with self.assertRaisesRegex(worker.WorkerError, "invalid_embedding"):
+                worker.guard_pyannote_embeddings(pipeline, torch, None)
+
+    def test_real_worker_path_silence_keeps_execution_device_without_accepting_words(self):
+        worker = load("processing_silence_execution", "processing-worker.py")
+        helper_spec = importlib.util.spec_from_file_location("native_worker_fixture", ROOT / "internal/workers/native.py")
+        native = importlib.util.module_from_spec(helper_spec)
+        helper_spec.loader.exec_module(native)
+
+        class Audio:
+            def astype(self, _):
+                return self
+
+            def __truediv__(self, _):
+                return self
+
+        executed = []
+
+        class Model:
+            supported_languages = ["en"]
+
+            def __init__(self, _, **options):
+                self.device = options["device"]
+
+            def transcribe(self, _, **options):
+                def segments():
+                    executed.append(self.device)
+                    yield SimpleNamespace(start=0, end=2, text="You")
+                return segments(), SimpleNamespace(language="en")
+
+        class Libraries:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                pass
+
+            def recognition(self, _):
+                pass
+
+        with tempfile.TemporaryDirectory() as directory:
+            audio = Path(directory) / "audio.wav"
+            audio.write_bytes(b"owned fixture")
+            base = {"operation": "transcribe", "audio_path": str(audio), "model_path": directory}
+            modules = {"insonic_native": native, "numpy": SimpleNamespace(frombuffer=lambda *a, **k: Audio(), float32=object()),
+                       "ctranslate2": SimpleNamespace(), "faster_whisper": SimpleNamespace(WhisperModel=Model)}
+            with patch.dict(os.environ, {name: "" for name in worker.CI_VARIABLES}), patch.dict(sys.modules, modules), \
+                 patch.object(worker, "_versions", return_value={"faster-whisper": "1.2.1", "ctranslate2": "4.8.2"}), \
+                 patch.object(worker, "_peak_memory", return_value=1024), patch.object(native, "NativeLibraries", Libraries):
+                for device in ("cpu", "cuda"):
+                    with patch.object(worker, "read_audio", return_value=(b"\0" * 320000, 160000, 16000)):
+                        result = worker.run({**base, "device": device})
+                    self.assertEqual(result["srt"], "")
+                    self.assertTrue(result["no_speech"])
+                    self.assertEqual(result["provenance"]["device"], device)
+                    self.assertEqual(result["provenance"]["sample_count"], 160000)
+                with patch.object(worker, "read_audio", return_value=(b"\1\0" + b"\0" * 319998, 160000, 16000)):
+                    result = worker.run({**base, "device": "cpu"})
+                self.assertFalse(result["no_speech"])
+                self.assertIn("You", result["srt"])
+                self.assertEqual(executed, ["cpu", "cuda", "cpu"])
+
+    def test_exact_silence_suppresses_hallucinations_but_nonzero_audio_is_preserved(self):
+        worker = load("processing_silence", "processing-worker.py")
+        for pcm in (b"\0" * 32000, b""):
+            result = worker.silence_result(pcm, 1000000)
+            self.assertEqual(result["srt"], "")
+            self.assertTrue(result["no_speech"])
+            self.assertEqual(result["diagnostics"][0]["code"], "digital_silence")
+        for pcm in (b"\1\0" + b"\0" * 31998, b"\xff\xff" * 16000):
+            self.assertIsNone(worker.silence_result(pcm, 1000000))
+
+    def test_recognition_language_is_known_not_just_well_shaped(self):
+        worker = load("processing_language", "processing-worker.py")
+        for language in ("en", "fr", "yue", "auto"):
+            worker.validate_language(language)
+        for language in ("xx", "zzz", "English", "private/path", None):
+            with self.assertRaisesRegex(worker.WorkerError, "unsupported_language"):
+                worker.validate_language(language)
+
     def test_retired_host_is_rejected_before_input_or_engine_election(self):
         worker = load("processing_unsupported", "processing-worker.py")
         qualification = load("qualification_unsupported", "qualify-processing.py")

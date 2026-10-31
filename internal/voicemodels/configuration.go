@@ -6,12 +6,16 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/models"
+	"github.com/shruggietech/insonic/internal/processing"
 )
 
 func ValidateTrainingConfiguration(raw json.RawMessage) error {
 	var c TrainingConfiguration
 	if strict(raw, &c) != nil || ValidateAdapter(c.Adapter) != nil || !contains(c.Adapter.OutputKinds, c.Kind) || c.BaseModelID != "" && !models.ValidateReference(c.BaseModelID) || c.Adapter.ID == "pyannote-profile" && c.BaseModelID == "" {
 		return contracts.Fail("invalid_request")
+	}
+	if !processing.ValidDevice(c.Device) || c.Device != "" && c.Adapter.ID != "pyannote-profile" {
+		return contracts.Fail("unsupported_device")
 	}
 	if len(c.Parameters) > 0 {
 		var params map[string]json.RawMessage
@@ -57,9 +61,10 @@ func (s *Service) ResolveTrainingPipeline(ctx context.Context, o TrainOptions) (
 	}
 	var c TrainingConfiguration
 	_ = json.Unmarshal(fields["speaker_training"], &c)
-	if o.Adapter.ID != "" && adapterDigest(o.Adapter) != adapterDigest(c.Adapter) || o.BaseModelID != "" && o.BaseModelID != c.BaseModelID || o.Kind != "" && o.Kind != c.Kind || len(o.Parameters) > 0 && hash(o.Parameters) != hash(c.Parameters) {
+	if o.Device != "" && o.Device != c.Device || o.Adapter.ID != "" && adapterDigest(o.Adapter) != adapterDigest(c.Adapter) || o.BaseModelID != "" && o.BaseModelID != c.BaseModelID || o.Kind != "" && o.Kind != c.Kind || len(o.Parameters) > 0 && hash(o.Parameters) != hash(c.Parameters) {
 		return o, contracts.Fail("conflict")
 	}
+	o.Device = c.Device
 	o.Adapter = c.Adapter
 	o.BaseModelID = c.BaseModelID
 	o.Kind = c.Kind

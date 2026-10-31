@@ -57,47 +57,47 @@ func (a *App) libraryService() (*library.Service, error) {
 		}
 		return driver.Ingest(ctx, data, format)
 	}
-	service.DiarizePinned = func(ctx context.Context, entry catalog.LibraryEntry, document json.RawMessage, model, digest string) (subtitles.Admission, json.RawMessage, error) {
-		result := subtitles.Admission{Document: document, OriginalVersion: subtitles.SchemaVersion, AttributionBasis: []subtitles.Observation{}}
+	service.DiarizeWithPolicy = func(ctx context.Context, entry catalog.LibraryEntry, document json.RawMessage, model, digest, device string) (library.DiarizationResult, error) {
+		result := library.DiarizationResult{Admission: subtitles.Admission{Document: document, OriginalVersion: subtitles.SchemaVersion, AttributionBasis: []subtitles.Observation{}}}
 		if !contracts.ValidID(model) {
-			return result, nil, contracts.Fail("invalid_request")
+			return result, contracts.Fail("invalid_request")
 		}
 		if digest != "" {
 			install, err := a.Catalog.BaseModel(ctx, model)
 			if err != nil {
-				return result, nil, err
+				return result, err
 			}
 			if install.Digest != digest {
-				return result, nil, contracts.Fail("conflict")
+				return result, contracts.Fail("conflict")
 			}
 			service, err := a.modelService()
 			if err != nil {
-				return result, nil, err
+				return result, err
 			}
 			if err = service.Verify(ctx, model); err != nil {
-				return result, nil, err
+				return result, err
 			}
 		}
 		executor, err := a.recordingExecutor()
 		if err != nil {
-			return result, nil, err
+			return result, err
 		}
 		session, err := executor.Prepare(ctx, entry, processing.AudioOptions{})
 		if err != nil {
-			return result, nil, err
+			return result, err
 		}
 		defer session.Close()
-		diarization, err := session.Diarize(ctx, model, processing.DiarizationOptions{ExpectedModelDigest: digest})
+		diarization, err := session.Diarize(ctx, model, processing.DiarizationOptions{ExpectedModelDigest: digest, Device: device})
 		if err != nil {
-			return result, nil, err
+			return result, err
 		}
 		turns, err := localTurns(entry.ID, library.DerivedID(entry.ID, documentHash(document)), diarization.Turns)
 		if err != nil {
-			return result, nil, err
+			return result, err
 		}
 		assembly, err := executor.Subtitles.Assemble(ctx, document, nil, turns, nil)
 		if err != nil {
-			return result, nil, err
+			return result, err
 		}
 		var before, after map[string]json.RawMessage
 		json.Unmarshal(document, &before)
@@ -109,10 +109,15 @@ func (a *App) libraryService() (*library.Service, error) {
 		}
 		result.Document, _ = json.Marshal(after)
 		if err = subtitles.ValidateDocument(result.Document); err != nil {
-			return result, nil, err
+			return result, err
 		}
-		provenance, _ := json.Marshal(map[string]any{"mode": "supplied-text;explicit-diarization;recognition-bypassed", "audio": session.Provenance, "source_map": session.SourceMap, "diarization": diarization.Provenance, "diagnostics": flattenDiagnostics([]any{session.Diagnostics, diarization.Diagnostics, assembly.Diagnostics})})
-		return result, provenance, nil
+		result.Provenance, _ = json.Marshal(map[string]any{"mode": "supplied-text;explicit-diarization;recognition-bypassed", "audio": session.Provenance, "source_map": session.SourceMap, "diarization": diarization.Provenance, "diagnostics": flattenDiagnostics([]any{session.Diagnostics, diarization.Diagnostics, assembly.Diagnostics})})
+		result.Notices = processing.DeviceProvenanceNotices(diarization.Provenance)
+		return result, nil
+	}
+	service.DiarizePinned = func(ctx context.Context, entry catalog.LibraryEntry, document json.RawMessage, model, digest string) (subtitles.Admission, json.RawMessage, error) {
+		result, err := service.DiarizeWithPolicy(ctx, entry, document, model, digest, "")
+		return result.Admission, result.Provenance, err
 	}
 	return service, nil
 }

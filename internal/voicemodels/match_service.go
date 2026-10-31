@@ -19,6 +19,9 @@ import (
 
 func (s *Service) ValidateMatch(ctx context.Context, o MatchOptions) (MatchPayload, error) {
 	out := MatchPayload{Options: o}
+	if !processing.ValidDevice(o.Device) {
+		return out, contracts.Fail("unsupported_device")
+	}
 	if !contracts.ValidID(o.RecordingID) || !text(o.ModelID, 256) || o.ModelDigest != "" && !digestPattern.MatchString(o.ModelDigest) || ValidateAdapter(o.Adapter) != nil || o.Adapter.ID != "pyannote-profile" || math.IsNaN(o.Threshold) || math.IsInf(o.Threshold, 0) || o.Threshold < -1 || o.Threshold > 1 || math.IsNaN(o.Margin) || math.IsInf(o.Margin, 0) || o.Margin < 0 || o.Margin > 2 || o.MinEvidenceUS < 1 || o.MinEvidenceUS > 604800000000 {
 		return out, contracts.Fail("invalid_request")
 	}
@@ -45,6 +48,9 @@ func (s *Service) ExecuteMatch(ctx context.Context, claim catalog.Work) (any, er
 		return nil, err
 	}
 	options := payload.Options
+	if !processing.ValidDevice(options.Device) {
+		return nil, contracts.Fail("unsupported_device")
+	}
 	if !contracts.ValidID(options.ModelID) || !digestPattern.MatchString(options.ModelDigest) || ValidateAdapter(options.Adapter) != nil || options.Adapter.ID != "pyannote-profile" || payload.Snapshot.Recording.ID != options.RecordingID {
 		return nil, contracts.Fail("invalid_request")
 	}
@@ -129,7 +135,7 @@ func (s *Service) ExecuteMatch(ctx context.Context, claim catalog.Work) (any, er
 		if json.Unmarshal(recording.SourceMap, &source) != nil {
 			return nil, contracts.Fail("conflict")
 		}
-		if s.Prepare == nil || s.Embed == nil && s.EmbedBatch == nil {
+		if s.Prepare == nil || s.Embed == nil && s.EmbedBatch == nil && s.EmbedBatchWithPolicy == nil {
 			return nil, contracts.Fail("unavailable")
 		}
 		audio, err = s.Prepare(ctx, entry, processing.AudioOptions{StreamIndex: &source.StreamIndex, Channel: source.Channel})
@@ -145,6 +151,7 @@ func (s *Service) ExecuteMatch(ctx context.Context, claim catalog.Work) (any, er
 	sort.Strings(names)
 	decisions := []catalog.SpeakerMatchDecision{}
 	reports := []Decision{}
+	var executions []processing.DeviceExecution
 	for _, local := range names {
 		manual := contains(payload.Snapshot.ManualVoices, local)
 		report := Decision{LocalSpeakerID: local, State: "unknown", EvidenceUS: observedVoiceDuration(voices[local])}
@@ -152,7 +159,11 @@ func (s *Service) ExecuteMatch(ctx context.Context, claim catalog.Work) (any, er
 		if manual {
 			report.State = "manual-preserved"
 		} else if len(candidates) > 0 {
-			vector, duration, err := s.voiceEmbedding(ctx, audio, voices[local], options, directory)
+			vector, duration, observed, err := s.voiceEmbedding(ctx, audio, voices[local], options, directory)
+			if err != nil {
+				return nil, err
+			}
+			executions, err = processing.AccumulateDeviceExecutions(executions, observed)
 			if err != nil {
 				return nil, err
 			}
@@ -190,12 +201,12 @@ func (s *Service) ExecuteMatch(ctx context.Context, claim catalog.Work) (any, er
 		decisions = append(decisions, catalog.SpeakerMatchDecision{LocalSpeakerID: local, SpeakerID: acceptedSpeaker, State: report.State, Score: report.Score, RunnerUpScore: report.RunnerUpScore, CueIDs: cueIDs[local], Diagnostics: diagnostics})
 		reports = append(reports, report)
 	}
-	provenance, _ := json.Marshal(map[string]any{"adapter": options.Adapter.ID, "contract_version": options.Adapter.ContractVersion, "model_id": options.ModelID, "model_digest": options.ModelDigest, "threshold": options.Threshold, "ambiguity_margin": options.Margin, "min_evidence_us": options.MinEvidenceUS, "roster_revision": payload.Snapshot.Roster.Revision, "snapshot_digest": payload.Snapshot.Digest, "method": "duration-weighted-normalized-embedding;cosine"})
+	provenance, _ := json.Marshal(map[string]any{"adapter": options.Adapter.ID, "contract_version": options.Adapter.ContractVersion, "model_id": options.ModelID, "model_digest": options.ModelDigest, "threshold": options.Threshold, "ambiguity_margin": options.Margin, "min_evidence_us": options.MinEvidenceUS, "roster_revision": payload.Snapshot.Roster.Revision, "snapshot_digest": payload.Snapshot.Digest, "method": "duration-weighted-normalized-embedding;cosine", "device_executions": executions})
 	mappings, err := s.Catalog.CommitSpeakerMatching(ctx, claim, payload.Snapshot, decisions, provenance)
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"recording_id": options.RecordingID, "decisions": reports, "missing_profiles": missing, "mapping_count": len(mappings), "state": "accepted"}, nil
+	return map[string]any{"recording_id": options.RecordingID, "decisions": reports, "missing_profiles": missing, "mapping_count": len(mappings), "state": "accepted", "device_executions": executions, "notices": processing.DeviceNotices(executions)}, nil
 }
 
 func observedVoiceDuration(spans []voiceSpan) int64 {
@@ -229,7 +240,8 @@ func observedVoiceDuration(spans []voiceSpan) int64 {
 	}
 	return duration
 }
-func (s *Service) voiceEmbedding(ctx context.Context, audio *Audio, spans []voiceSpan, options MatchOptions, directory string) ([]float64, int64, error) {
+func (s *Service) voiceEmbedding(ctx context.Context, audio *Audio, spans []voiceSpan, options MatchOptions, directory string) ([]float64, int64, []processing.DeviceExecution, error) {
+	var executions []processing.DeviceExecution
 	sort.Slice(spans, func(i, j int) bool {
 		if spans[i].start == spans[j].start {
 			return spans[i].end < spans[j].end
@@ -256,38 +268,38 @@ func (s *Service) voiceEmbedding(ctx context.Context, audio *Audio, spans []voic
 		availableUS += (span.end - span.start) * 1000
 	}
 	if availableUS < options.MinEvidenceUS {
-		return nil, availableUS, nil
+		return nil, availableUS, nil, nil
 	}
 	for _, span := range merged {
 		start := new(big.Rat).SetFrac(big.NewInt(span.start), big.NewInt(1000))
 		end := new(big.Rat).SetFrac(big.NewInt(span.end), big.NewInt(1000))
 		first, last, err := sampleBounds(start.RatString(), end.RatString(), audio.SourceMap)
 		if err != nil {
-			return nil, duration, err
+			return nil, duration, nil, err
 		}
 		size := (last - first) * 2
 		total += size + 44
 		if size > 256<<20 || total > limits.MaxInputBytes {
-			return nil, duration, contracts.Fail("input_limit")
+			return nil, duration, nil, contracts.Fail("input_limit")
 		}
 		f, err := os.Open(audio.Path)
 		if err != nil {
-			return nil, duration, contracts.Fail("unavailable")
+			return nil, duration, nil, contracts.Fail("unavailable")
 		}
 		offset, n, err := wavData(f)
 		if err != nil || last*2 > n {
 			f.Close()
-			return nil, duration, contracts.Fail("invalid_audio")
+			return nil, duration, nil, contracts.Fail("invalid_audio")
 		}
 		pcm := make([]byte, size)
 		_, err = io.ReadFull(io.NewSectionReader(f, offset+first*2, size), pcm)
 		f.Close()
 		if err != nil {
-			return nil, duration, contracts.Fail("invalid_audio")
+			return nil, duration, nil, contracts.Fail("invalid_audio")
 		}
 		path := filepath.Join(directory, fmt.Sprintf("match-%s.wav", contracts.ID()))
 		if err = writeWAV(path, pcm); err != nil {
-			return nil, duration, err
+			return nil, duration, nil, err
 		}
 		mapping := audio.SourceMap
 		mapping.SampleCount = last - first
@@ -301,10 +313,15 @@ func (s *Service) voiceEmbedding(ctx context.Context, audio *Audio, spans []voic
 		if end > len(inputs) {
 			end = len(inputs)
 		}
-		vectors, err := s.embedInputs(ctx, inputs[start:end], options.ModelID, options.ModelDigest)
+		embedded, err := s.embedInputsWithPolicy(ctx, inputs[start:end], options.ModelID, options.ModelDigest, options.Device)
 		if err != nil {
-			return nil, duration, err
+			return nil, duration, nil, err
 		}
+		executions, err = processing.AccumulateDeviceExecutions(executions, embedded.Executions)
+		if err != nil {
+			return nil, duration, nil, err
+		}
+		vectors := embedded.Vectors
 		for index, input := range inputs[start:end] {
 			if vectors[index] == nil {
 				os.Remove(input.Path)
@@ -312,13 +329,13 @@ func (s *Service) voiceEmbedding(ctx context.Context, audio *Audio, spans []voic
 			}
 			values, err := normalized(vectors[index])
 			if err != nil {
-				return nil, duration, err
+				return nil, duration, nil, err
 			}
 			if len(vector) == 0 {
 				vector = make([]float64, len(values))
 			}
 			if len(vector) != len(values) {
-				return nil, duration, contracts.Fail("incompatible_version")
+				return nil, duration, nil, contracts.Fail("incompatible_version")
 			}
 			for i, v := range values {
 				vector[i] += v * float64(input.DurationUS)
@@ -328,8 +345,8 @@ func (s *Service) voiceEmbedding(ctx context.Context, audio *Audio, spans []voic
 		}
 	}
 	if len(vector) == 0 {
-		return vector, availableUS, nil
+		return vector, availableUS, executions, nil
 	}
 	vector, err := normalized(vector)
-	return vector, duration, err
+	return vector, duration, executions, err
 }

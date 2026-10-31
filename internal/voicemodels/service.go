@@ -20,6 +20,9 @@ import (
 )
 
 func (s *Service) ValidateTrain(ctx context.Context, o TrainOptions) (TrainOptions, error) {
+	if !processing.ValidDevice(o.Device) || o.Device != "" && o.Adapter.ID != "pyannote-profile" {
+		return o, contracts.Fail("unsupported_device")
+	}
 	var normalizationError error
 	o.Adapter.Limits, normalizationError = normalizeLimits(o.Adapter.Limits)
 	if normalizationError != nil {
@@ -143,7 +146,24 @@ func (s *Service) ExecuteTrain(ctx context.Context, claim catalog.Work) (any, er
 	}
 	versionID := models.StableID("speaker-version:" + claim.ID)
 	if existing, err := s.Catalog.SpeakerOutput(ctx, versionID); err == nil {
-		return map[string]any{"version_id": existing.ID, "model_id": existing.ModelID, "state": "available"}, nil
+		result := map[string]any{"version_id": existing.ID, "model_id": existing.ModelID, "state": "available"}
+		var manifest struct {
+			Training struct {
+				Executions []processing.DeviceExecution `json:"device_executions"`
+			} `json:"training"`
+		}
+		if json.Unmarshal(existing.Metadata, &manifest) != nil {
+			return nil, contracts.Fail("invalid_engine_output")
+		}
+		if len(manifest.Training.Executions) > 0 {
+			executions, err := processing.AccumulateDeviceExecutions(nil, manifest.Training.Executions)
+			if err != nil {
+				return nil, err
+			}
+			result["device_executions"] = executions
+			result["notices"] = processing.DeviceNotices(executions)
+		}
+		return result, nil
 	}
 	options, err := s.ValidateTrain(ctx, payload.Options)
 	if err != nil {
@@ -333,7 +353,7 @@ func (s *Service) ExecuteTrain(ctx context.Context, claim catalog.Work) (any, er
 	}
 	accepted = true
 	preparationAccepted = true
-	return map[string]any{"version_id": got.ID, "model_id": got.ModelID, "state": "available", "checkpoint_ids": checkpointIDs(output.Checkpoints)}, nil
+	return map[string]any{"version_id": got.ID, "model_id": got.ModelID, "state": "available", "checkpoint_ids": checkpointIDs(output.Checkpoints), "device_executions": output.DeviceExecutions, "notices": processing.DeviceNotices(output.DeviceExecutions)}, nil
 }
 func checkpointIDs(v []Checkpoint) []string {
 	out := []string{}
@@ -343,21 +363,27 @@ func checkpointIDs(v []Checkpoint) []string {
 	return out
 }
 func (s *Service) enroll(ctx context.Context, options TrainOptions, inputs []PreparedInput, directory string) (Output, error) {
-	if s.Embed == nil && s.EmbedBatch == nil {
+	if s.Embed == nil && s.EmbedBatch == nil && s.EmbedBatchWithPolicy == nil {
 		return Output{}, contracts.Fail("unavailable")
 	}
 	vector := []float64{}
 	var duration int64
 	var skipped int64
+	var executions []processing.DeviceExecution
 	for start := 0; start < len(inputs); start += 64 {
 		end := start + 64
 		if end > len(inputs) {
 			end = len(inputs)
 		}
-		vectors, err := s.embedInputs(ctx, inputs[start:end], options.BaseModelID, options.BaseDigest)
+		embedded, err := s.embedInputsWithPolicy(ctx, inputs[start:end], options.BaseModelID, options.BaseDigest, options.Device)
 		if err != nil {
 			return Output{}, err
 		}
+		executions, err = processing.AccumulateDeviceExecutions(executions, embedded.Executions)
+		if err != nil {
+			return Output{}, err
+		}
+		vectors := embedded.Vectors
 		for index, input := range inputs[start:end] {
 			if vectors[index] == nil {
 				skipped++
@@ -392,7 +418,7 @@ func (s *Service) enroll(ctx context.Context, options TrainOptions, inputs []Pre
 	if err = os.WriteFile(path, raw, 0600); err != nil {
 		return Output{}, contracts.Fail("unavailable")
 	}
-	out := Output{ContractVersion: "1", Kind: "voice-embedding", Architecture: "pyannote", Consumers: []string{"voice-matching"}, SupportedOperations: []string{"voice-matching"}, Artifacts: []Artifact{{Role: "profile.json", Format: "application/json", Path: "profile.json", SHA256: hash(raw), Size: int64(len(raw))}}}
+	out := Output{DeviceExecutions: executions, ContractVersion: "1", Kind: "voice-embedding", Architecture: "pyannote", Consumers: []string{"voice-matching"}, SupportedOperations: []string{"voice-matching"}, Artifacts: []Artifact{{Role: "profile.json", Format: "application/json", Path: "profile.json", SHA256: hash(raw), Size: int64(len(raw))}}}
 	if skipped > 0 {
 		out.Diagnostics = []processing.Diagnostic{{Code: "embedding_short_clip_excluded", Count: skipped}}
 	}

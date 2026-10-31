@@ -119,7 +119,7 @@ export function pipelineValues(p?: Obj): Obj {
     value[`${kind}_remote_model`] = s.remote_model ?? '';
     value[`${kind}_endpoint`] = s.endpoint ?? '';
     value[`${kind}_credential`] = s.credential_id ?? '';
-    value[`${kind}_device`] = s[kind]?.device ?? 'cpu';
+    value[`${kind}_device`] = s[kind]?.device ?? 'auto';
     value[`${kind}_audio_limit`] = s.limits?.max_audio_bytes ?? 134217728;
     value[`${kind}_response_limit`] = s.limits?.max_response_bytes ?? 16777216;
     value[`${kind}_timeout`] = s.limits?.timeout_ms ?? 600000;

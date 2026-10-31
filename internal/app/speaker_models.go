@@ -66,24 +66,12 @@ func (a *App) speakerModelServiceWithTools(tools *ProcessingTools) (*voicemodels
 		}
 		return &voicemodels.Audio{Path: audio.Path, SourceMap: source, Close: audio.Close}, nil
 	}
-	service.Embed = func(ctx context.Context, path string, source processing.SourceMap, id, digest string) ([]float64, error) {
+	service.EmbedBatchWithPolicy = func(ctx context.Context, inputs []voicemodels.PreparedInput, id, digest, device string) (processing.EmbeddingResult, error) {
 		config := tools
 		if config == nil {
 			selected, err := ReadProcessingTools(a.Workspace)
 			if err != nil {
-				return nil, err
-			}
-			config = &selected
-		}
-		engine := &processing.Service{Artifacts: artifacts, Catalog: a.Catalog, Config: config.Processing}
-		return engine.Embed(ctx, path, source, id, digest)
-	}
-	service.EmbedBatch = func(ctx context.Context, inputs []voicemodels.PreparedInput, id, digest string) ([][]float64, error) {
-		config := tools
-		if config == nil {
-			selected, err := ReadProcessingTools(a.Workspace)
-			if err != nil {
-				return nil, err
+				return processing.EmbeddingResult{}, err
 			}
 			config = &selected
 		}
@@ -92,7 +80,7 @@ func (a *App) speakerModelServiceWithTools(tools *ProcessingTools) (*voicemodels
 		for index, input := range inputs {
 			selected[index] = processing.EmbeddingInput{Path: input.Path, SourceMap: input.SourceMap}
 		}
-		return engine.EmbedBatch(ctx, selected, id, digest)
+		return engine.EmbedBatchOnDevice(ctx, selected, id, digest, device)
 	}
 	return service, nil
 }
@@ -265,6 +253,9 @@ func (a *App) enqueueSpeakerWork(req contracts.Request) (any, error) {
 			return nil, err
 		}
 		options.BaseModelID, options.BaseDigest = id, digest
+		if options.Adapter.ID == "pyannote-profile" && options.Device == "" {
+			options.Device = "auto"
+		}
 		options, err = service.ValidateTrain(a.ctx, options)
 		if err != nil {
 			return nil, err
@@ -284,6 +275,9 @@ func (a *App) enqueueSpeakerWork(req contracts.Request) (any, error) {
 			return nil, contracts.Fail("invalid_request")
 		}
 		options.RecordingID = req.ItemID
+		if options.Device == "" {
+			options.Device = "auto"
+		}
 		id, digest, selections, _, e := a.freezeSpeakerBase(a.ctx, options.ModelID, "voice-matching")
 		if e != nil {
 			return nil, e

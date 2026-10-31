@@ -194,14 +194,9 @@ func (s *Session) workerSelected(ctx context.Context, operation string, id strin
 	for key, value := range options {
 		request[key] = value
 	}
-	encoded, err := json.Marshal(request)
-	if err != nil {
-		return nil, nil, contracts.Fail("invalid_request")
-	}
 	workerCtx, cancel := context.WithTimeout(ctx, time.Duration(config.TimeoutMS)*time.Millisecond)
 	defer cancel()
-	// Pyannote's local registry requires a resolvable home even in offline mode.
-	// Give it an empty private home rather than exposing the operator's configs.
+	// Both device attempts share the same staged model and original deadline.
 	home, err := os.MkdirTemp(s.directory, "home-")
 	if err != nil {
 		return nil, nil, contracts.Fail("unavailable")
@@ -211,25 +206,35 @@ func (s *Session) workerSelected(ctx context.Context, operation string, id strin
 		return nil, nil, err
 	}
 	workerEnv := append(process.LocalEnvironment(), "HOME="+home, "USERPROFILE="+home, "HF_HUB_OFFLINE=1", "TRANSFORMERS_OFFLINE=1", "HF_HUB_DISABLE_TELEMETRY=1", "PYANNOTE_METRICS_ENABLED=0", "PYTHONIOENCODING=utf-8", "TOKENIZERS_PARALLELISM=false")
-	result, err := process.Capture(workerCtx, process.Spec{Executable: python.Path, Args: []string{"-I", "-B", config.Worker.Path}, Directory: s.directory, CleanEnv: true, Env: workerEnv, Input: bytes.NewReader(encoded), MaxOutput: config.MaxOutputBytes})
+	requested, _ := request["device"].(string)
+	raw, execution, err := runDevicePolicy(workerCtx, requested, func(attemptCtx context.Context, device string) ([]byte, error) {
+		request["device"] = device
+		encoded, e := json.Marshal(request)
+		if e != nil {
+			return nil, contracts.Fail("invalid_request")
+		}
+		result, e := process.Capture(attemptCtx, process.Spec{Executable: python.Path, Args: workers.WorkerArgs(config.Worker.Path, environment), Directory: s.directory, CleanEnv: true, Env: workerEnv, Input: bytes.NewReader(encoded), MaxOutput: config.MaxOutputBytes})
+		if e != nil {
+			return nil, workerFailure(result.Stderr, e)
+		}
+		return result.Stdout, nil
+	})
 	if err != nil {
-		// Only documented compact worker error codes escape. Discard raw engine
-		// stderr so request/secret values cannot enter durable diagnostics.
-		var failure struct {
-			Error string `json:"error"`
-		}
-		lines := bytes.Split(bytes.TrimSpace(result.Stderr), []byte("\n"))
-		if len(lines) > 0 && strict(lines[len(lines)-1], &failure) == nil {
-			switch failure.Error {
-			case "engine_ci_forbidden", "engine_unavailable", "model_unavailable", "incompatible_version", "unsupported_device", "invalid_embedding", "invalid_timing", "audio_limit":
-				return nil, nil, contracts.Fail(failure.Error)
-			}
-		}
 		return nil, nil, err
+	}
+	raw, err = annotateDeviceResult(raw, execution)
+	if err != nil {
+		return nil, nil, err
+	}
+	provenance["requested_device"] = execution.RequestedDevice
+	provenance["attempted_devices"] = execution.AttemptedDevices
+	provenance["device"] = execution.Device
+	if execution.FallbackReason != "" {
+		provenance["fallback_reason"] = execution.FallbackReason
 	}
 	provenance["python_sha256"] = python.SHA256
 	provenance["worker_sha256"] = config.Worker.SHA256
-	return result.Stdout, provenance, nil
+	return raw, provenance, nil
 }
 
 func strict(raw []byte, out any) error {
@@ -244,7 +249,7 @@ func strict(raw []byte, out any) error {
 	return nil
 }
 
-func (s *Session) Recognize(ctx context.Context, modelID string, options RecognitionOptions) (RecognitionResult, error) {
+func (s *Session) Recognize(ctx context.Context, modelID string, options RecognitionOptions) (_ RecognitionResult, returned error) {
 	operationCtx, end, err := s.begin(ctx)
 	if err != nil {
 		return RecognitionResult{}, err
@@ -255,6 +260,9 @@ func (s *Session) Recognize(ctx context.Context, modelID string, options Recogni
 	}
 	if options.Language == "" {
 		options.Language = "en"
+	}
+	if err = ValidateLocalLanguage(options.Language); err != nil {
+		return RecognitionResult{}, err
 	}
 	options, err = ValidateRecognitionOptions(options, 200)
 	if err != nil {
@@ -268,6 +276,7 @@ func (s *Session) Recognize(ctx context.Context, modelID string, options Recogni
 	if err != nil {
 		return RecognitionResult{}, err
 	}
+	defer func() { returned = withDeviceProvenanceFailure(returned, provenance) }()
 	var output struct {
 		SRT         string         `json:"srt"`
 		NoSpeech    bool           `json:"no_speech"`
@@ -311,7 +320,7 @@ func decodeDiarization(raw []byte, durationUS int64) (DiarizationResult, error) 
 	return DiarizationResult{Turns: output.Turns, NoSpeech: output.NoSpeech, Provenance: output.Provenance, Diagnostics: output.Diagnostics}, nil
 }
 
-func (s *Session) Diarize(ctx context.Context, modelID string, options DiarizationOptions) (DiarizationResult, error) {
+func (s *Session) Diarize(ctx context.Context, modelID string, options DiarizationOptions) (_ DiarizationResult, returned error) {
 	operationCtx, end, err := s.begin(ctx)
 	if err != nil {
 		return DiarizationResult{}, err
@@ -327,6 +336,7 @@ func (s *Session) Diarize(ctx context.Context, modelID string, options Diarizati
 	if err != nil {
 		return DiarizationResult{}, err
 	}
+	defer func() { returned = withDeviceProvenanceFailure(returned, provenance) }()
 	duration, err := MappedDuration(s.SourceMap)
 	if err != nil {
 		return DiarizationResult{}, err

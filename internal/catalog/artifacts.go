@@ -520,19 +520,23 @@ func (s *Store) ClaimRetirement(ctx context.Context, id, owner string, grace, tt
 		}
 		if p.State == "retiring" && p.LeaseUntil > now && p.Owner != owner {
 			deferred = true
-			return contracts.Fail("conflict")
+			return contracts.Condition("conflict", "artifact_retirement_active")
 		}
 		if p.State != "available" && p.State != "missing" && p.State != "retiring" {
 			return contracts.Fail("conflict")
 		}
-		if now-p.AvailableAt < int64(grace) || len(p.References) > 0 {
+		if len(p.References) > 0 {
 			deferred = true
-			return contracts.Fail("conflict")
+			return contracts.Condition("conflict", "artifact_retained")
+		}
+		if now-p.AvailableAt < int64(grace) {
+			deferred = true
+			return contracts.Condition("conflict", "artifact_grace_period")
 		}
 		for _, l := range p.Leases {
 			if l.Until > now {
 				deferred = true
-				return contracts.Fail("conflict")
+				return contracts.Condition("conflict", "artifact_active_lease")
 			}
 		}
 		retained, e := s.structuralReferences(ctx, tx, p.ArtifactID)
@@ -541,7 +545,7 @@ func (s *Store) ClaimRetirement(ctx context.Context, id, owner string, grace, tt
 		}
 		if retained {
 			deferred = true
-			return contracts.Fail("conflict")
+			return contracts.Condition("conflict", "artifact_retained")
 		}
 		if p.Generation == math.MaxInt64 {
 			return contracts.Fail("conflict")

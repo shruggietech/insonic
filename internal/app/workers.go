@@ -58,7 +58,7 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 				candidates = append(candidates, p)
 			}
 		}
-		return map[string]any{"catalog": workers.Inventory(), "platform": runtime.GOOS + "_" + runtime.GOARCH, "cpus": runtime.NumCPU(), "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "cpu", "candidates": candidates, "candidate_verification": "not_checked", "models": models.Defaults()}, nil
+		return map[string]any{"catalog": workers.Inventory(), "platform": runtime.GOOS + "_" + runtime.GOARCH, "cpus": runtime.NumCPU(), "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "auto", "candidates": candidates, "candidate_verification": "not_checked", "models": models.Defaults()}, nil
 	case "models.defaults":
 		return a.defaultModels(ctx), nil
 	case "models.prepare":
@@ -120,7 +120,7 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 		c, e := ReadProcessingTools(a.Workspace)
 		if req.Operation == "workers.plan" {
 			input.ExpectedRevision = revision
-			plan := map[string]any{"election": input, "profile": p, "destination": filepath.Join(a.Workspace.Control, "workers"), "required_space_bytes": workers.RequiredSpace(p, input.Mode), "download_bytes": p.DownloadBytes, "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "cpu", "effects": "Only successful verified work publishes the elected role; accepted environments are not updated in place."}
+			plan := map[string]any{"election": input, "profile": p, "destination": filepath.Join(a.Workspace.Control, "workers"), "required_space_bytes": workers.RequiredSpace(p, input.Mode), "download_bytes": p.DownloadBytes, "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "auto", "effects": "Only successful verified work publishes the elected role; accepted environments are not updated in place."}
 			if input.Mode == "managed" {
 				version, err := s.PlatformPrerequisite(ctx, p)
 				if version != "" {

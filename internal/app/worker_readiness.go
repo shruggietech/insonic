@@ -4,12 +4,14 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/pipeline"
+	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/voicemodels"
 	"github.com/shruggietech/insonic/internal/workers"
 )
@@ -116,7 +118,7 @@ func (a *App) readinessDefinition(ctx context.Context, input ReadinessInput, d *
 	defer cancel()
 	r := Readiness{Tasks: map[string]TaskReadiness{}, Environments: map[string]workers.Inspection{}, Verification: "prerequisite_bytes_and_library_probe; model_inference_not_run", PipelineID: input.PipelineID, PipelineRevision: input.PipelineRevision}
 	for _, device := range []string{input.RecognitionDevice, input.DiarizationDevice} {
-		if device != "" && device != "cpu" && device != "cuda" {
+		if !processing.ValidDevice(device) {
 			return r, contracts.Fail("invalid_request")
 		}
 	}
@@ -172,14 +174,14 @@ func (a *App) readinessDefinition(ctx context.Context, input ReadinessInput, d *
 			continue
 		}
 		if device == "" {
-			device = "cpu"
+			device = "auto"
 		}
 		var inspection workers.Inspection
 		if ctx.Err() != nil {
 			inspection = workers.UnattemptedInspection(ctx, role)
 		} else {
 			var e error
-			inspection, e = a.workerService().Inspect(ctx, role, python.Path, false)
+			inspection, e = a.workerService().Inspect(ctx, role, python.Path, false, receipt)
 			if e != nil {
 				return r, e
 			}
@@ -197,23 +199,18 @@ func (a *App) readinessDefinition(ctx context.Context, input ReadinessInput, d *
 			engine.Correction = ""
 		}
 		identity := checkedPin(ctx, role+" interpreter", python)
-		if receipt.Path != "" {
-			if verifyErr := workers.VerifyReceipt(ctx, receipt, python); verifyErr != nil {
-				identity.Available = false
-				identity.State = "environment_unavailable"
-				identity.Correction = "Inspect the environment receipt and dependency access before preparing future work."
-				if ctx.Err() != nil {
-					identity.State = "unknown"
-					identity.Correction = "Environment verification exhausted its enclosing budget or was cancelled; retry readiness."
-				} else if contracts.SafeError(verifyErr).Code == "checksum_mismatch" {
-					identity.State = "environment_changed"
-					identity.Correction = "Reinspect and explicitly prepare/reconfigure this changed environment for future work."
-				}
+		if receipt.Path != "" && inspection.Probe != nil && inspection.Probe.Stage == "receipt_verification" && inspection.Error != "" {
+			identity.Available = false
+			identity.State = "environment_unavailable"
+			identity.Correction = inspection.Correction
+			if inspection.Probe.Reason == "deadline" || inspection.Probe.Reason == "cancelled" {
+				identity.State = "unknown"
+			} else if inspection.Error == "checksum_mismatch" {
+				identity.State = "environment_changed"
 			}
 		}
-		dev := inspection.Devices[device]
-		deviceNeed := Prerequisite{Name: device + " device", State: dev.DependencyState, Available: dev.Available, Correction: dev.Correction}
-		if !dev.Available && deviceNeed.Correction == "" {
+		deviceNeed := devicePrerequisite(device, inspection.Devices)
+		if !deviceNeed.Available && deviceNeed.Correction == "" {
 			deviceNeed.Correction = "Prepare compatible CPU dependencies, or explicitly select a supported device."
 		}
 		model := Prerequisite{Name: "model", State: "unknown", Correction: "The enclosing readiness budget expired before model verification; retry readiness."}
@@ -257,10 +254,18 @@ func (a *App) readinessDefinition(ctx context.Context, input ReadinessInput, d *
 			if selected.BaseModelID != "" {
 				training.Prerequisites = append(training.Prerequisites, a.modelPrerequisite(ctx, selected.BaseModelID, "speaker-model-training"))
 			}
-		} else if selected.BaseModelID != "" {
+		} else {
 			for i, p := range training.Prerequisites {
-				if p.Name == "model" {
+				if p.Name == "model" && selected.BaseModelID != "" {
 					training.Prerequisites[i] = a.modelPrerequisite(ctx, selected.BaseModelID, "speaker-model-training")
+				}
+				if strings.HasSuffix(p.Name, " device policy") {
+					training.Prerequisites[i] = devicePrerequisite(selected.Device, r.Environments["diarization"].Devices)
+					if p.State == "unknown" {
+						training.Prerequisites[i].State = "unknown"
+						training.Prerequisites[i].Available = false
+						training.Prerequisites[i].Correction = p.Correction
+					}
 				}
 			}
 		}
@@ -340,4 +345,25 @@ func (a *App) modelPrerequisite(ctx context.Context, ref, operation string) Prer
 		r.State = typed.Reason
 	}
 	return r
+}
+
+func devicePrerequisite(policy string, devices map[string]workers.Device) Prerequisite {
+	if policy == "" {
+		policy = "auto"
+	}
+	selected := policy
+	if selected == "auto" {
+		selected = "cuda"
+	}
+	dev := devices[selected]
+	out := Prerequisite{Name: policy + " device policy", State: dev.DependencyState, Available: dev.Available, Correction: dev.Correction}
+	if !dev.Available && selected == "cuda" && devices["cpu"].Available {
+		out.State = "cpu_fallback_available"
+		out.Available = true
+		out.Correction = "CUDA is unavailable (" + dev.DependencyState + "); execution may use CPU fallback. Inspect workers for compatible NVIDIA prerequisites."
+	}
+	if !out.Available && out.Correction == "" {
+		out.Correction = "Prepare compatible CPU dependencies, or explicitly select a supported device."
+	}
+	return out
 }

@@ -100,6 +100,14 @@ func humanFields(b *humanBuffer, v any, depth int) {
 				continue
 			}
 			value := x[k]
+			if k == "device_attempt" && strings.HasPrefix(strings.Join(operatorContext.Path, " "), "work ") && x["code"] != nil && x["message"] != nil {
+				// The known work failure receipt is validated and shown once by
+				// humanDeviceAttempt, including in verbose/debug output.
+				continue
+			}
+			if k == "error" && value == "" && strings.HasPrefix(strings.Join(operatorContext.Path, " "), "work ") {
+				continue
+			}
 			switch item := value.(type) {
 			case map[string]any:
 				if embeddedRecordingDocument(x, k) {
@@ -198,9 +206,9 @@ func humanActions(b *humanBuffer, root map[string]any) {
 	}
 	if root["kind"] != nil && strings.HasSuffix(humanValue(root["kind"]), "import") || strings.HasPrefix(op, "work ") || op == "workers setup" {
 		if contracts.ValidID(id) {
-			b.line("Next: %s", commandFor("work show "+id))
-			b.line("Wait: %s", commandFor("work wait "+id))
 			if root["state"] == nil || root["state"] == "pending" || root["state"] == "running" {
+				b.line("Next: %s", commandFor("work show "+id))
+				b.line("Wait: %s", commandFor("work wait "+id))
 				b.line("Cancel: %s", commandFor("work cancel "+id))
 			}
 			if root["state"] == "failed" || root["state"] == "interrupted" || root["state"] == "cancelled" {
@@ -255,7 +263,9 @@ func humanActions(b *humanBuffer, root map[string]any) {
 		}
 		if acquisition, ok := root["acquisition_work_id"].(string); ok && contracts.ValidID(acquisition) {
 			b.line("Acquisition: %s", commandFor("work show "+acquisition))
-			b.line("Wait: %s", commandFor("work wait "+acquisition))
+			if root["acquisition_state"] == nil || root["acquisition_state"] == "pending" || root["acquisition_state"] == "running" {
+				b.line("Wait: %s", commandFor("work wait "+acquisition))
+			}
 			if root["acquisition_state"] == "failed" || root["acquisition_state"] == "interrupted" {
 				b.line("Retry: %s", commandFor("work retry "+acquisition))
 			}
@@ -472,6 +482,7 @@ func renderHuman(response contracts.Response) (string, error) {
 	}
 	if response.Error != nil {
 		b.line("%s: %s", response.Error.Code, response.Error.Message)
+		humanDeviceAttempt(b, response.Error)
 		for _, d := range response.Error.Diagnostics {
 			b.line("%s: %s", d.Code, d.Message)
 		}
@@ -479,7 +490,8 @@ func renderHuman(response contracts.Response) (string, error) {
 			b.line("Stopping the wait does not cancel durable work.")
 		}
 		if response.Error.Code == "invalid_request" {
-			b.line("Help: %s", commandFor(op+" --help"))
+			helpPath := strings.Join(operatorContext.Path, " ")
+			b.line("Help: %s", commandFor(strings.TrimSpace(helpPath+" --help")))
 		}
 	} else if !operatorContext.Quiet {
 		b.line("%s completed.", humanLabel(op))
@@ -492,8 +504,14 @@ func renderHuman(response contracts.Response) (string, error) {
 			b.line("Workspace ID: %s", response.WorkspaceID)
 		}
 	}
+	compactWork := false
 	if !operatorContext.Quiet || response.Error != nil {
-		humanSummary(b, v, 0)
+		if root, ok := v.(map[string]any); ok {
+			compactWork = humanWorkSummary(b, root, response.Error != nil)
+		}
+		if !compactWork {
+			humanSummary(b, v, 0)
+		}
 		if root, ok := v.(map[string]any); ok {
 			humanActions(b, root)
 		}
@@ -503,7 +521,7 @@ func renderHuman(response contracts.Response) (string, error) {
 		}
 	}
 	if root, ok := v.(map[string]any); ok && (!operatorContext.Quiet || response.Error != nil) {
-		if state, ok := root["state"].(string); ok {
+		if state, ok := root["state"].(string); ok && !compactWork {
 			b.line("State: %s", humanLabel(state))
 		}
 		if result, ok := root["result"].(map[string]any); ok {
@@ -527,14 +545,18 @@ func renderHuman(response contracts.Response) (string, error) {
 	}
 	humanWarnings(b, v, 0)
 	if v == nil && response.Error != nil && strings.HasPrefix(op, "work ") {
-		humanActions(b, map[string]any{"id": selectedItem()})
-		b.line("No durable state was observed by this invocation.")
+		if response.Error.Code == "not_found" {
+			b.line("Find work: %s", commandFor("work list"))
+		} else if response.Error.Reason == "wait_timeout" || response.Error.Reason == "wait_interrupted" {
+			humanActions(b, map[string]any{"id": selectedItem()})
+			b.line("No durable state was observed by this invocation.")
+		}
 	}
 
 	if !operatorContext.Quiet || response.Error != nil {
 		humanDocuments(b, v)
 		humanMaterializations(b, v, 0)
-		if v != nil {
+		if v != nil && (!compactWork || operatorContext.Verbose || operatorContext.Debug) {
 			humanFields(b, v, 0)
 		}
 	}

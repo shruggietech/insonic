@@ -179,6 +179,11 @@ func humanRetrieval(b *humanBuffer, root map[string]any) {
 		return
 	}
 	route := humanMutationReadback(op, root)
+	if strings.HasPrefix(op, "work ") {
+		if id, ok := root["id"].(string); ok && contracts.ValidID(id) {
+			route = "work show " + id
+		}
+	}
 	for _, key := range []string{"work_id", "acquisition_work_id"} {
 		if id, ok := root[key].(string); route == "" && ok && contracts.ValidID(id) {
 			route = "work show " + id

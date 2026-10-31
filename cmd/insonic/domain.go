@@ -140,6 +140,11 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 			f.options.SubtitleLanguage = value
 		case "--diarization-model-id":
 			f.options.DiarizationModelID = value
+		case "--diarization-device":
+			if value != "auto" && value != "cpu" && value != "cuda" {
+				return nil, f, contracts.Fail("invalid_request")
+			}
+			f.options.DiarizationDevice = value
 		case "--subtitle-stream-index":
 			n, e := strconv.Atoi(value)
 			if e != nil || n < 0 {
@@ -551,7 +556,7 @@ func overrideOptions(target *library.Options, source library.Options) {
 	*target = library.MergeOptions(*target, source)
 }
 
-var transcriptFlags = []string{"--record", "--legacy-sidecar", "--replace-transcript", "--attribution", "--transcript-format", "--transcript-credential-id", "--transcript-adapter", "--transcript-max-bytes", "--transcript-timeout-ms", "--subtitle-stream-index", "--subtitle-language", "--diarization-model-id", "--local-http", "--manifest"}
+var transcriptFlags = []string{"--record", "--legacy-sidecar", "--replace-transcript", "--attribution", "--transcript-format", "--transcript-credential-id", "--transcript-adapter", "--transcript-max-bytes", "--transcript-timeout-ms", "--subtitle-stream-index", "--subtitle-language", "--diarization-model-id", "--diarization-device", "--local-http", "--manifest"}
 
 func transcriptManifestOptions(o library.Options) bool {
 	return o.ReplaceAudio == nil && o.ExistingTranscript == "" && o.TranscriptApplies == nil && o.ExistingRoster == "" && o.KnownSpeakers == nil

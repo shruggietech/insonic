@@ -459,6 +459,15 @@
         "extensions": {
           "$ref": "common.schema.json#/$defs/extensions",
           "description": "Namespaced run provenance with no secret values."
+        },
+        "device_executions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/deviceExecution"
+          },
+          "description": "Bounded grouped actual local embedding device observations; absent in historical and non-embedding outputs."
         }
       },
       "required": [
@@ -1004,6 +1013,156 @@
         "metrics"
       ],
       "additionalProperties": false
+    },
+    "deviceExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_device",
+        "attempted_devices",
+        "device",
+        "count"
+      ],
+      "properties": {
+        "requested_device": {
+          "enum": [
+            "auto",
+            "cpu",
+            "cuda"
+          ],
+          "description": "Frozen requested local device policy."
+        },
+        "attempted_devices": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "enum": [
+              "cpu",
+              "cuda"
+            ]
+          },
+          "description": "Ordered concrete device attempts for this group."
+        },
+        "device": {
+          "enum": [
+            "cpu",
+            "cuda"
+          ],
+          "description": "Actual device that produced accepted embeddings."
+        },
+        "fallback_reason": {
+          "enum": [
+            "cuda_no_device",
+            "cuda_library_missing",
+            "cuda_library_incompatible",
+            "cuda_compute_unsupported",
+            "cuda_resource_exhausted"
+          ],
+          "description": "Generated CUDA cause for the CPU retry."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of embedding batches with this identical execution observation."
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "requested_device": {
+              "const": "cpu",
+              "description": "Frozen requested local device policy."
+            },
+            "device": {
+              "const": "cpu",
+              "description": "Actual device that produced accepted embeddings."
+            },
+            "attempted_devices": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "prefixItems": [
+                {
+                  "const": "cpu"
+                }
+              ],
+              "items": false,
+              "description": "Ordered concrete device attempts for this group."
+            }
+          },
+          "not": {
+            "required": [
+              "fallback_reason"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "requested_device": {
+              "enum": [
+                "auto",
+                "cuda"
+              ],
+              "description": "Frozen requested local device policy."
+            },
+            "device": {
+              "const": "cuda",
+              "description": "Actual device that produced accepted embeddings."
+            },
+            "attempted_devices": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "prefixItems": [
+                {
+                  "const": "cuda"
+                }
+              ],
+              "items": false,
+              "description": "Ordered concrete device attempts for this group."
+            }
+          },
+          "not": {
+            "required": [
+              "fallback_reason"
+            ]
+          }
+        },
+        {
+          "required": [
+            "fallback_reason"
+          ],
+          "properties": {
+            "requested_device": {
+              "enum": [
+                "auto",
+                "cuda"
+              ],
+              "description": "Frozen requested local device policy."
+            },
+            "device": {
+              "const": "cpu",
+              "description": "Actual device that produced accepted embeddings."
+            },
+            "attempted_devices": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "const": "cuda"
+                },
+                {
+                  "const": "cpu"
+                }
+              ],
+              "items": false,
+              "description": "Ordered concrete device attempts for this group."
+            }
+          }
+        }
+      ]
     }
   },
   "examples": [

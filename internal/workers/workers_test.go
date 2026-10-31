@@ -167,6 +167,41 @@ func TestBrokenProbeRedactsOutput(t *testing.T) {
 		t.Fatal(r, e)
 	}
 }
+
+func TestInspectionBindsConfiguredReceiptBeforeNativeProbe(t *testing.T) {
+	d := t.TempDir()
+	python := filepath.Join(d, "python")
+	if err := os.WriteFile(python, []byte("fixture"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	pin, _ := Hash(context.Background(), python)
+	receipt := Receipt{Kind: "worker-environment", Version: contracts.Version, Inspection: Inspection{Role: "recognition", Python: pin, Compatible: true, EngineAvailable: true, Files: []library.PinnedFile{pin}}}
+	raw, _ := json.Marshal(receipt)
+	name := filepath.Join(d, "elected receipt.json")
+	if err := os.WriteFile(name, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	bound, _ := Hash(context.Background(), name)
+	called := false
+	s := Service{Directory: d, Run: func(_ context.Context, spec process.Spec) (process.CaptureResult, error) {
+		called = true
+		if len(spec.Args) != 9 || spec.Args[7] != bound.Path || spec.Args[8] != bound.SHA256 || !strings.Contains(spec.Args[3], "_native.set_receipt(sys.argv[4],sys.argv[5])") || strings.Contains(spec.Args[3], bound.Path) {
+			t.Fatal("probe did not bind receipt operands", spec.Args)
+		}
+		return process.CaptureResult{}, contracts.Fail("operation_failed")
+	}}
+	if _, err := s.Inspect(context.Background(), "recognition", python, false, bound); err != nil || !called {
+		t.Fatal("verified receipt did not reach probe", err)
+	}
+	called = false
+	if err := os.WriteFile(name, []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	out, err := s.Inspect(context.Background(), "recognition", python, false, bound)
+	if err != nil || called || out.EngineAvailable || out.Error != "checksum_mismatch" || out.Probe.Stage != "receipt_verification" {
+		t.Fatal("changed receipt reached probe", out, err)
+	}
+}
 func TestEnvironmentReceiptDetectsMutation(t *testing.T) {
 	d := t.TempDir()
 	p := filepath.Join(d, "python")

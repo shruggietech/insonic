@@ -18,7 +18,7 @@ import (
 	"github.com/shruggietech/insonic/internal/process"
 )
 
-//go:embed assets/* probe.py
+//go:embed assets/* probe.py native.py
 var assets embed.FS
 
 type Asset struct {

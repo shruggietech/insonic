@@ -9,6 +9,22 @@ import time
 import uuid
 
 
+def validate_work_outcome(text, work_id, state):
+    """Reject duplicate outcomes and inapplicable recovery in installed output."""
+    lines = text.splitlines()
+    if lines.count('State: ' + state.capitalize()) != 1 or sum(line.startswith('State:') for line in lines) != 1:
+        raise ValueError('Work output omitted or repeated its outcome')
+    if any(line.strip() == 'Error:' for line in lines):
+        raise ValueError('Work output printed an empty error')
+    if state in {'succeeded', 'failed', 'cancelled', 'interrupted'} and any(
+            'work ' + action + ' ' + work_id in text for action in ['wait', 'cancel']):
+        raise ValueError('Terminal work suggested waiting or cancellation')
+    if any(line.startswith(key) for line in lines for key in ['Generation:', 'Payload:', 'Provenance:', 'Result:']):
+        raise ValueError('Normal work output dumped internal detail')
+    if work_id not in text or 'Complete JSON:' not in text:
+        raise ValueError('Work outcome lost identity or complete readback')
+
+
 def qualify(invoke, workspace, version, *, media=False):
     started = time.monotonic()
     workspace = Path(workspace)
@@ -72,6 +88,30 @@ def qualify(invoke, workspace, version, *, media=False):
                  ['models', 'alias', 'show', missing], ['models', 'source', 'show', missing]]:
         absent(invoke(args, expected=1), ' '.join(args[:2]))
 
+    missing_human = invoke(['work', 'show', missing], expected=1, machine=False)
+    if 'work list' not in missing_human or any('work ' + action + ' ' + missing in missing_human
+                                              for action in ['show', 'wait', 'cancel']):
+        raise ValueError('Missing work suggested operations on its missing ID')
+    unknown = invoke(['not-an-insonic-command'], expected=2, scoped=False, machine=False)
+    if 'insonic --help' not in unknown or 'Command --help' in unknown:
+        raise ValueError('Unknown command emitted an invalid help route')
+
+    published_file = directory / 'retirement.txt'
+    published_file.write_text('owned retirement fixture\n', encoding='utf-8', newline='\n')
+    publication = invoke(['artifacts', 'publish', published_file, 'derived'])['result']['id']
+    refusal = invoke(['artifacts', 'retire', publication], expected=1)['error']
+    if refusal.get('code') != 'conflict' or refusal.get('reason') != 'artifact_grace_period':
+        raise ValueError('Immediate retirement lost its grace-period reason')
+    reference = str(uuid.uuid4())
+    invoke(['artifacts', 'retain', publication, reference])
+    retained = invoke(['artifacts', 'retire', publication], expected=1)['error']
+    if retained.get('reason') != 'artifact_retained':
+        raise ValueError('Retained artifact lost its reference reason')
+    retained_human = invoke(['artifacts', 'retire', publication], expected=1, machine=False)
+    if 'retained by a current reference' not in retained_human or 'current revision' in retained_human:
+        raise ValueError('Retained artifact suggested an unrelated revision correction')
+    invoke(['artifacts', 'release-reference', publication, reference])
+
     for mode in [[], ['--verbose'], ['--debug']]:
         response = invoke([*mode, 'processing', 'readiness'])['result']
         human = invoke([*mode, 'processing', 'readiness'], machine=False)
@@ -96,6 +136,8 @@ def qualify(invoke, workspace, version, *, media=False):
         manifest_file.write_text(json.dumps(manifest) + '\n', encoding='utf-8', newline='\n')
         queued = invoke(['models', 'register', manifest_file])['result']
         completed = invoke(['work', 'wait', queued['work_id']])['result']['result']
+        for action in ['show', 'wait']:
+            validate_work_outcome(invoke(['work', action, queued['work_id']], machine=False), queued['work_id'], 'succeeded')
         model_id = completed['model_id']
         shown = invoke(['models', 'show', model_id])['result']
         human = invoke(['models', 'show', model_id], machine=False)
@@ -157,6 +199,8 @@ def qualify(invoke, workspace, version, *, media=False):
                         raise ValueError('Split UTF-8 capture byte page was changed or misrepresented')
                     break
             capture_cases.append(section)
-    return {'state': 'passed', 'issues': [116, 120, 121, 134, 144], 'credential_temperatures': ['cold', 'warm'],
+    return {'state': 'passed', 'issues': [116, 120, 121, 134, 144, 207], 'credential_temperatures': ['cold', 'warm'],
+            'concise_terminal_work': 'passed', 'missing_work_guidance': 'passed', 'unknown_command_help': 'passed',
+            'artifact_lifecycle_reasons': ['artifact_grace_period', 'artifact_retained'],
             'capture_sections': capture_cases, 'exact_model_identities': identity_cases, 'media_fixtures_elected': media,
             'elapsed_seconds': round(time.monotonic() - started, 3)}

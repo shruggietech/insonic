@@ -57,6 +57,14 @@ def sha(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def worker_args(path):
+    # Explicit repository source, matching workers.NativeBootstrap. Runtime
+    # execution uses the helper embedded in its exact compiled executable.
+    source = (ROOT / "internal/workers/native.py").read_text(encoding="utf-8")
+    bootstrap = "import sys,types,runpy\n_native=types.ModuleType('insonic_native')\nexec(compile(" + json.dumps(source) + ", '<insonic-native>', 'exec'), _native.__dict__)\nsys.modules['insonic_native']=_native\nrunpy.run_path(sys.argv[1],run_name='__main__')\n"
+    return ["-I", "-B", "-c", bootstrap, str(path)]
+
+
 def verify_model(operation, root):
     root = Path(root).resolve(strict=True)
     for role, (size, digest) in PINS[operation]["files"].items():
@@ -272,7 +280,7 @@ def qualify(args):
             for operation in ("transcribe", "diarize"):
                 request = {"operation": operation, "audio_path": str(mapped), "model_path": str(models[operation]),
                            "device": args.device, "language": "en", "threads": args.threads, "max_duration_us": 60000000}
-                result = json.loads(child([pythons[operation], "-I", "-B", ROOT / "scripts/processing-worker.py"], request=request, timeout=args.timeout))
+                result = json.loads(child([pythons[operation], *worker_args(ROOT / "scripts/processing-worker.py")], request=request, timeout=args.timeout))
                 entry = {"no_speech": result["no_speech"], "provenance": result["provenance"], "diagnostics": result["diagnostics"]}
                 if operation == "transcribe":
                     reference = srt_text((ROOT / "tests/fixtures/media" / ("speech.srt" if fixture["id"] == "speech" else "sintel.srt")).read_text(encoding="utf-8"))

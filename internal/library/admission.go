@@ -243,7 +243,7 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 			// prior current revision remains the transaction's compare-and-swap fence.
 			compatibilityOptions := options
 			compatibilityOptions.Attribution = "off"
-			previous, e = s.makeRecording(ctx, target, doc, compatibilityOptions, nil, nil)
+			previous, _, e = s.makeRecording(ctx, target, doc, compatibilityOptions, nil, nil)
 			if e != nil {
 				return out, e
 			}
@@ -505,7 +505,9 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 	}
 	if document != nil {
 		phase = "current-document"
-		recording, err = s.makeRecording(ctx, entry, *document, options, tracks, transcriptAcquisition)
+		var executionNotices []string
+		recording, executionNotices, err = s.makeRecording(ctx, entry, *document, options, tracks, transcriptAcquisition)
+		notices = append(notices, executionNotices...)
 		if err != nil {
 			return out, err
 		}
@@ -555,34 +557,39 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 	}
 	return out, nil
 }
-func (s *Service) makeRecording(ctx context.Context, entry catalog.LibraryEntry, input subtitles.Admission, options Options, tracks []EmbeddedTrack, acquisition *Acquisition) (*catalog.Recording, error) {
+func (s *Service) makeRecording(ctx context.Context, entry catalog.LibraryEntry, input subtitles.Admission, options Options, tracks []EmbeddedTrack, acquisition *Acquisition) (*catalog.Recording, []string, error) {
+	var notices []string
 	sourceMap := marshal(map[string]any{"policy": "supplied-document-source-clock;no-retiming", "embedded_tracks": tracks})
 	provenance := marshal(map[string]any{"mode": "import", "original_schema_version": input.OriginalVersion, "translated": input.Translated, "attribution": options.Attribution, "attribution_basis": input.AttributionBasis, "transcript_acquisition": acquisition})
 	if options.Attribution == "diarize" {
-		if s.Diarize == nil && s.DiarizePinned == nil {
-			return nil, contracts.Fail("unavailable")
+		if s.Diarize == nil && s.DiarizePinned == nil && s.DiarizeWithPolicy == nil {
+			return nil, nil, contracts.Fail("unavailable")
 		}
 		originalProvenance := provenance
 		var err error
-		if s.DiarizePinned != nil {
+		if s.DiarizeWithPolicy != nil {
+			var result DiarizationResult
+			result, err = s.DiarizeWithPolicy(ctx, entry, input.Document, options.DiarizationModelID, options.DiarizationModelDigest, options.DiarizationDevice)
+			input, provenance, notices = result.Admission, result.Provenance, result.Notices
+		} else if s.DiarizePinned != nil {
 			input, provenance, err = s.DiarizePinned(ctx, entry, input.Document, options.DiarizationModelID, options.DiarizationModelDigest)
 		} else if options.DiarizationModelDigest != "" {
-			return nil, contracts.Fail("invalid_request")
+			return nil, nil, contracts.Fail("invalid_request")
 		} else {
 			input, provenance, err = s.Diarize(ctx, entry, input.Document, options.DiarizationModelID)
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		var detail struct {
 			SourceMap json.RawMessage `json:"source_map"`
 		}
 		if json.Unmarshal(provenance, &detail) != nil || len(detail.SourceMap) == 0 {
-			return nil, contracts.Fail("invalid_request")
+			return nil, nil, contracts.Fail("invalid_request")
 		}
 		var mapping map[string]json.RawMessage
 		if json.Unmarshal(detail.SourceMap, &mapping) != nil {
-			return nil, contracts.Fail("invalid_request")
+			return nil, nil, contracts.Fail("invalid_request")
 		}
 		mapping["supplied_document"] = json.RawMessage(`true`)
 		sourceMap = marshal(mapping)
@@ -592,13 +599,13 @@ func (s *Service) makeRecording(ctx context.Context, entry catalog.LibraryEntry,
 		provenance = marshal(processing)
 	}
 	if err := validateAudioAttribution(entry, input.Document); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// Match the catalog's JSON serialization before hashing. This compacts JSON
 	// whitespace/escapes without decoding numbers or changing source/native data.
 	input.Document, _ = json.Marshal(input.Document)
 	sum, _ := identityBytes(input.Document)
-	return &catalog.Recording{ID: entry.ID, SourceRevision: max(entry.Revision, 1), SourceDigest: entry.Digest, State: "ready", Document: input.Document, DocumentDigest: sum, SourceMap: sourceMap, Provenance: provenance, Diagnostics: json.RawMessage(`[]`)}, nil
+	return &catalog.Recording{ID: entry.ID, SourceRevision: max(entry.Revision, 1), SourceDigest: entry.Digest, State: "ready", Document: input.Document, DocumentDigest: sum, SourceMap: sourceMap, Provenance: provenance, Diagnostics: json.RawMessage(`[]`)}, notices, nil
 }
 func identityBytes(data []byte) (string, int64) {
 	sum := sha256.Sum256(data)
@@ -642,7 +649,7 @@ func (s *Service) admitTranscript(ctx context.Context, work catalog.Work, ordina
 	if err != nil {
 		return ItemResult{}, err
 	}
-	recording, err := s.makeRecording(ctx, entry, document, options, []EmbeddedTrack{}, acquired)
+	recording, notices, err := s.makeRecording(ctx, entry, document, options, []EmbeddedTrack{}, acquired)
 	if err != nil {
 		return ItemResult{}, err
 	}
@@ -652,6 +659,7 @@ func (s *Service) admitTranscript(ctx context.Context, work catalog.Work, ordina
 	entry.Facts = marshal(facts)
 	entry.SubtitlePublicationID = nil
 	out := resultOf(ordinal, entry)
+	out.Notices = notices
 	if previousErr == nil {
 		out.State = "replaced"
 	}

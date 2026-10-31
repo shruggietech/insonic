@@ -22,12 +22,19 @@ import (
 	"github.com/shruggietech/insonic/internal/workspace"
 )
 
+type DiarizationResult struct {
+	subtitles.Admission
+	Provenance json.RawMessage
+	Notices    []string
+}
+
 type Service struct {
-	Destination    *workspace.Profile
-	AfterAdmission func(context.Context, catalog.Work, int, string, ImportSelection) ([]string, error)
-	NativeIngest   func(context.Context, []byte, string) (json.RawMessage, error)
-	Diarize        func(context.Context, catalog.LibraryEntry, json.RawMessage, string) (subtitles.Admission, json.RawMessage, error)
-	DiarizePinned  func(context.Context, catalog.LibraryEntry, json.RawMessage, string, string) (subtitles.Admission, json.RawMessage, error)
+	Destination       *workspace.Profile
+	AfterAdmission    func(context.Context, catalog.Work, int, string, ImportSelection) ([]string, error)
+	NativeIngest      func(context.Context, []byte, string) (json.RawMessage, error)
+	Diarize           func(context.Context, catalog.LibraryEntry, json.RawMessage, string) (subtitles.Admission, json.RawMessage, error)
+	DiarizePinned     func(context.Context, catalog.LibraryEntry, json.RawMessage, string, string) (subtitles.Admission, json.RawMessage, error)
+	DiarizeWithPolicy func(context.Context, catalog.LibraryEntry, json.RawMessage, string, string, string) (DiarizationResult, error)
 	// Used only by historical fixture builders, never enabled by application construction.
 	legacyFixture bool
 

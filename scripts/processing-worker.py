@@ -3,6 +3,7 @@
 """Explicit offline local inference worker. Importing this file loads no engine."""
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from fractions import Fraction
+from contextlib import nullcontext
 import hashlib
 import importlib.metadata
 import json
@@ -19,10 +20,16 @@ import wave
 MAX_REQUEST = 65536
 MAX_RESULTS = 20000
 CI_VARIABLES = ("CI", "GITHUB_ACTIONS", "TF_BUILD", "BUILD_BUILDID", "JENKINS_URL")
+LANGUAGES = frozenset("en zh de es ru ko fr ja pt tr pl ca nl ar sv it id hi fi vi he uk el ms cs ro da hu ta no th ur hr bg lt la mi ml cy sk te fa lv bn sr az sl kn et mk br eu is hy ne mn bs kk sq sw gl mr pa si km sn yo so af oc ka be tg sd gu am yi lo uz fo ht ps tk nn mt sa lb my bo tl mg as tt haw ln ha ba jw su yue".split())
 
 
 class WorkerError(ValueError):
     pass
+
+
+def validate_language(language):
+    if not isinstance(language, str) or language not in LANGUAGES | {"auto"}:
+        raise WorkerError("unsupported_language")
 
 
 def forbid_ci():
@@ -69,8 +76,7 @@ def validate_request(request):
     if request.get("device", "cpu") not in {"cpu", "cuda"}:
         raise WorkerError("unsupported_device")
     language = request.get("language", "en")
-    if not isinstance(language, str) or not re.fullmatch(r"[a-z]{2,3}|auto", language):
-        raise WorkerError("invalid_request")
+    validate_language(language)
     for key, lower, upper, default in (("threads", 1, 64, 2),
                                         ("max_duration_us", 1, 604800000000, 3600000000),
                                         ("min_speakers", 0, 64, 0), ("max_speakers", 0, 64, 0)):
@@ -219,6 +225,16 @@ def recognition_result(segments, duration_us, source_start=Fraction(0), *, inter
             "native_timing_projection": "nearest-microsecond;exact-source-origin;ceil-start/floor-end-millisecond"}}
 
 
+def silence_result(pcm, duration_us):
+    # This is an exact decoded-signal fact, not an RMS threshold or a model's
+    # speech-confidence guess. Even one nonzero sample bypasses this rule.
+    if any(pcm):
+        return None
+    result = recognition_result([], duration_us)
+    result["diagnostics"].append({"code": "digital_silence", "count": 1})
+    return result
+
+
 def diarization_result(segments, duration_us):
     turns = []
     for start, end, label in segments:
@@ -335,7 +351,14 @@ def guard_pyannote_embeddings(pipeline, torch, np):
             with torch.inference_mode():
                 values = model(waveform)
             return bool(torch.isfinite(values).all())
-        except (WorkerError, RuntimeError, ValueError, AssertionError):
+        except RuntimeError as error:
+            # Minimum-length discovery may reject a short input, but native
+            # device failures must reach the host's bounded fallback policy.
+            native = sys.modules.get("insonic_native")
+            if native is not None and native.cuda_failure(error):
+                raise
+            return False
+        except (WorkerError, ValueError, AssertionError):
             return False
 
     minimum = minimum_embedding_samples(probe, embedding.sample_rate)
@@ -382,7 +405,7 @@ def _peak_memory():
     return peak * 1024
 
 
-def run(request):
+def run_selected(request, native):
     forbid_ci()
     request = validate_request(request)
     os.environ.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
@@ -399,14 +422,28 @@ def run(request):
         if versions["faster-whisper"] != "1.2.1" or versions["ctranslate2"] != "4.8.2":
             raise WorkerError("incompatible_version")
         import numpy as np
+        import ctranslate2
         from faster_whisper import WhisperModel
+        if device == "cuda":
+            native.recognition(ctranslate2)
         model = WhisperModel(request["model_path"], device=device,
                              compute_type="int8" if device == "cpu" else "float16",
                              cpu_threads=threads, num_workers=1, local_files_only=True)
+        language = request.get("language", "en")
+        if language != "auto" and language not in model.supported_languages:
+            raise WorkerError("unsupported_language")
         audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
         segments, info = model.transcribe(audio, **recognition_arguments(request))
         origin = Fraction(int(request.get("source_start_numerator", "0")), int(request.get("source_start_denominator", "1")))
-        result = recognition_result(({"start": segment.start, "end": segment.end, "text": segment.text} for segment in segments), duration_us, origin, intersect_whisper_end=True)
+        result = silence_result(pcm, duration_us)
+        if result is None:
+            result = recognition_result(({"start": segment.start, "end": segment.end, "text": segment.text} for segment in segments), duration_us, origin, intersect_whisper_end=True)
+        else:
+            # Finish the selected engine execution so device provenance remains
+            # an observed inference fact. Its invented text never becomes data.
+            for index, _ in enumerate(segments):
+                if index >= MAX_RESULTS:
+                    raise WorkerError("output_limit")
         result["provenance"]["recognition_boundary_policy"] = "pinned-Whisper end/media intersection;max250ms overhang;diagnose each change"
         result["provenance"].update(language=info.language, beam_size=5, vad_filter=False,
                                      condition_on_previous_text=False, compute_type="int8" if device == "cpu" else "float16")
@@ -422,7 +459,7 @@ def run(request):
         from pyannote.audio import Pipeline
         torch.set_num_threads(threads)
         if device == "cuda" and not torch.cuda.is_available():
-            raise WorkerError("unsupported_device")
+            raise WorkerError("cuda_no_device")
         pipeline = Pipeline.from_pretrained(request["model_path"])
         if pipeline is None:
             raise WorkerError("model_unavailable")
@@ -473,6 +510,27 @@ def run(request):
                                  peak_rss_bytes=_peak_memory(), audio_sha256=audio_digest,
                                  sample_count=count, sample_rate=rate, telemetry_enabled=False, offline=True)
     return result
+
+
+def run(request):
+    forbid_ci()
+    request = validate_request(request)
+    # The host injects the exact embedded module. No adjacent/ambient Python
+    # module may become executable authority for a pinned worker script.
+    native = sys.modules.get("insonic_native")
+    if native is None:
+        raise WorkerError("engine_unavailable")
+    device = request.get("device", "cpu")
+    try:
+        with native.NativeLibraries() if device == "cuda" else nullcontext(None) as libraries:
+            return run_selected(request, libraries)
+    except WorkerError:
+        raise
+    except native.NativeFailure as error:
+        raise WorkerError(str(error)) from None
+    except Exception as error:
+        code = native.cuda_failure(error) if device == "cuda" else None
+        raise WorkerError(code or "engine_failed") from None
 
 
 def main():

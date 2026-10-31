@@ -4,6 +4,11 @@ package contracts
 import "errors"
 
 var operatorReasons = map[string]string{
+	"unsupported_language":                "recognition.language must be auto or a supported faster-whisper language code, such as en, es or fr. See local processing setup for the supported choices.",
+	"artifact_retained":                   "The artifact is retained by a current reference. Inspect its references and release only those no longer needed before retrying retirement.",
+	"artifact_active_lease":               "The artifact has an active materialization lease. Release the owned lease or wait for its expiry, then retry retirement.",
+	"artifact_grace_period":               "The artifact is within the retirement grace period. Wait until one minute after publication became available, then retry retirement.",
+	"artifact_retirement_active":          "Another active retirement attempt owns this artifact. Wait for that attempt to finish or its lease to expire, then inspect the artifact before retrying.",
 	"worker_probe_interpreter_missing":    "Choose a configured absolute Python interpreter or prepare the managed CPU environment.",
 	"worker_probe_interpreter_unreadable": "The selected interpreter cannot be verified. Check its file and access permissions.",
 	"worker_probe_home_unavailable":       "The private probe directory cannot be prepared. Check library control-directory access.",
@@ -121,14 +126,17 @@ func Condition(code, reason string) *Error {
 
 func SafeError(err error) *Error {
 	var e *Error
-	if errors.As(err, &e) {
+	if errors.As(err, &e) && e != nil {
+		var out *Error
 		if rule, ok := assetReasons[e.Reason]; ok && rule.code == e.Code && e.Asset != nil {
-			return AssetFailure(e.Reason, e.Asset.Role, e.Asset.Name)
+			out = AssetFailure(e.Reason, e.Asset.Role, e.Asset.Name)
+		} else if e.Validation != nil && inputReason(e.Reason) {
+			out = InputFailure(e.Reason, *e.Validation)
+		} else {
+			out = Condition(e.Code, e.Reason)
 		}
-		if e.Validation != nil && inputReason(e.Reason) {
-			return InputFailure(e.Reason, *e.Validation)
-		}
-		return Condition(e.Code, e.Reason)
+		out.DeviceAttempt = safeDeviceAttempt(e.DeviceAttempt)
+		return out
 	}
 	return Fail("operation_failed")
 }

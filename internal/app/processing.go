@@ -426,6 +426,9 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 		if e != nil {
 			return nil, e
 		}
+		if mode == "generate" && result.NoSpeech && len(doc) > 0 {
+			diagnostics = append(diagnostics, []processing.Diagnostic{{Code: "recognition_diarization_disagreement", Count: 1}})
+		}
 		if result.NoSpeech && len(doc) == 0 {
 			state = "no-speech"
 		}
@@ -503,7 +506,16 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 	if e == nil {
 		lib.Cleanup(ctx, entry.ID)
 	}
-	return map[string]any{"recording_id": current.ID, "revision": current.Revision, "document_digest": current.DocumentDigest, "state": current.State, "quality_diagnostics": current.Diagnostics}, nil
+	notices := []string{}
+	for _, stage := range []string{"transcription", "diarization"} {
+		if detail, ok := provenance[stage].(map[string]any); ok {
+			notices = append(notices, processing.DeviceProvenanceNotices(detail)...)
+		}
+	}
+	if bytes.Contains(current.Diagnostics, []byte(`"recognition_diarization_disagreement"`)) {
+		notices = append(notices, "Recognition returned text while diarization found no speech; the transcript is retained with a disagreement diagnostic.")
+	}
+	return map[string]any{"recording_id": current.ID, "revision": current.Revision, "document_digest": current.DocumentDigest, "state": current.State, "quality_diagnostics": current.Diagnostics, "notices": notices}, nil
 }
 func flattenDiagnostics(groups []any) json.RawMessage {
 	out := []map[string]json.RawMessage{}

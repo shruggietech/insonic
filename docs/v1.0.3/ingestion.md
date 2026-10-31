@@ -273,3 +273,5 @@ JSON items use `kind: "media"` for targeted audio and `kind: "transcript"` for t
 ```
 
 Explicit `Z` or numeric-offset timestamps remain authoritative when timezone policy is omitted or `local`. The captured local zone applies to unqualified wall times; persisted implicit-policy provenance prevents retry or host changes from turning that zone into an explicit conflicting choice. A separately supplied timezone still validates offset agreement. See [CLI date and output contracts](cli.md#dates-credentials-and-durable-failures).
+
+Local diarized attribution accepts `diarization_device` in manifest/default/preset options and `--diarization-device auto|cpu|cuda` on media or transcript import. New omitted local elections use `auto`; explicit CPU and previously frozen empty-device work remain CPU. The same bounded device recovery and provenance rules as [processing pipelines](pipelines.md) apply.

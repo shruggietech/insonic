@@ -29,9 +29,22 @@ func validProvenance(value map[string]any) bool {
 	allowed["hint_count"] = true
 	allowed["context_application"] = true
 	allowed["input_count"] = true
+	allowed["requested_device"] = true
+	allowed["attempted_devices"] = true
+	allowed["fallback_reason"] = true
+	if _, observed := value["requested_device"]; observed {
+		if _, valid := deviceExecution(value); !valid {
+			return false
+		}
+	} else if value["attempted_devices"] != nil || value["fallback_reason"] != nil {
+		return false
+	}
 	for key, item := range value {
 		if !allowed[key] {
 			return false
+		}
+		if key == "attempted_devices" {
+			continue
 		}
 		if key == "input_count" {
 			count, ok := item.(float64)

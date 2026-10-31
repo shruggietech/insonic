@@ -360,6 +360,7 @@
         "internal/launcher/documentation_other.go",
         "internal/library/acquisition.go",
         "internal/library/admission.go",
+        "internal/library/admission_recovery.go",
         "internal/library/canonical.go",
         "internal/library/date.go",
         "internal/library/embedded.go",
@@ -378,6 +379,7 @@
         "internal/processing/adapters.go",
         "internal/processing/audio.go",
         "internal/processing/config.go",
+        "internal/processing/device_policy.go",
         "internal/processing/types.go",
         "internal/runtime/deadline.go",
         "internal/runtime/runtime.go",
@@ -394,8 +396,7 @@
         "internal/voicemodels/types.go",
         "internal/workers/platform.go",
         "internal/workers/probe.go",
-        "internal/workers/setup.go",
-        "internal/library/admission_recovery.go"
+        "internal/workers/setup.go"
       ],
       "platform": "Windows and Linux where the owner is supported",
       "callers": "ordinary CLI/runtime/desktop requests and explicit fixtures"

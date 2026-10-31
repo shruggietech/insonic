@@ -45,7 +45,7 @@ insonic work show WORK_ID --json
 insonic work cancel WORK_ID --json
 ```
 
-For example, `dataset.json` supplies `speaker_id` and an optional `recipe`. A saved-profile training election supplies `dataset_id`, `name`, `pipeline_id` and `pipeline_revision`. An inline election instead supplies `adapter` and `output_kind`, with optional `base_model_id`, `parameters`, existing `family_id` and an exact `checkpoint_id`. The rendered [JSON contracts](contracts.md) define each strict payload.
+For example, `dataset.json` supplies `speaker_id` and an optional `recipe`. A saved-profile training election supplies `dataset_id`, `name`, `pipeline_id` and `pipeline_revision`. An inline election instead supplies `adapter` and `output_kind`, with optional `base_model_id`, `parameters`, existing `family_id` and an exact `checkpoint_id`. Local `pyannote-profile` enrollment also accepts `device`: `auto` (the new-request default), `cpu` or `cuda`. Saved training profiles carry the same field; custom/hosted trainers retain their own declared configuration. The rendered [JSON contracts](contracts.md) define each strict payload.
 
 Save the following as `dataset.json`, replacing the speaker UUID with the existing identity from `speakers list`:
 
@@ -104,13 +104,13 @@ insonic models profile set SPEAKER_ID --input profile.json --json
 
 ## Roster-constrained matching
 
-`recordings match RECORDING_ID --input matching.json` queues matching alone. It reuses current local-voice activity without recognition or diarization. The input elects the exact matching model/adapter and supplies cosine similarity threshold, ambiguity margin and minimum evidence duration. Only compatible selected profiles belonging to current active roster members are candidates. An empty/undeclared roster or unavailable profile receives explicit diagnostics; there is no library-wide fallback.
+`recordings match RECORDING_ID --input matching.json` queues matching alone. It reuses current local-voice activity without recognition or diarization. The input elects the exact matching model/adapter and supplies cosine similarity threshold, ambiguity margin and minimum evidence duration. Local `pyannote-profile` matching accepts the same `device` policy as enrollment and other local processing. New omission prefers NVIDIA; explicit CPU stays CPU. Classified CUDA failures permit one CPU retry under the original operation deadline. Only compatible selected profiles belonging to current active roster members are candidates. An empty/undeclared roster or unavailable profile receives explicit diagnostics; there is no library-wide fallback.
 
 `matching.json` uses the same `pyannote-profile` adapter declaration above, with `model_id` instead of `base_model_id` and explicit `threshold`, `ambiguity_margin` and `min_evidence_us`. For example, values `0.75`, `0.1` and `1000000` illustrate the input shape; they are not calibrated defaults or a measured accuracy claim. Profile selection accepts `{"expected_revision": 0, "version_id": "44444444-4444-4444-8444-444444444444"}` for a speaker with no prior profile.
 
 Each attempt freezes recording/audio/document, roster, member identity revisions, exact profile/version/manifest, base model and settings. A concurrent edit prevents stale acceptance. Insufficient evidence, a low score or ambiguous candidates remain unknown/ambiguous. A one-member roster does not claim every voice, absent members do not acquire activity, several local clusters may identify one person and roster size is never an implicit diarization count.
 
-Acceptance preserves explicit manual mappings and supersedes applicable prior automatic mappings, including removal when a rerun no longer supports the old match. Bounded current matching provenance stays outside CueJSON. No duplicate assignment arrays, old transcript copies or score archives become alternate evidence. [Speakers](speakers.md) describes roster and correction controls.
+Acceptance preserves explicit manual mappings and supersedes applicable prior automatic mappings, including removal when a rerun no longer supports the old match. Bounded current matching provenance stays outside CueJSON. Enrollment manifests/work results and matching provenance/results retain grouped `device_executions`, including requested policy, ordered attempts, actual device, fallback reason and batch count. Device changes do not change the profile-vector format or authorize new sample/model identities. No duplicate assignment arrays, old transcript copies or score archives become alternate evidence. [Speakers](speakers.md) describes roster and correction controls.
 
 ## Verification and supported backends
 

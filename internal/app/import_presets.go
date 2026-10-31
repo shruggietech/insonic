@@ -94,6 +94,9 @@ func (a *App) freezeImportItemSelection(defaults library.Options, item library.I
 		selection.PresetRevision = p.Revision
 	}
 	selection.Options = library.MergeOptions(library.MergeOptions(library.MergeOptions(selection.Options, defaults), item.Options), overrides)
+	if selection.Options.Attribution == "diarize" && selection.Options.DiarizationDevice == "" {
+		selection.Options.DiarizationDevice = "auto"
+	}
 	if item.Record != "" && selection.Options.ReplaceAudio != nil && *selection.Options.ReplaceAudio {
 		// Replacement's explicit text policy determines which text survives admission.
 		explicitText := item.Transcript != "" || item.Subtitle != ""

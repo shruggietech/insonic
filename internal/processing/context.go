@@ -27,7 +27,7 @@ func ValidateRecognitionOptions(o RecognitionOptions, maxHintBytes int) (Recogni
 	if o.ExpectedModelDigest != "" && !pinnedDigest.MatchString(o.ExpectedModelDigest) {
 		return o, contracts.Fail("invalid_request")
 	}
-	if o.Device != "" && o.Device != "cpu" && o.Device != "cuda" || o.Language != "" && o.Language != "auto" && !languagePattern.MatchString(o.Language) || maxHintBytes < 0 || maxHintBytes > 8192 || len(o.Hints) > 1024 {
+	if !ValidDevice(o.Device) || o.Language != "" && o.Language != "auto" && !languagePattern.MatchString(o.Language) || maxHintBytes < 0 || maxHintBytes > 8192 || len(o.Hints) > 1024 {
 		return o, contracts.Fail("invalid_request")
 	}
 	seen := map[string]bool{}
@@ -53,7 +53,7 @@ func ValidateDiarizationOptions(o DiarizationOptions) error {
 	if o.ExpectedModelDigest != "" && !pinnedDigest.MatchString(o.ExpectedModelDigest) {
 		return contracts.Fail("invalid_request")
 	}
-	if o.Device != "" && o.Device != "cpu" && o.Device != "cuda" || o.MinSpeakers < 0 || o.MaxSpeakers < 0 || o.MinSpeakers > 64 || o.MaxSpeakers > 64 || o.MaxSpeakers > 0 && o.MinSpeakers > o.MaxSpeakers {
+	if !ValidDevice(o.Device) || o.MinSpeakers < 0 || o.MaxSpeakers < 0 || o.MinSpeakers > 64 || o.MaxSpeakers > 64 || o.MaxSpeakers > 0 && o.MinSpeakers > o.MaxSpeakers {
 		return contracts.Fail("invalid_request")
 	}
 	if o.Quality != nil {
