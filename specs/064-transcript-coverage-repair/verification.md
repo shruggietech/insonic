@@ -33,3 +33,7 @@ The timing inventory now classifies the new successful waits under maintained ex
 ## External review round 1
 
 The automatic Codex review at `1b9da18b` identified one P2 finding: two absent voice assignments compared equal, making corroborated overlapping repeated text incorrectly certain. The regression reproduced that defect. Coverage now requires nonempty matching voice assignments for certainty; both-unresolved, one-unresolved and different-voice repetitions remain visible but uncertain, while the same resolved local voice remains eligible. The complete processing package passes after the fix. No separate security review receipt has arrived.
+
+## Initial package qualification correction
+
+Initial CI package runs reached the installed recording journey, then rejected duplicate `--request-id` flags. The maintained invocation harness owns request correlation; the journey now supplies its replay UUID through the existing `request_id` keyword instead of duplicating an argv flag. The local native journey was rerun with the same automatic correlation convention and passed in 10.625 seconds (15.213 seconds including build/setup). Product duplicate-flag rejection remains intact. Failed package logs are retained under `.local/s064/`; terminal run audits will be retained before the next full CI cycle.

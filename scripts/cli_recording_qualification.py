@@ -139,7 +139,7 @@ def qualify(invoke, supplied, workspace, version, example):
         repair.update(expected_revision=original['revision'], source_revision=original['source_revision'], document_digest=original['document_digest'])
         repair['processing'] = {'pipeline_id': pipeline_id, 'pipeline_revision': saved['revision']}
         request_id = str(uuid.uuid4())
-        work = supplied(['recordings', 'repair', media_id, '--request-id', request_id], repair)['result']
+        work = supplied(['recordings', 'repair', media_id], repair, request_id=request_id)['result']
         completed = invoke(['work', 'wait', work['work_id']])['result']
         decision = completed['result']
         human = invoke(['work', 'wait', work['work_id']], machine=False)
@@ -172,7 +172,7 @@ def qualify(invoke, supplied, workspace, version, example):
         # Readback does not rerun inference. A second automatic request has no
         # repairable gaps and must produce an unchanged accepted decision.
         count_before = sum(calls.values())
-        replay = supplied(['recordings', 'repair', media_id, '--request-id', request_id], repair)['result']
+        replay = supplied(['recordings', 'repair', media_id], repair, request_id=request_id)['result']
         if replay['work_id'] != work['work_id'] or sum(calls.values()) != count_before:
             raise ValueError('Request UUID replay created new work or inference')
         repair.update(expected_revision=current['revision'], document_digest=current['document_digest'])
