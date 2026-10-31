@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-31
 
-**Status**: Implemented; local verification passed; external CI/review pending
+**Status**: Implemented, qualified and reviewed; final closeout CI receipts are recorded in PR #236 before owner merge
 
 **Input**: S064 under autopilot for [#217](https://github.com/shruggietech/insonic/issues/217), [#218](https://github.com/shruggietech/insonic/issues/218) and [#219](https://github.com/shruggietech/insonic/issues/219). Publish an official PR automatically, address every finding within at most two external review rounds, and stop for owner final review and merge.
 

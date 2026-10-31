@@ -37,3 +37,17 @@ The automatic Codex review at `1b9da18b` identified one P2 finding: two absent v
 ## Initial package qualification correction
 
 Initial CI package runs reached the installed recording journey, then rejected duplicate `--request-id` flags. The maintained invocation harness owns request correlation; the journey now supplies its replay UUID through the existing `request_id` keyword instead of duplicating an argv flag. The local native journey was rerun with the same automatic correlation convention and passed in 10.625 seconds (15.213 seconds including build/setup). Product duplicate-flag rejection remains intact. Failed package logs are retained under `.local/s064/`; terminal run audits will be retained before the next full CI cycle.
+
+## Reviewed implementation acceptance
+
+[PR CI 41250496793](https://github.com/shruggietech/insonic/actions/runs/41250496793) passed all elected checks for reviewed head `912d1e0acc57f0cfdf7c2f9971e697041dfd4636` (GitHub temporary merge revision `0820cf425043fb3e90eb8af358dafc72fad130c3`). This includes Windows/Linux core and native runtime, deterministic installed CLI/documentation journeys, Windows setup/interactive/archive/maintenance qualification and exact-byte join, Linux CLI/desktop packages, PostgreSQL/S3/ArcadeDB fixtures, documentation rendering and complete candidate collection.
+
+The attempt-1 acceptance archive is retained outside Actions at `.local/s064/review-pr-ci/`, alongside run/jobs/artifact metadata and the terminal audit. Artifact 13061725687 has archive SHA256 `0c0ea69708dbc14882cb70336eff72b7c130f6d1dc1eabd1797176055679aa60`. Terminal acceptance is true: preparation 264 seconds, qualification 760 seconds, combined 1,024 seconds; no target or hard-limit overrun. Earlier failed PR/direct-head receipts remain in `initial-pr-ci/` and `initial-head-ci/` with their original failure conclusions, separate timing and verified archive digests.
+
+[Codex round 2](https://github.com/shruggietech/insonic/pull/236#issuecomment-6550298389) completed without findings at the reviewed head. The initial P2 finding was fixed, answered and resolved. Exactly two review rounds were used; no third round is authorized or requested. No separate security review receipt was returned. The retained review ledger and thread readback show zero unresolved findings.
+
+## Final owner handoff gate
+
+The closeout commit changes only internal Spec Kit status, tasks and this evidence record. Runtime, public contracts, documentation, qualification helpers and tests remain the bytes reviewed at `912d1e0acc57f0cfdf7c2f9971e697041dfd4636`. A fresh PR run and a direct branch-head run validate the final closeout commit; their exact identities, terminal results, digest-verified retained receipts and timings are recorded in the [PR conversation](https://github.com/shruggietech/insonic/pull/236) before owner handoff. That final external receipt avoids embedding a commit's own not-yet-known hash in its contents.
+
+Issues #217-#219 are In review/S064 under milestone 47 and close through PR #236 on owner merge. The candidate is ready for the owner's final review and squash-merge ritual only after those final runs are green. No merge, tag or release publication is performed. The v1.1.0 recommendation and separately elected acoustic/CPU/NVIDIA evidence limits remain as documented.
