@@ -97,32 +97,13 @@ func loadRestoreProgress(directory, bundle, destination string, expected catalog
 }
 
 func saveRestoreProgress(directory, bundle, destination string, p catalog.Publication) (catalog.Publication, error) {
+	return saveRestoreProgressWithIO(realFiles(), directory, bundle, destination, p)
+}
+
+func saveRestoreProgressWithIO(ops fileOperations, directory, bundle, destination string, p catalog.Publication) (catalog.Publication, error) {
 	raw, e := json.Marshal(restoreProgress{Kind: "backup-restore-progress", Bundle: bundle, Destination: destination, Publication: p})
 	if e != nil {
 		return p, contracts.Fail("invalid_request")
 	}
-	f, e := os.CreateTemp(directory, ".progress-*")
-	if e != nil {
-		return p, fail(e)
-	}
-	name := f.Name()
-	defer os.Remove(name)
-	_, e = f.Write(raw)
-	if e == nil {
-		e = f.Sync()
-	}
-	ce := f.Close()
-	if e == nil {
-		e = ce
-	}
-	if e != nil {
-		return p, fail(e)
-	}
-	if e = replaceConfiguration(name, filepath.Join(directory, p.ID+".json")); e != nil {
-		return p, fail(e)
-	}
-	if e = syncDirectory(directory); e != nil {
-		return p, fail(e)
-	}
-	return p, nil
+	return p, replacePrivate(ops, directory, ".progress-*", filepath.Join(directory, p.ID+".json"), raw)
 }

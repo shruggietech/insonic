@@ -45,6 +45,23 @@ def original_recovery_absence(receipt):
     return digest(receipt) in ORIGINAL_V102_PACKAGES
 
 
+ORIGINAL_V103_MANIFEST = '855d0a1238dfe186267135b3ce0f8cfc2fe224ab44f29ad2a8a487f09abd873f'
+ORIGINAL_V103_PACKAGES = frozenset((
+    '8e0a56f3577dd53eb0c5763dbc8b51c108a8294ed0094091c321caf8b10660a2',
+    'cbfb6902788082c662b007c1b6a75804bfa6c1782ec80eb24668ea2a08772f47',
+    '568d9b7cbd02ef640987c6486d42846f3882d6039c4e789038e011a755f5c9a9',
+    '2d4a6de1e6dbd54b83b135b05e36caa405021d333b40967a8f9a366f07b9b0c0',
+))
+
+
+def original_backup_absence(receipt):
+    """Only the four immutable original v1.0.3 receipts predate backup evidence.
+
+    This never exempts a version range or any other existing qualification.
+    """
+    return digest(receipt) in ORIGINAL_V103_PACKAGES
+
+
 def git_metadata(args, repository):
     result = subprocess.run(['git', '--no-replace-objects', *args], cwd=repository,
         stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,

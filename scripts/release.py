@@ -332,6 +332,10 @@ def verify_qualification(receipt, *, history_profile=None):
             validate_recovery(contract.get('recovery_contracts'), identity.get('executable_sha256'), platform)
             from cli_storage_qualification import validate_receipt as validate_storage
             validate_storage(contract.get('storage_contracts'), identity.get('executable_sha256'), platform)
+            from release_history import original_backup_absence
+            if not original_backup_absence(receipt):
+                from cli_backup_qualification import validate_receipt as validate_backup
+                validate_backup(contract.get('backup_contracts'), identity.get('executable_sha256'), platform)
 
 
 def package_module():

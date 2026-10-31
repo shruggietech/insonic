@@ -251,10 +251,16 @@ func sanitize(e error) error {
 		return contracts.Fail("not_found")
 	}
 	var pg *pgconn.PgError
+	if errors.As(e, &pg) && pg.Code == "53100" {
+		return contracts.Fail("insufficient_space")
+	}
 	if errors.As(e, &pg) && (strings.HasPrefix(pg.Code, "23") || pg.Code == "22003") {
 		return contracts.Fail("conflict")
 	}
 	var sq sqlite3.Error
+	if errors.As(e, &sq) && sq.Code == sqlite3.ErrFull || contracts.CapacityFailure(e) {
+		return contracts.Fail("insufficient_space")
+	}
 	if errors.As(e, &sq) && sq.Code == sqlite3.ErrConstraint {
 		return contracts.Fail("conflict")
 	}

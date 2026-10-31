@@ -270,6 +270,7 @@
             "source_map_incompatible",
             "backup_checksum",
             "backup_size",
+            "backup_cleanup",
             "backup_identity",
             "model_not_acquired",
             "model_damaged",
