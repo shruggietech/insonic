@@ -49,8 +49,10 @@ def set_receipt(path, digest):
             target, expected = Path(item["path"]), item["sha256"]
             if not target.is_absolute() or not re.fullmatch(r"[0-9a-f]{64}", expected):
                 raise NativeFailure("invalid_request")
-            elected[str(target.resolve())] = expected
+            elected[str(target.resolve() if WINDOWS else target)] = expected
         _receipt_files = elected
+        if not WINDOWS:
+            verify_linux_bindings(elected)
     except NativeFailure:
         raise
     except (OSError, ValueError, KeyError, TypeError):
@@ -64,6 +66,69 @@ def _native(path):
 
 def _cuda(path):
     return path.name.lower().startswith(("cublas", "cudnn", "libcublas", "libcudnn", "nvrtc", "libnvrtc"))
+
+
+def native_paths(path):
+    # Linux loaders retain SONAME aliases, including lazily opened companions.
+    # Pin the loader spelling as well as its current canonical bytes.
+    return {path.resolve()} if WINDOWS else {path, path.resolve()}
+
+
+def verify_linux_bindings(elected):
+    """Verify aliases against existing authority; never elect new native files."""
+    paths = [Path(name) for name in elected if _native(Path(name)) and _cuda(Path(name))]
+    if not paths:
+        return
+    try:
+        hashed = {}
+
+        def current(path):
+            target = path.resolve(strict=True)
+            if target not in hashed:
+                hashed[target] = _sha(target)
+            return target, hashed[target]
+
+        targets = {}
+        for path in paths:
+            expected = elected[str(path)]
+            target, actual = current(path)
+            if actual != expected:
+                raise NativeFailure("checksum_mismatch")
+            targets.setdefault(target, set()).add(expected)
+        bindings = {}
+        for directory in sorted({path.parent for path in paths}):
+            for count, path in enumerate(directory.iterdir(), 1):
+                if count > 16384:
+                    raise NativeFailure("input_limit")
+                if not _native(path) or not _cuda(path):
+                    continue
+                target, actual = current(path)
+                if target not in targets or actual not in targets[target]:
+                    raise NativeFailure("checksum_mismatch")
+                bindings[path] = target
+                if len(bindings) > 4096:
+                    raise NativeFailure("input_limit")
+        families, required = {}, set()
+        for target in targets:
+            # cuDNN/cuBLAS use major-version SONAMEs. Legacy receipts omitted
+            # aliases, so accept only a binding that can still be proved in
+            # its elected parent. Never guess NVRTC's minor-version SONAME.
+            match = re.fullmatch(r"(lib(?:cudnn|cublas).*\.so\.[0-9]+)(?:\..+)?", target.name)
+            if match:
+                key = target.parent, match[1]
+                families.setdefault(key, set()).add(target)
+                if target.name != match[1]:
+                    required.add(key)
+        for parent, soname in required:
+            candidates = families[(parent, soname)]
+            if not any(alias.name == soname and resolved in candidates and
+                       (alias.parent == parent or str(alias) in elected)
+                       for alias, resolved in bindings.items()):
+                raise NativeFailure("checksum_mismatch")
+    except NativeFailure:
+        raise
+    except (OSError, RuntimeError):
+        raise NativeFailure("checksum_mismatch") from None
 
 
 def linux_linker_path(soname):
@@ -117,7 +182,7 @@ def linux_linker_path(soname):
                 if link.contents.name:
                     dependency = Path(os.fsdecode(link.contents.name))
                     if dependency.is_absolute() and _native(dependency) and _cuda(dependency) and dependency.is_file():
-                        _linker_cuda_files.add(dependency.resolve())
+                        _linker_cuda_files.update(native_paths(dependency))
                 link = link.contents.next
             return path.resolve()
         return None
@@ -131,8 +196,8 @@ def linux_linker_files(sonames):
     for soname in sonames:
         path = linux_linker_path(soname)
         if path is not None and path.is_absolute() and path.is_file():
-            result.add(path.resolve())
-            directories.add(path.parent.resolve())
+            result.update(native_paths(path))
+            directories.update(item.parent for item in native_paths(path))
     result.update(_linker_cuda_files)
     directories.update(path.parent for path in _linker_cuda_files)
     # cuDNN lazily loads CUDA-family components; cuBLAS and NVRTC have their
@@ -144,7 +209,7 @@ def linux_linker_files(sonames):
                 if count > 16384 or len(result) > 4096:
                     raise NativeFailure("input_limit")
                 if _native(path) and _cuda(path) and path.is_file():
-                    result.add(path.resolve())
+                    result.update(native_paths(path))
         except OSError:
             raise NativeFailure("cuda_library_missing") from None
     if len(result) > 4096:
@@ -154,6 +219,8 @@ def linux_linker_files(sonames):
 
 def native_files():
     if _receipt_files is not None:
+        if not WINDOWS:
+            verify_linux_bindings(_receipt_files)
         result = []
         for name, digest in _receipt_files.items():
             path = Path(name)
@@ -174,7 +241,7 @@ def native_files():
         for entry in distribution.files or ():
             path = Path(distribution.locate_file(entry))
             if path.is_absolute() and _native(path) and path.is_file():
-                result.add(path.resolve())
+                result.update(native_paths(path))
     # These are the explicitly retained loader settings from LocalEnvironment,
     # never the current directory or Python's import path.
     directories = os.environ.get("PATH" if WINDOWS else "LD_LIBRARY_PATH", "").split(os.pathsep)
@@ -189,7 +256,8 @@ def native_files():
         except OSError:
             continue
         if any(_cuda(path) for path in files):
-            result.update(path.resolve() for path in files)
+            for path in files:
+                result.update(native_paths(path))
         if len(result) > 4096:
             raise NativeFailure("input_limit")
     if not WINDOWS:

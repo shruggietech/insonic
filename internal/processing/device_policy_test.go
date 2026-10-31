@@ -142,3 +142,25 @@ func TestFailedDeviceAttemptsRemainStructuredWithoutClaimingSuccess(t *testing.T
 		t.Fatalf("output validation lost attempts: %s", raw)
 	}
 }
+
+func TestNativeChecksumFailureRetainsCauseAndNeverFallsBack(t *testing.T) {
+	for _, policy := range []string{"cpu", "auto", "cuda"} {
+		calls := 0
+		_, execution, err := runDevicePolicy(context.Background(), policy, func(context.Context, string) ([]byte, error) {
+			calls++
+			return nil, workerFailure([]byte("untrusted loader detail\n{\"error\":\"checksum_mismatch\"}\n"), contracts.Fail("subprocess_failed"))
+		})
+		safe := contracts.SafeError(err)
+		device := "cuda"
+		if policy == "cpu" {
+			device = "cpu"
+		}
+		if calls != 1 || safe.Code != "checksum_mismatch" || safe.DeviceAttempt == nil || safe.DeviceAttempt.RequestedDevice != policy || !reflect.DeepEqual(safe.DeviceAttempt.AttemptedDevices, []string{device}) || safe.DeviceAttempt.FallbackReason != "" || execution.Device != "" {
+			t.Fatalf("integrity failure changed policy: calls=%d execution=%+v error=%+v", calls, execution, safe)
+		}
+		raw, _ := json.Marshal(safe)
+		if bytes.Contains(raw, []byte("untrusted loader detail")) {
+			t.Fatal("unbounded loader detail retained")
+		}
+	}
+}

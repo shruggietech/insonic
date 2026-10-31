@@ -4,8 +4,10 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -68,5 +70,66 @@ func TestRecordingStageDisagreementRetainsRecognizedText(t *testing.T) {
 				t.Fatal("unexpected recognition calls", calls)
 			}
 		})
+	}
+}
+
+func TestNativeIntegrityFailurePreservesAcceptedRecordingAndAttemptCause(t *testing.T) {
+	a := configuredApp(t)
+	doc, err := os.ReadFile("../subtitles/testdata/source.cueson.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mapped := filepath.Join(t.TempDir(), "mapped.wav")
+	if err = os.WriteFile(mapped, []byte("existing decoded candidate"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	var fail atomic.Bool
+	a.recordingFactory = func() (*recordingExecution, error) {
+		return &recordingExecution{Subtitles: fixtureSubtitles{doc}, Prepare: func(context.Context, catalog.LibraryEntry, processing.AudioOptions) (*audioExecution, error) {
+			return &audioExecution{Path: mapped, SourceMap: map[string]any{}, Provenance: map[string]any{}, Diagnostics: []any{}, Diarize: func(context.Context, string, processing.DiarizationOptions) (processing.DiarizationResult, error) {
+				if fail.Load() {
+					return processing.DiarizationResult{}, contracts.WithDeviceAttempt(contracts.Fail("checksum_mismatch"), contracts.DeviceAttempt{RequestedDevice: "auto", AttemptedDevices: []string{"cuda"}})
+				}
+				return processing.DiarizationResult{Turns: []processing.Turn{{Label: "fixture", StartUS: 0, EndUS: 500000}}, Provenance: map[string]any{}}, nil
+			}, Close: func() error { return nil }}, nil
+		}}, nil
+	}
+	id := importRecordingFixture(t, a)
+	options := RecordingOptions{Transcription: "supplied", Diarization: "run", DiarizationModelID: contracts.ID(), Attribution: processing.DiarizationOptions{Device: "auto"}}
+	accepted := realRequest(a, "recordings.process", id, options)
+	if accepted.Error != nil {
+		t.Fatal(accepted.Error)
+	}
+	first := awaitWork(t, a, accepted.Result.(map[string]any)["work_id"].(string))
+	if first.State != "succeeded" {
+		t.Fatalf("initial acceptance failed: %s", first.Result)
+	}
+	before, err := a.Catalog.Recording(context.Background(), id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fail.Store(true)
+	options.Transcription = "reuse"
+	accepted = realRequest(a, "recordings.process", id, options)
+	if accepted.Error != nil {
+		t.Fatal(accepted.Error)
+	}
+	failed := awaitWork(t, a, accepted.Result.(map[string]any)["work_id"].(string))
+	var result struct {
+		Cause *contracts.Error `json:"cause"`
+	}
+	if json.Unmarshal(failed.Result, &result) != nil || failed.State != "failed" || result.Cause == nil || result.Cause.Code != "checksum_mismatch" || result.Cause.DeviceAttempt == nil || result.Cause.DeviceAttempt.RequestedDevice != "auto" || len(result.Cause.DeviceAttempt.AttemptedDevices) != 1 || result.Cause.DeviceAttempt.AttemptedDevices[0] != "cuda" || result.Cause.DeviceAttempt.FallbackReason != "" {
+		t.Fatalf("failed work lost integrity cause: %s", failed.Result)
+	}
+	after, err := a.Catalog.Recording(context.Background(), id)
+	if err != nil || before.Revision != after.Revision || before.DocumentDigest != after.DocumentDigest || !bytes.Equal(before.Document, after.Document) || !bytes.Equal(before.Provenance, after.Provenance) {
+		t.Fatal("integrity failure changed accepted recording", err)
+	}
+	if before.MappedAudioPublicationID == nil || after.MappedAudioPublicationID == nil || *before.MappedAudioPublicationID != *after.MappedAudioPublicationID {
+		t.Fatal("integrity failure replaced accepted audio")
+	}
+	publication, err := a.Catalog.Publication(context.Background(), *before.MappedAudioPublicationID)
+	if err != nil || publication.State != "available" {
+		t.Fatal("integrity failure retired accepted audio", err)
 	}
 }

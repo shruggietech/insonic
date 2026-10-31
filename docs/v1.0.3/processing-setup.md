@@ -65,6 +65,8 @@ Use isolated Python 3.12 environments for the two roles. Recognition requires fa
 
 Probe and execution share native-library resolution from the elected environment's verified distribution files. Windows DLL directories remain registered for the child lifetime; no global PATH edit is needed. Changing an accepted environment requires a new setup election and receipt. Readiness is model-free and does not prove acoustic execution; completed work records its actual device.
 
+Linux receipts also bind CUDA loader aliases and their resolved files, including components loaded on demand. Missing or changed bindings and unrecorded companion bytes fail with `checksum_mismatch` before engine import; integrity failures do not trigger CPU fallback. An older receipt whose original loader binding cannot be verified requires a new environment setup election. Use explicit `python_path` inspection to discover the current environment before planning that setup.
+
 ## Diagnose worker inspection
 
 Run `insonic --workspace LIBRARY workers inspect --input inspection.json --json` with `{"role":"recognition"}` or `{"role":"diarization"}`. Omit `python_path` to inspect the configured interpreter. Inspection imports the selected engine and checks CPU/CUDA prerequisites without loading a model. Setup additionally inventories and hashes the environment before publishing its receipt.

@@ -114,7 +114,7 @@ func workerFailure(stderr []byte, cause error) error {
 	lines := bytes.Split(bytes.TrimSpace(stderr), []byte("\n"))
 	if len(lines) > 0 && strict(lines[len(lines)-1], &failure) == nil {
 		switch failure.Error {
-		case "engine_ci_forbidden", "engine_unavailable", "model_unavailable", "incompatible_version", "unsupported_device", "invalid_embedding", "invalid_timing", "audio_limit", "unsupported_language", "engine_failed", "cuda_no_device", "cuda_library_missing", "cuda_library_incompatible", "cuda_compute_unsupported", "cuda_resource_exhausted":
+		case "engine_ci_forbidden", "engine_unavailable", "model_unavailable", "incompatible_version", "checksum_mismatch", "unsupported_device", "invalid_embedding", "invalid_timing", "audio_limit", "unsupported_language", "engine_failed", "cuda_no_device", "cuda_library_missing", "cuda_library_incompatible", "cuda_compute_unsupported", "cuda_resource_exhausted":
 			return contracts.Fail(failure.Error)
 		}
 	}

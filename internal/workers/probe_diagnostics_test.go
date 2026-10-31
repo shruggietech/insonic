@@ -263,3 +263,42 @@ func TestReceiptProbeSuccessRequiresSuccessfulChild(t *testing.T) {
 		t.Fatal("native failure after child success must remain representable")
 	}
 }
+
+func TestProbeReceiptBootstrapFailureRetainsOnlyBoundedCause(t *testing.T) {
+	dir := t.TempDir()
+	python := filepath.Join(dir, "python")
+	if err := os.WriteFile(python, []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	pin, _ := Hash(context.Background(), python)
+	receipt := Receipt{Kind: "worker-environment", Version: contracts.Version, Inspection: Inspection{Role: "recognition", Python: pin, Compatible: true, EngineAvailable: true, Files: []library.PinnedFile{pin}}}
+	raw, _ := json.Marshal(receipt)
+	name := filepath.Join(dir, "receipt.json")
+	if err := os.WriteFile(name, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	bound, _ := Hash(context.Background(), name)
+	for _, row := range []struct{ stderr, code string }{
+		{`{"error":"checksum_mismatch"}`, "checksum_mismatch"},
+		{`{"error":"invalid_request"}`, "invalid_request"},
+		{`{"error":"secret-token"}`, "engine_unavailable"},
+		{`{"error":"checksum_mismatch","detail":"secret-token"}`, "engine_unavailable"},
+		{`{"error":"checksum_mismatch","error":"invalid_request"}`, "engine_unavailable"},
+		{"secret-token traceback", "engine_unavailable"},
+	} {
+		s := Service{Directory: dir, Run: func(context.Context, process.Spec) (process.CaptureResult, error) {
+			return process.CaptureResult{Started: true, Stderr: []byte(row.stderr)}, contracts.Fail("operation_failed")
+		}}
+		out, err := s.Inspect(context.Background(), "recognition", python, false, bound)
+		if err != nil || out.Error != row.code || out.EngineAvailable || out.Compatible {
+			t.Fatalf("wrong native receipt failure: %+v %v", out, err)
+		}
+		if row.code != "engine_unavailable" && (out.Probe.Stage != "receipt_verification" || out.Probe.Reason != "inventory_unreadable") {
+			t.Fatalf("lost receipt stage: %+v", out.Probe)
+		}
+		raw, _ = json.Marshal(out)
+		if containsSecret(raw) {
+			t.Fatal("raw child detail escaped")
+		}
+	}
+}

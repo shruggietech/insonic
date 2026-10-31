@@ -220,6 +220,49 @@ func TestEnvironmentReceiptDetectsMutation(t *testing.T) {
 		t.Fatal("changed environment accepted")
 	}
 }
+
+func TestEnvironmentReceiptPreservesLoaderAliasBinding(t *testing.T) {
+	dir := t.TempDir()
+	python, original, replacement := filepath.Join(dir, "python"), filepath.Join(dir, "libcudnn_ops.so.9.1"), filepath.Join(dir, "libcudnn_ops.so.9.2")
+	for path, body := range map[string]string{python: "interpreter", original: "original bytes", replacement: "replacement bytes"} {
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	alias := filepath.Join(dir, "libcudnn_ops.so.9")
+	if err := os.Symlink(original, alias); err != nil {
+		t.Skip("file symlinks unavailable", err)
+	}
+	pythonPin, _ := Hash(context.Background(), python)
+	originalPin, _ := Hash(context.Background(), original)
+	aliasPin, _ := Hash(context.Background(), alias)
+	if aliasPin.Path != alias {
+		t.Fatal("hashing collapsed loader alias")
+	}
+	receipt := Receipt{Kind: "worker-environment", Version: contracts.Version, Inspection: Inspection{Role: "recognition", Python: pythonPin, Compatible: true, EngineAvailable: true, Files: []library.PinnedFile{pythonPin, originalPin, aliasPin}}}
+	raw, _ := json.Marshal(receipt)
+	path := filepath.Join(dir, "receipt.json")
+	if err := os.WriteFile(path, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	pin, _ := Hash(context.Background(), path)
+	if err := VerifyReceipt(context.Background(), pin, pythonPin); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(alias); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(replacement, alias); err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyReceipt(context.Background(), pin, pythonPin); contracts.SafeError(err).Code != "checksum_mismatch" {
+		t.Fatal("retargeted loader binding accepted", err)
+	}
+	retained, _ := Hash(context.Background(), original)
+	if retained.SHA256 != originalPin.SHA256 {
+		t.Fatal("original versioned bytes changed")
+	}
+}
 func TestElectionRejectsAmbiguousAndRelativePaths(t *testing.T) {
 	for _, e := range []Election{{Role: "all", Mode: "managed"}, {Role: "recognition", Mode: "reuse", PythonPath: "python"}, {Role: "recognition", Mode: "managed", PythonPath: "ignored"}, {Role: "diarization", Mode: "reuse", PythonPath: filepath.Join(t.TempDir(), "python"), OfflineAssets: "unused"}} {
 		if e.Validate() == nil {

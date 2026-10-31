@@ -116,7 +116,7 @@ func (s Service) Inspect(parent context.Context, role, python string, snapshot b
 		run = process.Capture
 	}
 	out.Probe.Stage = "process_start"
-	bootstrap := NativeBootstrap() + "_native.set_receipt(sys.argv[4],sys.argv[5])\n"
+	bootstrap := NativeBootstrap() + "import json\ntry:\n _native.set_receipt(sys.argv[4],sys.argv[5])\nexcept _native.NativeFailure as error:\n sys.stderr.write(json.dumps({'error':str(error)})+'\\n')\n sys.exit(1)\n"
 	r, e := run(ctx, process.Spec{Executable: python, Args: []string{"-I", "-B", "-c", bootstrap + string(code), role, mode, filepath.Join(home, probeCheckpoint), bound.Path, bound.SHA256}, Directory: home, CleanEnv: true, Env: env, MaxOutput: 16 << 20})
 	progress, progressErr := readProbeProgress(home, mode)
 	if progressErr == nil && progress != nil {
@@ -133,6 +133,17 @@ func (s Service) Inspect(parent context.Context, role, python string, snapshot b
 		return fail("output_validation", "output_limit")
 	}
 	if e != nil {
+		var failure struct {
+			Error string `json:"error"`
+		}
+		decoder := json.NewDecoder(bytes.NewReader(r.Stderr))
+		decoder.DisallowUnknownFields()
+		if bound.Path != "" && r.Started && progress == nil && len(r.Stderr) <= 1024 && catalog.ValidateJSON(r.Stderr) == nil && decoder.Decode(&failure) == nil && decoder.Decode(new(any)) == io.EOF && (failure.Error == "checksum_mismatch" || failure.Error == "invalid_request") {
+			out.Probe.Stage, out.Probe.Reason = "receipt_verification", "inventory_unreadable"
+			out.Error = failure.Error
+			out.Correction = "The elected environment no longer matches its verified receipt. Inspect and prepare it again before processing."
+			return out, nil
+		}
 		reason := "process_failed"
 		if progress == nil && !r.Started {
 			reason = "launch_failed"

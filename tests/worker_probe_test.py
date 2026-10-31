@@ -234,6 +234,35 @@ class WorkerProbeDiagnostics(unittest.TestCase):
             self.assertEqual(result["probe"]["reason"], "success")
             self.assertIn({"path": str(dependency.resolve()), "sha256": hashlib.sha256(dependency.read_bytes()).hexdigest()}, result["files"])
 
+    def test_snapshot_preserves_linux_lazy_loader_alias_pin(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            exe, target, alias = root / "python", root / "libcudnn_ops.so.9.1", root / "libcudnn_ops.so.9"
+            exe.write_bytes(b"interpreter")
+            target.write_bytes(b"elected native bytes")
+            try:
+                alias.symlink_to(target.name)
+            except OSError:
+                self.skipTest("file symlinks unavailable")
+            with self.ready(), patch.object(native, "native_files", return_value=[target, alias]), \
+                 patch.object(probe.metadata, "distributions", return_value=[]), \
+                 patch.object(sys, "executable", str(exe)), patch.object(sys, "_base_executable", str(exe), create=True), \
+                 patch.object(sys, "prefix", directory), patch.object(sys, "base_prefix", directory):
+                result = probe.inspect("recognition", True)
+            self.assertEqual(result["probe"]["reason"], "success")
+            self.assertIn({"path": str(alias), "sha256": hashlib.sha256(target.read_bytes()).hexdigest()}, result["files"])
+            receipt = root / "receipt.json"
+            receipt.write_text(json.dumps({"inspection": result}), encoding="utf-8")
+            with patch.object(native, "WINDOWS", False), patch.object(native, "_receipt_files", None):
+                native.set_receipt(str(receipt), hashlib.sha256(receipt.read_bytes()).hexdigest())
+                self.assertIn(alias, native.native_files())
+                replacement = root / "replacement"
+                replacement.write_bytes(b"not elected")
+                alias.unlink()
+                alias.symlink_to(replacement.name)
+                with self.assertRaisesRegex(native.NativeFailure, "checksum_mismatch"):
+                    native.set_receipt(str(receipt), hashlib.sha256(receipt.read_bytes()).hexdigest())
+
     def test_inventory_walk_errors_are_not_silently_omitted(self):
         def broken(*args, **kwargs):
             kwargs["onerror"](OSError("secret-token"))

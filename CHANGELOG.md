@@ -14,7 +14,7 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-31: Retain the same capacity classification while initializing filesystem/catalog destinations and observe failure to close the initial private SQLite file.
 
-- 2026-10-31: Resolve CUDA native libraries from the elected Python environment on Windows, preserve typed worker failures and reject unsupported recognition languages before execution. Discard recognition output for exact silence, retain valid recognition when diarization finds no speech, and expose the disagreement. Correct model-setup commands and distinguish shipped engines from upstream alternatives.
+- 2026-10-31: Resolve CUDA native libraries from the elected Python environment on Windows and the Linux system loader, bind lazy component aliases to verified receipt bytes, preserve typed worker failures and reject unsupported recognition languages before execution. Discard recognition output for exact silence, retain valid recognition when diarization finds no speech, and expose the disagreement. Correct model-setup commands and distinguish shipped engines from upstream alternatives.
 
 - 2026-10-31: Keep normal durable-work output concise and actionable, remove wait/cancel suggestions for terminal work, and explain artifact grace, active-lease and retained-reference refusals without weakening retirement rules.
 

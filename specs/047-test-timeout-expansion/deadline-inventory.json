@@ -275,6 +275,7 @@
         "tests/media_source_build_test.py",
         "tests/media_transfer_test.py",
         "tests/native_launch_diagnostic_test.py",
+        "tests/native_worker_test.py",
         "tests/package_desktop_test.py",
         "tests/package_wait_test.py",
         "tests/pages_test.py",

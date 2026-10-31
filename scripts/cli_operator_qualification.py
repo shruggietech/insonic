@@ -29,6 +29,25 @@ def validate_work_outcome(text, work_id, state, *, recording_outcome=None):
         raise ValueError('Work outcome lost identity or complete readback')
 
 
+def qualify_untimed_recording(invoke, supplied, audio, directory):
+    """Qualify a durable empty recording outcome through the caller's adapter."""
+    untimed = directory / 'zero duration.srt'
+    untimed.write_text('1\n00:00:00,000 --> 00:00:00,000\nUntimed operator fixture.\n\n',
+                       encoding='utf-8', newline='\n')
+    queued = invoke(['media', 'import', audio, '--new-entry', '--no-pipeline', '--subtitle', untimed])['result']
+    untimed_id = invoke(['work', 'wait', queued['work_id']])['result']['result']['items'][0]['media_id']
+    # The caller owns the single request ID and validates its response envelope.
+    # Synchronous assembly uses that observed request ID as its durable work ID.
+    assembled = supplied(['recordings', 'assemble', untimed_id], {'turns': []})
+    assembly_id = assembled['request_id']
+    if assembled['result']['state'] != 'no-timed-subtitles':
+        raise ValueError('Untimed fixture did not retain its no-timed-subtitles outcome')
+    for action in ['show', 'wait']:
+        validate_work_outcome(invoke(['work', action, assembly_id], machine=False), assembly_id, 'succeeded',
+                              recording_outcome='no-timed-subtitles')
+    return 'no-timed-subtitles'
+
+
 def qualify(invoke, workspace, version, *, media=False):
     started = time.monotonic()
     workspace = Path(workspace)
@@ -156,19 +175,7 @@ def qualify(invoke, workspace, version, *, media=False):
         from cli_media_qualification import pcm_fixture
         audio, subtitle = directory / 'capture café.wav', directory / 'rich.srt'
         pcm_fixture(audio, 2)
-        untimed = directory / 'zero duration.srt'
-        untimed.write_text('1\n00:00:00,000 --> 00:00:00,000\nUntimed operator fixture.\n\n',
-                           encoding='utf-8', newline='\n')
-        queued = invoke(['media', 'import', audio, '--new-entry', '--no-pipeline', '--subtitle', untimed])['result']
-        untimed_id = invoke(['work', 'wait', queued['work_id']])['result']['result']['items'][0]['media_id']
-        assembly_id = str(uuid.uuid4())
-        assembled = supplied(['--request-id', assembly_id, 'recordings', 'assemble', untimed_id], {'turns': []})['result']
-        if assembled['state'] != 'no-timed-subtitles':
-            raise ValueError('Untimed fixture did not retain its no-timed-subtitles outcome')
-        for action in ['show', 'wait']:
-            validate_work_outcome(invoke(['work', action, assembly_id], machine=False), assembly_id, 'succeeded',
-                                  recording_outcome='no-timed-subtitles')
-        recording_outcomes.append('no-timed-subtitles')
+        recording_outcomes.append(qualify_untimed_recording(invoke, supplied, audio, directory))
         subtitle.write_text(''.join(f'{i + 1}\n00:00:00,{i:03d} --> 00:00:00,{i + 1:03d}\noperator-rich-transcript café\n\n'
                                     for i in range(131)), encoding='utf-8', newline='\n')
         queued = invoke(['media', 'import', audio, '--new-entry', '--no-pipeline'])['result']
