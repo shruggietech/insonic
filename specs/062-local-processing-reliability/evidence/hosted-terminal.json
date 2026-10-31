@@ -1,0 +1,164 @@
+{
+  "format": "insonic-ci-acceptance-v1",
+  "identity": {
+    "repository": "shruggietech/insonic",
+    "run": "41198684083",
+    "attempt": "1",
+    "head": "bd844df175a9193f7e37f2862274a73045a0fea1",
+    "revision": "32788a7a78f02b5f13bea50e53c8dca1eafb14a0"
+  },
+  "terminal": true,
+  "evaluation": {
+    "scope": {
+      "core": true,
+      "cli": true,
+      "native": true,
+      "adapters": true
+    },
+    "election": {
+      "scope": true,
+      "readiness": true,
+      "foundation": true,
+      "docs-build": true,
+      "docs": true,
+      "media-linux": true,
+      "media-windows": true,
+      "dependencies-windows": true,
+      "core": true,
+      "core-windows": true,
+      "qualify-linux": true,
+      "qualify-windows": true,
+      "package-linux": true,
+      "package-windows": true,
+      "adapters": true,
+      "candidate": true,
+      "live-site": false
+    },
+    "results": {
+      "scope": "success",
+      "readiness": "success",
+      "foundation": "success",
+      "docs-build": "success",
+      "docs": "success",
+      "media-linux": "success",
+      "media-windows": "success",
+      "dependencies-windows": "success",
+      "core": "success",
+      "core-windows": "success",
+      "qualify-linux": "success",
+      "qualify-windows": "success",
+      "package-linux": "success",
+      "package-windows": "success",
+      "adapters": "success",
+      "candidate": "success",
+      "live-site": "skipped"
+    }
+  },
+  "timing": {
+    "preparation_seconds": 245,
+    "qualification_seconds": 795,
+    "combined_seconds": 1040,
+    "qualification_target_seconds": 1800,
+    "qualification_limit_seconds": 3600,
+    "target_exceeded": false,
+    "target_overrun_seconds": 0,
+    "finalization_reserve_seconds": 0,
+    "terminal": true,
+    "accepted": true,
+    "failures": [],
+    "attempt_started_at": "2026-10-31T11:53:01Z",
+    "attempt_record_created_at": null,
+    "preparation_started_at": "2026-10-31T11:53:01Z",
+    "readiness_at": "2026-10-31T11:57:06Z",
+    "evaluated_through": "2026-10-31T12:10:21.000Z",
+    "worker_terminal_at": "2026-10-31T12:10:21.000Z",
+    "metadata_updated_at": "2026-10-31T12:10:21Z",
+    "initial_queue_seconds": 0
+  },
+  "needs": {
+    "scope": {
+      "result": "success",
+      "outputs": {
+        "core": "true",
+        "cli": "true",
+        "native": "true",
+        "adapters": "true"
+      }
+    },
+    "readiness": {
+      "result": "success",
+      "outputs": {
+        "ready": "true"
+      }
+    },
+    "foundation": {
+      "result": "success",
+      "outputs": {}
+    },
+    "docs-build": {
+      "result": "success",
+      "outputs": {}
+    },
+    "docs": {
+      "result": "success",
+      "outputs": {}
+    },
+    "media-linux": {
+      "result": "success",
+      "outputs": {
+        "path": "warm",
+        "ready": "true"
+      }
+    },
+    "media-windows": {
+      "result": "success",
+      "outputs": {
+        "path": "warm",
+        "ready": "true"
+      }
+    },
+    "dependencies-windows": {
+      "result": "success",
+      "outputs": {}
+    },
+    "core": {
+      "result": "success",
+      "outputs": {}
+    },
+    "core-windows": {
+      "result": "success",
+      "outputs": {}
+    },
+    "qualify-linux": {
+      "result": "success",
+      "outputs": {}
+    },
+    "qualify-windows": {
+      "result": "success",
+      "outputs": {}
+    },
+    "package-linux": {
+      "result": "success",
+      "outputs": {}
+    },
+    "package-windows": {
+      "result": "success",
+      "outputs": {}
+    },
+    "adapters": {
+      "result": "success",
+      "outputs": {}
+    },
+    "candidate": {
+      "result": "success",
+      "outputs": {}
+    },
+    "live-site": {
+      "result": "skipped",
+      "outputs": {}
+    }
+  },
+  "site_smoke": false,
+  "failures": [],
+  "accepted": true
+}
