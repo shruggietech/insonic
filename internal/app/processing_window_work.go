@@ -61,7 +61,11 @@ func electWindowOptions(o RecordingOptions, entry catalog.LibraryEntry) (Recordi
 // Host bindings may change after portable restore; their pinned bytes and all
 // semantic election fields remain identity-bearing.
 func windowConfigurationDigest(p recordingPayload) string {
-	raw := configurationBytes(map[string]any{"options": p.Options, "election": p.Election, "models": p.ModelDigests, "tools": p.Tools})
+	fields := map[string]any{"options": p.Options, "election": p.Election, "models": p.ModelDigests, "tools": p.Tools}
+	if p.Repair != nil {
+		fields["repair"] = []any{p.Repair.Fence, p.Repair.Policy, p.Repair.Coverage, p.Repair.EvidenceDigest, p.Repair.Selection.Targets}
+	}
+	raw := configurationBytes(fields)
 	var value any
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
@@ -190,7 +194,33 @@ func (a *App) saveWindowCheckpoint(ctx context.Context, claim catalog.Work, inpu
 	return c, e
 }
 
+type windowCandidateSelection struct {
+	Select        func(processing.ProcessingPlan) (map[string]bool, error)
+	BeforeAttempt func(context.Context, processing.WindowPlan) error
+}
+type windowRecordingCandidate struct {
+	Record           catalog.Recording
+	Plan             processing.ProcessingPlan
+	PlanDigest       string
+	CompletedWindows int
+	Notices          []string
+}
+
 func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, input recordingPayload, entry catalog.LibraryEntry, previous catalog.Recording) (any, error) {
+	candidate, e := a.buildWindowedRecordingCandidate(ctx, claim, input, entry, previous, nil)
+	if e != nil {
+		return nil, e
+	}
+	current, e := a.Catalog.CommitRecording(ctx, claim, input.Expected, candidate.Record)
+	if e != nil {
+		return nil, e
+	}
+	if lib, err := a.libraryCatalogService(); err == nil {
+		lib.Cleanup(ctx, entry.ID)
+	}
+	return map[string]any{"recording_id": current.ID, "revision": current.Revision, "document_digest": current.DocumentDigest, "state": current.State, "quality_diagnostics": current.Diagnostics, "plan_digest": candidate.PlanDigest, "completed_windows": candidate.CompletedWindows, "notices": candidate.Notices}, nil
+}
+func (a *App) buildWindowedRecordingCandidate(ctx context.Context, claim catalog.Work, input recordingPayload, entry catalog.LibraryEntry, previous catalog.Recording, selection *windowCandidateSelection) (*windowRecordingCandidate, error) {
 	mode := input.Options.Transcription
 	if mode == "" {
 		if entry.SubtitlePublicationID != nil || previous.State == "ready" {
@@ -208,12 +238,32 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 	if execution.PrepareWindows == nil {
 		return nil, contracts.Fail("unsupported_capability")
 	}
-	identity := processing.PlanIdentity{SourceID: entry.ID, SourceDigest: entry.Digest, SourceRevision: entry.Revision, DocumentDigest: previous.DocumentDigest, DocumentRevision: input.Expected, ConfigurationDigest: windowConfigurationDigest(input), ModelDigest: documentHash(configurationBytes(input.ModelDigests)), AdapterID: "insonic-windowed-processing", AdapterVersion: "1", DevicePolicy: input.Options.Recognition.Device + "/" + input.Options.Attribution.Device}
+	identity := recordingWindowIdentity(input, entry, previous)
 	windows, e := execution.PrepareWindows(ctx, entry, *input.Options.Windows, identity)
 	if e != nil {
 		return nil, e
 	}
 	defer windows.Close()
+	selected := map[string]bool{}
+	for _, w := range windows.Plan.Windows {
+		selected[w.ID] = true
+	}
+	if selection != nil && selection.Select != nil {
+		selected, e = selection.Select(windows.Plan)
+		if e != nil {
+			return nil, e
+		}
+	}
+	selectedCount, lastSelected := 0, -1
+	for i, w := range windows.Plan.Windows {
+		if selected[w.ID] {
+			selectedCount++
+			lastSelected = i
+		}
+	}
+	if selectedCount == 0 {
+		return nil, contracts.Fail("invalid_request")
+	}
 	if reuseTranscript || input.Options.Diarization == "reuse" {
 		if previous.State != "ready" {
 			return nil, contracts.Fail("not_found")
@@ -250,10 +300,13 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 	diagnostics := []any{}
 	totalBytes := 0
 	for index, window := range windows.Plan.Windows {
+		if !selected[window.ID] {
+			continue
+		}
 		if ctx.Err() != nil {
 			return nil, contracts.Fail("cancelled")
 		}
-		progress, _ := json.Marshal(map[string]any{"state": "processing", "plan_digest": plan.PlanDigest, "completed_windows": index, "total_windows": len(windows.Plan.Windows), "active_window_id": window.ID})
+		progress, _ := json.Marshal(map[string]any{"state": "processing", "plan_digest": plan.PlanDigest, "completed_windows": len(evidence), "total_windows": selectedCount, "active_window_id": window.ID})
 		if _, e = a.Catalog.CheckpointWork(ctx, claim, "window-processing", "running", progress, leaseTTL); e != nil {
 			return nil, e
 		}
@@ -275,11 +328,25 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 				output.Diarization.NoSpeech = false
 				output.Diarization.Provenance = map[string]any{"mode": "reuse"}
 			}
-			if mode == "generate" {
-				output.Recognition, e = a.electedRecognize(ctx, session, input)
-			}
-			if e == nil && input.Options.Diarization != "reuse" {
-				output.Diarization, e = a.electedDiarize(ctx, session, input)
+			for {
+				if selection != nil && selection.BeforeAttempt != nil {
+					if e = selection.BeforeAttempt(ctx, window); e != nil {
+						break
+					}
+				}
+				if mode == "generate" {
+					output.Recognition, e = a.electedRecognize(ctx, session, input)
+				}
+				if e == nil && input.Options.Diarization != "reuse" {
+					output.Diarization, e = a.electedDiarize(ctx, session, input)
+				}
+				if e == nil || selection == nil || selection.BeforeAttempt == nil || ctx.Err() != nil {
+					break
+				}
+				code := contracts.SafeError(e).Code
+				if code != "unavailable" && code != "operation_failed" && code != "invalid_engine_output" {
+					break
+				}
 			}
 			closeErr := session.Close()
 			if e != nil {
@@ -288,7 +355,7 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 			if closeErr != nil {
 				return nil, closeErr
 			}
-			if index == len(windows.Plan.Windows)-1 && windows.Finish != nil {
+			if index == lastSelected && windows.Finish != nil {
 				if e = windows.Finish(ctx); e != nil {
 					return nil, e
 				}
@@ -417,10 +484,13 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 				diagnostics = append(diagnostics, quality)
 			}
 		}
-		if e == nil {
+		if e == nil && input.Repair == nil {
 			var reuseDiagnostics []subtitles.Diagnostic
 			participation, reuseDiagnostics, e = reuseParticipation(previous.Document, doc, participation)
 			diagnostics = append(diagnostics, reuseDiagnostics)
+		}
+		if input.Repair != nil {
+			participation = nil
 		}
 		provenance["diarization"] = map[string]any{"mode": "reuse", "document_digest": previous.DocumentDigest}
 	} else {
@@ -487,15 +557,27 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 	}
 	provenance["model_elections"] = modelSelectionSummaries(input.ModelSelections)
 	sourceMap, _ := json.Marshal(windowSourceMap{Policy: "windowed-canonical-source-clock-v1", SourceDigest: entry.Digest, Tracks: windows.Plan.Tracks, SuppliedDocument: suppliedTimeline})
+	recognitionStatus, diarizationStatus := "unavailable", "executed"
+	if mode == "generate" {
+		recognitionStatus = "executed"
+	}
+	if input.Options.Diarization == "reuse" {
+		diarizationStatus = "reused"
+	}
+	activity, err := processing.CoverageFromWindows(identity, documentHash(sourceMap), evidence, recognitionStatus, diarizationStatus)
+	if err != nil {
+		return nil, err
+	}
+	var priorActivity recordingCoverageProvenance
+	if json.Unmarshal(previous.Provenance, &priorActivity) == nil {
+		activity, err = processing.RetainReusedCoverage(activity, priorActivity.Evidence, recognitionStatus != "executed", diarizationStatus != "executed")
+		if err != nil {
+			return nil, err
+		}
+	}
+	provenance["coverage_evidence"] = activity
 	prov, _ := json.Marshal(provenance)
 	record := catalog.Recording{ID: entry.ID, SourceRevision: entry.Revision, SourceDigest: entry.Digest, State: state, Document: final, DocumentDigest: digest, SourceMap: sourceMap, Provenance: prov, Diagnostics: flattenDiagnostics(diagnostics)}
-	current, e := a.Catalog.CommitRecording(ctx, claim, input.Expected, record)
-	if e != nil {
-		return nil, e
-	}
-	if lib, err := a.libraryCatalogService(); err == nil {
-		lib.Cleanup(ctx, entry.ID)
-	}
 	notices := []string{}
 	seenNotices := map[string]bool{}
 	for _, v := range evidence {
@@ -508,14 +590,14 @@ func (a *App) processWindowedRecording(ctx context.Context, claim catalog.Work, 
 			}
 		}
 	}
-	if bytes.Contains(current.Diagnostics, []byte(`"recognition_diarization_disagreement"`)) {
+	if bytes.Contains(record.Diagnostics, []byte(`"recognition_diarization_disagreement"`)) {
 		notices = append(notices, "Recognition returned text while diarization found no speech; the transcript is retained with a disagreement diagnostic.")
 	}
-	if bytes.Contains(current.Diagnostics, []byte(`"window_word_timing_unavailable"`)) {
+	if bytes.Contains(record.Diagnostics, []byte(`"window_word_timing_unavailable"`)) {
 		notices = append(notices, "Some windows lack usable word timing; segment timing was retained with boundary uncertainty.")
 	}
-	if bytes.Contains(current.Diagnostics, []byte(`"window_overlap_ambiguous"`)) {
+	if bytes.Contains(record.Diagnostics, []byte(`"window_overlap_ambiguous"`)) {
 		notices = append(notices, "Conflicting boundary observations were retained; inspect the recorded ambiguity diagnostics.")
 	}
-	return map[string]any{"recording_id": current.ID, "revision": current.Revision, "document_digest": current.DocumentDigest, "state": current.State, "quality_diagnostics": current.Diagnostics, "plan_digest": plan.PlanDigest, "completed_windows": len(evidence), "notices": notices}, nil
+	return &windowRecordingCandidate{Record: record, Plan: windows.Plan, PlanDigest: plan.PlanDigest, CompletedWindows: len(evidence), Notices: notices}, nil
 }

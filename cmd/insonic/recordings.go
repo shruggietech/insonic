@@ -21,11 +21,11 @@ func parseRecording(args []string) (string, string, json.RawMessage, error) {
 		return fail()
 	}
 	operation := "recordings." + args[1]
-	if !strings.Contains("|show|document|mappings|process|assemble|map-speaker|match|export|resolve-segment|", "|"+args[1]+"|") {
+	if !strings.Contains("|show|document|mappings|process|assemble|map-speaker|match|export|resolve-segment|coverage|repair|", "|"+args[1]+"|") {
 		return fail()
 	}
 	var raw json.RawMessage
-	if len(args) == 3 && (args[1] == "show" || args[1] == "document" || args[1] == "mappings") {
+	if len(args) == 3 && (args[1] == "show" || args[1] == "document" || args[1] == "mappings" || args[1] == "coverage") {
 		return operation, args[2], nil, nil
 	}
 	if len(args) != 5 || args[3] != "--input" || args[1] == "show" {

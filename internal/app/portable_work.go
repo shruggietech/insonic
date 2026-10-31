@@ -192,12 +192,12 @@ func (a *App) portableInvocation(w catalog.Work) (json.RawMessage, error) {
 	if e != nil {
 		return nil, e
 	}
-	if w.Kind == "recordings.process" || w.Kind == "models.ensure" {
+	if w.Kind == "recordings.process" || w.Kind == "recordings.repair" || w.Kind == "models.ensure" {
 		var p recordingPayload
 		if strictPayload(raw, &p) != nil {
 			return nil, contracts.Fail("invalid_request")
 		}
-		if w.Kind == "recordings.process" && p.Options.Transcription == "generate" {
+		if (w.Kind == "recordings.process" || w.Kind == "recordings.repair") && p.Options.Transcription == "generate" {
 			budget, supported := 200, true
 			stage := pipeline.Stage{Recognition: p.Options.Recognition}
 			if p.Election != nil {

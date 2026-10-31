@@ -136,7 +136,7 @@ func frozenModelDependencies(work catalog.Work) ([]models.Resolution, []string, 
 			return nil, nil, contracts.Fail("invalid_request")
 		}
 		return p.ModelSelections, p.ModelDependencies, nil
-	case "recordings.process", "models.ensure":
+	case "recordings.process", "recordings.repair", "models.ensure":
 		var p recordingPayload
 		if strictPayload(work.Payload, &p) != nil {
 			return nil, nil, contracts.Fail("invalid_request")

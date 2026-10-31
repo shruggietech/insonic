@@ -20,7 +20,7 @@ func (s *Store) RecoverProcessingWindowCleanup(ctx context.Context, workID strin
 		if err := s.domainTx(ctx, tx, "Works", workID, &work); err != nil {
 			return err
 		}
-		if work.Kind != "recordings.process" {
+		if work.Kind != "recordings.process" && work.Kind != "recordings.repair" {
 			return contracts.Fail("invalid_request")
 		}
 		ids, err := s.identityIDs(ctx, tx, "processing_plan", "work_id=?", []any{workID}, "", 2)

@@ -238,3 +238,91 @@ insonic pipelines set 66666666-6666-4666-8666-666666666666 --input pipeline-conn
 Verified exact zero-signal audio yields an explicit no-speech result without invented recognition cues. Quiet nonzero audio is not discarded by an arbitrary amplitude threshold. Recognition text paired with a diarizer no-speech observation remains intact and carries a disagreement diagnostic. These observations do not claim general acoustic accuracy.
 
 Unsupported local recognition language codes are rejected before work is queued, with a correction for `recognition.language`; `auto` elects language detection. Generated worker failures distinguish unavailable CUDA devices/libraries, incompatible libraries/compute capability, CUDA resource exhaustion and unrelated engine failure. Human, verbose, debug and JSON work inspection retain these causes without raw engine output. Failed attempts preserve the previous accepted document.
+
+## Transcript coverage and bounded repair
+
+Coverage inspection reads the current accepted recording and retained activity observations without invoking a model or changing the library. Inspect the exact source and document identities before electing repair:
+
+```sh
+insonic recordings show MEDIA_UUID --json
+insonic recordings coverage MEDIA_UUID --input coverage.json --json
+```
+
+<!-- executable-example: coverage.json -->
+```json
+{
+  "gap_tolerance_us": 0,
+  "minimum_gap_us": 250000,
+  "boundary_tolerance_us": 1000,
+  "duplicate_overlap_fraction": 0.5,
+  "limit": 100
+}
+```
+
+Each selected stream/channel has its own audio denominator. `cue_coverage_us` is the union of accepted timed text over selected audio. `observed_speech_us` is the union of compatible executed recognition and diarization observations; `uncovered_observed_speech_us` measures its uncovered portion. Explicit no-speech evidence and unknown activity are separate. A zero speech denominator produces a null speech fraction. Quiet passages and music are not inferred to contain speech from duration alone. Older or incompatible observations remain unknown. Inspection does not rehash canonical audio bytes.
+
+Overlapping normalized text is reported for inspection. `duplicate_overlap_us` additionally requires distinct corroborated window observations; different or unresolved voices keep the diagnosis uncertain. `repeated_text_overlap_us` includes uncertain matching intervals and prevents a new candidate from hiding repetition by changing provenance identifiers. Legitimate repetition at different times is not an overlap defect. Supplied multitrack cues without a unique lane remain unresolved. Use the returned `next` as `after` to page diagnostics without changing the comparison basis.
+
+Save optional `coverage` and `repair` objects alongside a pipeline's recognition, diarization, quality and window configuration. Complete per-run `overrides.coverage` and `overrides.repair` replace those saved policies. Saving a policy does not launch repair. An explicit repair request runs unattended under the existing configured routes.
+
+<!-- executable-example: repair-policy.json -->
+```json
+{
+  "max_attempts": 2,
+  "max_windows": 64,
+  "max_duration_us": 300000000
+}
+```
+
+`max_attempts` bounds execution attempts per selected window across retries and restarts (default1, maximum3). A consumed interrupted attempt remains consumed; a verified checkpoint is reused without another attempt. `max_windows` defaults to64 and `max_duration_us` to five minutes of total declared replacement scope. Context is separately disclosed in the selected windows. Targets expand to elected window cores and complete intersecting cues; any extra boundary windows do not recursively expand the scope through the entire recording.
+
+Use current values from `recordings show` for `expected_revision`, `source_revision` and `document_digest`. Automatic selection includes certain speech gaps, corroborated repeated text and timing inconsistencies; unknown activity and ambiguous repetition remain visible for explicit selection.
+
+<!-- executable-example: repair-automatic.json -->
+```json
+{
+  "expected_revision": 1,
+  "source_revision": 1,
+  "document_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "automatic": true,
+  "processing": {
+    "pipeline_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+  }
+}
+```
+
+```sh
+insonic recordings repair MEDIA_UUID --input repair-automatic.json --json
+insonic work wait WORK_UUID --json
+insonic recordings coverage MEDIA_UUID --json
+```
+
+For explicit repair, replace `automatic` with one or more native canonical sample ranges. Repeated lanes are allowed for disjoint ranges. Stream/channel identity must match the accepted source map; these are native sample indices, not milliseconds in the mapped worker audio.
+
+<!-- executable-example: repair-ranges.json -->
+```json
+{
+  "expected_revision": 1,
+  "source_revision": 1,
+  "document_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "ranges": [
+    {
+      "stream_index": 0,
+      "start_sample": 480000,
+      "end_sample": 960000
+    }
+  ],
+  "policy": {
+    "max_attempts": 2,
+    "max_windows": 4,
+    "max_duration_us": 60000000
+  },
+  "processing": {
+    "pipeline_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+  }
+}
+```
+
+Repair freezes the source/document revisions and digests, speaker mappings, exact processing election, coverage basis, normalized scopes and window budgets. It never silently chooses a different provider or model. Only selected windows execute. A candidate must preserve unrelated cue semantics, pass native Cueson validation and strictly improve a measured defect without losing covered text or worsening another protected metric. A valid non-improving candidate returns `unchanged`. Source changes, speaker corrections, cancellation, invalid output and exhausted budgets leave the accepted transcript authoritative. A candidate crossing a declared scope boundary is retained as an unchanged decision rather than clipped without adequate timing evidence.
+
+Acceptance replaces the current Cueson document in one catalog transaction and applies the ordinary speaker-mapping, evidence, dataset and graph invalidation rules. The receipt records scopes, consumed attempts and before/after metrics. Verified temporary checkpoints are retired after accepted or unchanged decisions; failed work retains compatible checkpoints for bounded retry. Replay uses the accepted receipt without rerunning inference. The CLI and shared runtime expose these advanced operations; the GUI currently has no dedicated coverage or repair controls.

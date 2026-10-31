@@ -348,7 +348,8 @@
             "artifact_active_lease",
             "artifact_grace_period",
             "artifact_retirement_active",
-            "unsupported_language"
+            "unsupported_language",
+            "repair_attempts_exhausted"
           ],
           "description": "Allowlisted locally generated operation condition; never external text."
         },

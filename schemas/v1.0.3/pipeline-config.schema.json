@@ -107,6 +107,25 @@
         "windows": {
           "$ref": "#/$defs/windows",
           "description": "Window policy; explicit per-run windows override saved policy."
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage",
+          "description": "Coverage tolerances used by a subsequently elected repair.",
+          "allOf": [
+            {
+              "properties": {
+                "after": {
+                  "const": 0,
+                  "description": "Repair comparisons start at the first diagnostic region."
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "repair": {
+          "$ref": "#/$defs/repair",
+          "description": "Saved bounded repair policy; saving it alone does not launch repair."
         }
       },
       "description": "Saved worker selections and optional quality configuration. Defaults are normalized when an immutable election is submitted.",
@@ -634,6 +653,25 @@
         "windows": {
           "$ref": "#/$defs/windows",
           "description": "Window policy; explicit per-run windows override saved policy."
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage",
+          "description": "Coverage tolerances used by a subsequently elected repair.",
+          "allOf": [
+            {
+              "properties": {
+                "after": {
+                  "const": 0,
+                  "description": "Repair comparisons start at the first diagnostic region."
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "repair": {
+          "$ref": "#/$defs/repair",
+          "description": "Saved bounded repair policy; saving it alone does not launch repair."
         }
       },
       "required": [],
@@ -751,6 +789,74 @@
         }
       },
       "description": "Bounded source-clock windows. Runtime validates relational bounds and freezes normalized options."
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gap_tolerance_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000000,
+          "description": "Accepted cue expansion for uncovered-speech subtraction in microseconds; default 0."
+        },
+        "minimum_gap_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000000,
+          "description": "Minimum reported uncovered-speech region; default 250000 microseconds."
+        },
+        "boundary_tolerance_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000000,
+          "description": "Allowed cue/source-boundary difference; default 1000 microseconds."
+        },
+        "duplicate_overlap_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "description": "Minimum duplicate overlap divided by the shorter cue duration; default 0.5."
+        },
+        "after": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65536,
+          "description": "Zero-based region offset; summary metrics always cover the whole snapshot."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Maximum detail regions returned, default 100."
+        }
+      },
+      "description": "Read-only coverage tolerances and detail pagination."
+    },
+    "repair": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Finite repair execution budgets, frozen at admission and retained across retries.",
+      "properties": {
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "Execution attempts per selected window across all retries; zero or omission selects1."
+        },
+        "max_windows": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16384,
+          "description": "Maximum selected windows; zero or omission selects64."
+        },
+        "max_duration_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800000000,
+          "description": "Maximum total declared scope duration; zero or omission selects300000000."
+        }
+      }
     }
   },
   "examples": [

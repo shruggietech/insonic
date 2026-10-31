@@ -24,6 +24,8 @@ var speakerDatasetSchema *jsonschema.Schema
 var processingToolsSchema *jsonschema.Schema
 var pipelineConfigurationSchema *jsonschema.Schema
 var mediaToolsSchema *jsonschema.Schema
+var recordingCoverageSchema *jsonschema.Schema
+var recordingRepairSchema *jsonschema.Schema
 var graphQuerySchema *jsonschema.Schema
 var baseModelManifestSchema *jsonschema.Schema
 var compileErr error
@@ -135,6 +137,14 @@ func initialize() {
 		}
 		if err := addSupportedReleaseResources(compiler); err != nil {
 			compileErr = err
+			return
+		}
+		recordingCoverageSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/recording-coverage.schema.json")
+		if compileErr != nil {
+			return
+		}
+		recordingRepairSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/recording-repair.schema.json")
+		if compileErr != nil {
 			return
 		}
 		compiled, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/workspace-config.schema.json")
@@ -289,4 +299,13 @@ func QuerySchemaBytes() []byte {
 	}
 	raw, _ := json.Marshal(expand(request["$defs"].(map[string]any)["exploreQuery"]))
 	return raw
+}
+
+func ValidateRecordingCoverage(data []byte) error {
+	initialize()
+	return validate(recordingCoverageSchema, data)
+}
+func ValidateRecordingRepair(data []byte) error {
+	initialize()
+	return validate(recordingRepairSchema, data)
 }

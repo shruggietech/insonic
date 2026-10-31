@@ -201,6 +201,7 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             'query assist': {'unsupported_capability', 'unavailable'},
             'query assistance-test': {'conflict', 'unsupported_capability', 'unavailable'},
             'recordings process': {'not_found', 'unsupported_capability'},
+            'recordings repair': {'not_found', 'conflict'},
             'recordings match': {'not_found', 'unsupported_capability'},
             'recordings resolve-segment': {'not_found', 'conflict'},
             'workers inspect': {'not_found', 'unavailable', 'unsupported_capability'},
@@ -276,6 +277,11 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                     kwargs['input'] = b'{"value":"fixture-value"}'
             elif name == 'recordings assemble':
                 value['turns'] = [{'label': 'fixture voice', 'start_us': 0, 'end_us': 500000}]
+                write('input.json', value)
+            elif name == 'recordings repair':
+                current_record = call(['recordings', 'show', ids['MEDIA_UUID']])['result']['recording']
+                value.update(expected_revision=current_record['revision'], source_revision=current_record['source_revision'],
+                             document_digest=current_record['document_digest'])
                 write('input.json', value)
             elif name == 'evidence extract':
                 current_record = call(['recordings', 'show', ids['MEDIA_UUID']])['result']['recording']
@@ -448,6 +454,7 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                                      'models profile set': 'No compatible trained version exists in this fixture library.',
                                      'recordings match': 'No compatible voice-matching model/profile is configured.',
                                      'recordings process': 'No inference environment or selected compatible diarization model is configured.',
+                                     'recordings repair': 'The illustrative pipeline does not exist or the supplied fixture has no compatible repair source map.',
                                      'recordings resolve-segment': 'No segment with the elected fixture UUID exists.',
                                      'query assist': 'No query-assistance route has been elected.',
                                      'query assistance-test': 'A current elected assistance route and settings revision are required.',

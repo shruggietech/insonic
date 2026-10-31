@@ -30,6 +30,12 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-31: Add a finite pyannote batch reduction for CUDA memory pressure before elected CPU fallback, with per-window resource/device receipts and actionable CPU memory exhaustion.
 
+- 2026-10-31: Inspect per-track transcript coverage from retained speech evidence and repair bounded diagnosed or explicit ranges through durable window work. Require measurable improvement under a fixed evidence basis, preserve unaffected native subtitle fields and canonical media, fence concurrent source/document/speaker changes, and retain finite attempt decisions while retiring temporary checkpoints. Qualify the admission-to-repair journey with deterministic installed-CLI fixtures.
+
+### Decisions
+
+- 2026-10-31: Retain compact text-free acoustic observations before cue assembly and compare repairs against that fixed basis. Reuse the existing window/checkpoint and atomic recording-commit paths, adding a transactional speaker-mapping digest because mappings may change independently of the document revision. Extend maintained installed-CLI qualification with deterministic recording coverage/repair fixtures; real-model acoustic and GPU checks remain separately elected.
+
 ## [1.0.3] - 2026-10-29
 
 ### Fixed

@@ -66,6 +66,9 @@ func humanSummary(b *humanBuffer, value any, depth int) {
 	if !ok {
 		return
 	}
+	if humanCoverageSummary(b, fields) || humanRepairSummary(b, fields) {
+		return
+	}
 	humanWorkerProbe(b, fields)
 	if environments, ok := fields["environments"].(map[string]any); ok {
 		for _, role := range []string{"recognition", "diarization"} {

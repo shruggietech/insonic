@@ -166,13 +166,29 @@ func (a *App) recoverWork() {
 		if item.State != "pending" && item.State != "interrupted" && item.State != "running" {
 			continue
 		}
-		invocation, e := a.portableInvocation(item)
-		if e != nil {
+		acceptedRepair := false
+		if item.Kind == "recordings.repair" {
+			var p recordingPayload
+			if json.Unmarshal(item.Payload, &p) == nil && contracts.ValidID(p.MediaID) {
+				_, accepted, err := a.Catalog.RecordingRepairDecision(a.ctx, item.ID, p.MediaID)
+				acceptedRepair = err == nil && accepted
+			}
+		}
+		invocation := item.Payload
+		var invocationError error
+		if !acceptedRepair {
+			invocation, invocationError = a.portableInvocation(item)
+		}
+		if invocationError != nil {
 			// A missing destination tool binding is recoverable configuration.
 			// Keep the elected work queued and retry automatically on the next tick.
 			continue
 		}
-		ready, dependencyError := a.dependenciesReady(item)
+		ready := true
+		var dependencyError error
+		if !acceptedRepair {
+			ready, dependencyError = a.dependenciesReady(item)
+		}
 		if !ready && dependencyError == nil {
 			continue
 		}
@@ -217,6 +233,8 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 		} else if e == nil {
 			e = contracts.Fail("invalid_request")
 		}
+	} else if claim.Kind == "recordings.repair" {
+		result, e = a.processRecordingRepair(ctx, claim)
 	} else if claim.Kind == "recordings.process" {
 		result, e = a.processRecording(ctx, claim)
 	} else if claim.Kind == "models.train" || claim.Kind == "recordings.match" {
@@ -295,7 +313,7 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 		}
 		cause = code
 		failure := map[string]any{"state": "failed", "error": code, "cause": contracts.SafeError(e)}
-		if claim.Kind == "recordings.process" {
+		if claim.Kind == "recordings.process" || claim.Kind == "recordings.repair" {
 			if current, readErr := a.Catalog.Work(ctx, claim.ID); readErr == nil && current.Generation == claim.Generation {
 				var progress struct {
 					PlanDigest string `json:"plan_digest"`
@@ -309,6 +327,11 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 						failure["active_window_id"] = progress.Active
 					}
 				}
+			}
+		}
+		if claim.Kind == "recordings.repair" {
+			if attempts, err := a.Catalog.RepairWindowAttempts(ctx, claim.ID); err == nil {
+				failure["attempts"] = attempts
 			}
 		}
 		if claim.Kind == "workers.setup" {

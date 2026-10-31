@@ -165,7 +165,9 @@
         "models.prepare",
         "setup.show",
         "setup.save",
-        "setup.readiness"
+        "setup.readiness",
+        "recordings.coverage",
+        "recordings.repair"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -1259,7 +1261,9 @@
               "recordings.roster.add",
               "recordings.roster.remove",
               "recordings.roster.replace",
-              "recordings.roster.clear"
+              "recordings.roster.clear",
+              "recordings.coverage",
+              "recordings.repair"
             ],
             "description": "Current recording operation."
           }
@@ -1332,276 +1336,8 @@
       "then": {
         "properties": {
           "data": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "transcription": {
-                "enum": [
-                  "supplied",
-                  "generate",
-                  "reuse"
-                ],
-                "description": "Use supplied native subtitles, generate with a managed recognition model, or reuse the current native document."
-              },
-              "diarization": {
-                "enum": [
-                  "run",
-                  "reuse"
-                ],
-                "description": "Run managed local diarization or reuse current assignment evidence."
-              },
-              "recognition_model_id": {
-                "$ref": "common.schema.json#/$defs/modelReference",
-                "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
-              },
-              "diarization_model_id": {
-                "$ref": "common.schema.json#/$defs/modelReference",
-                "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
-              },
-              "subtitle_format": {
-                "enum": [
-                  "srt",
-                  "vtt"
-                ],
-                "description": "Native supplied subtitle format."
-              },
-              "audio": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "stream_index": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 65535,
-                    "description": "Absolute source stream index."
-                  },
-                  "channel": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 65535,
-                    "description": "Zero-based source channel; omission downmixes to mono."
-                  }
-                },
-                "description": "Selected original audio stream and channel before mono 16 kHz mapping."
-              },
-              "recognition": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "device": {
-                    "enum": [
-                      "auto",
-                      "cpu",
-                      "cuda"
-                    ],
-                    "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
-                  },
-                  "language": {
-                    "type": "string",
-                    "pattern": "^(?:[a-z]{2,3}|auto)$",
-                    "description": "Language code or automatic detection; default en."
-                  }
-                },
-                "description": "Local recognition execution parameters."
-              },
-              "attribution": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "device": {
-                    "enum": [
-                      "auto",
-                      "cpu",
-                      "cuda"
-                    ],
-                    "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
-                  },
-                  "min_speakers": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 64,
-                    "description": "Optional lower acoustic speaker-count constraint."
-                  },
-                  "max_speakers": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 64,
-                    "description": "Optional upper acoustic speaker-count constraint."
-                  },
-                  "quality": {
-                    "$ref": "pipeline-config.schema.json#/$defs/quality",
-                    "description": "Optional direct diarization quality policy."
-                  },
-                  "batch_size": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 64,
-                    "description": "Local pyannote batch size; omission uses1. Classified CUDA OOM can reduce once to1 before permitted CPU fallback. Zero also selects the default."
-                  }
-                },
-                "description": "Local diarization execution parameters."
-              },
-              "pipeline_id": {
-                "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Id."
-              },
-              "pipeline_revision": {
-                "$ref": "common.schema.json#/$defs/revision",
-                "description": "Revision."
-              },
-              "overrides": {
-                "$ref": "pipeline-config.schema.json#/$defs/overrides",
-                "description": "Overrides."
-              },
-              "context": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "speaker_ids": {
-                    "type": "array",
-                    "maxItems": 1000,
-                    "uniqueItems": true,
-                    "items": {
-                      "$ref": "common.schema.json#/$defs/uuid",
-                      "description": "Id."
-                    },
-                    "description": "Speaker ids."
-                  },
-                  "language": {
-                    "type": "string",
-                    "minLength": 0,
-                    "maxLength": 64,
-                    "description": "Language."
-                  },
-                  "context": {
-                    "type": "string",
-                    "minLength": 0,
-                    "maxLength": 256,
-                    "description": "Context."
-                  }
-                },
-                "required": [],
-                "description": "Explicit speaker, language and context filters for deterministic recognition hints."
-              },
-              "quality": {
-                "$ref": "pipeline-config.schema.json#/$defs/quality",
-                "description": "Direct managed-worker quality policy; saved pipeline runs use explicit quality overrides instead."
-              },
-              "windows": {
-                "$ref": "pipeline-config.schema.json#/$defs/windows",
-                "description": "Explicit window policy for any source. New requests longer than30 seconds use default windows automatically."
-              }
-            },
-            "description": "Explicit direct or saved-pipeline processing elections, with source and current-recording compatibility checked by the runtime.",
-            "allOf": [
-              {
-                "if": {
-                  "allOf": [
-                    {
-                      "properties": {
-                        "transcription": {
-                          "const": "generate",
-                          "description": "Explicit generated transcription selection."
-                        }
-                      },
-                      "required": [
-                        "transcription"
-                      ]
-                    },
-                    {
-                      "not": {
-                        "required": [
-                          "pipeline_id"
-                        ]
-                      }
-                    }
-                  ]
-                },
-                "then": {
-                  "required": [
-                    "recognition_model_id"
-                  ]
-                }
-              },
-              {
-                "if": {
-                  "allOf": [
-                    {
-                      "not": {
-                        "properties": {
-                          "diarization": {
-                            "const": "reuse",
-                            "description": "Current result reuse selection."
-                          }
-                        },
-                        "required": [
-                          "diarization"
-                        ]
-                      }
-                    },
-                    {
-                      "not": {
-                        "required": [
-                          "pipeline_id"
-                        ]
-                      }
-                    }
-                  ]
-                },
-                "then": {
-                  "required": [
-                    "diarization_model_id"
-                  ]
-                }
-              },
-              {
-                "not": {
-                  "properties": {
-                    "transcription": {
-                      "const": "reuse",
-                      "description": "Current result reuse selection."
-                    },
-                    "diarization": {
-                      "const": "reuse",
-                      "description": "Current result reuse selection."
-                    }
-                  },
-                  "required": [
-                    "transcription",
-                    "diarization"
-                  ]
-                }
-              },
-              {
-                "if": {
-                  "properties": {
-                    "overrides": {
-                      "type": "object",
-                      "minProperties": 1,
-                      "description": "A nonempty complete stage or quality override."
-                    }
-                  },
-                  "required": [
-                    "overrides"
-                  ]
-                },
-                "then": {
-                  "required": [
-                    "pipeline_id"
-                  ]
-                }
-              }
-            ],
-            "dependentRequired": {
-              "pipeline_revision": [
-                "pipeline_id"
-              ]
-            },
-            "examples": [
-              {
-                "diarization_model_id": "11111111-1111-4111-8111-111111111111"
-              }
-            ]
+            "$ref": "#/$defs/recordingProcessing",
+            "description": "Frozen processing elections."
           }
         },
         "required": [
@@ -6396,6 +6132,208 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.coverage",
+            "description": "Read accepted source and transcript coverage."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "pipeline-config.schema.json#/$defs/coverage",
+            "description": "Read-only coverage options and bounded diagnostic pagination."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.repair",
+            "description": "Bounded transcript repair."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Repair one exact accepted recording using explicit ranges or automatic diagnosed regions.",
+            "required": [
+              "expected_revision",
+              "source_revision",
+              "document_digest",
+              "processing"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact accepted recording revision."
+              },
+              "source_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact canonical source revision."
+              },
+              "document_digest": {
+                "type": "string",
+                "pattern": "^(?:[a-f0-9]{64})?$",
+                "description": "Exact accepted document SHA256; empty only when no timed document exists."
+              },
+              "automatic": {
+                "type": "boolean",
+                "description": "Select certain uncovered speech, corroborated repeated text and timing defects."
+              },
+              "ranges": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "stream_index": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 65535,
+                      "description": "Canonical stream index."
+                    },
+                    "channel": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 63,
+                      "description": "Zero-based source channel; omission downmixes selected stream."
+                    },
+                    "start_sample": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Inclusive canonical native sample start; default zero."
+                    },
+                    "end_sample": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991,
+                      "description": "Exclusive native sample end; omission uses exact decoded count."
+                    }
+                  },
+                  "required": [
+                    "stream_index",
+                    "end_sample"
+                  ]
+                },
+                "description": "Explicit canonical native sample ranges; repeated lanes are allowed for disjoint ranges."
+              },
+              "policy": {
+                "$ref": "pipeline-config.schema.json#/$defs/repair",
+                "description": "Explicit repair policy overriding the saved policy."
+              },
+              "coverage": {
+                "$ref": "pipeline-config.schema.json#/$defs/coverage",
+                "description": "Fixed comparison tolerances; after must remain zero.",
+                "allOf": [
+                  {
+                    "properties": {
+                      "after": {
+                        "const": 0,
+                        "description": "Repair comparisons start at the first diagnostic region."
+                      }
+                    },
+                    "type": "object"
+                  }
+                ]
+              },
+              "processing": {
+                "$ref": "#/$defs/recordingProcessing",
+                "description": "Configured processing route; transcription must be generate or omitted."
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "automatic"
+                ],
+                "properties": {
+                  "automatic": {
+                    "const": true,
+                    "description": "Automatic diagnosis selection."
+                  }
+                },
+                "not": {
+                  "required": [
+                    "ranges"
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "ranges"
+                ],
+                "properties": {
+                  "automatic": {
+                    "const": false,
+                    "description": "Explicit range selection."
+                  }
+                }
+              }
+            ],
+            "examples": [
+              {
+                "expected_revision": 1,
+                "source_revision": 1,
+                "document_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "automatic": true,
+                "processing": {
+                  "pipeline_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+                }
+              }
+            ],
+            "allOf": [
+              {
+                "properties": {
+                  "processing": {
+                    "type": "object",
+                    "properties": {
+                      "transcription": {
+                        "const": "generate",
+                        "description": "Repair always generates a bounded replacement candidate."
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "not": {
+                            "required": [
+                              "pipeline_id"
+                            ]
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "recognition_model_id"
+                          ]
+                        }
+                      }
+                    ],
+                    "description": "Repair processing election."
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
     }
   ],
   "examples": [
@@ -7951,6 +7889,278 @@
           "description": "Accepted nonsecret journey metadata."
         }
       }
+    },
+    "recordingProcessing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "transcription": {
+          "enum": [
+            "supplied",
+            "generate",
+            "reuse"
+          ],
+          "description": "Use supplied native subtitles, generate with a managed recognition model, or reuse the current native document."
+        },
+        "diarization": {
+          "enum": [
+            "run",
+            "reuse"
+          ],
+          "description": "Run managed local diarization or reuse current assignment evidence."
+        },
+        "recognition_model_id": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
+        },
+        "diarization_model_id": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
+        },
+        "subtitle_format": {
+          "enum": [
+            "srt",
+            "vtt"
+          ],
+          "description": "Native supplied subtitle format."
+        },
+        "audio": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "stream_index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535,
+              "description": "Absolute source stream index."
+            },
+            "channel": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535,
+              "description": "Zero-based source channel; omission downmixes to mono."
+            }
+          },
+          "description": "Selected original audio stream and channel before mono 16 kHz mapping."
+        },
+        "recognition": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "device": {
+              "enum": [
+                "auto",
+                "cpu",
+                "cuda"
+              ],
+              "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
+            },
+            "language": {
+              "type": "string",
+              "pattern": "^(?:[a-z]{2,3}|auto)$",
+              "description": "Language code or automatic detection; default en."
+            }
+          },
+          "description": "Local recognition execution parameters."
+        },
+        "attribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "device": {
+              "enum": [
+                "auto",
+                "cpu",
+                "cuda"
+              ],
+              "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
+            },
+            "min_speakers": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64,
+              "description": "Optional lower acoustic speaker-count constraint."
+            },
+            "max_speakers": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64,
+              "description": "Optional upper acoustic speaker-count constraint."
+            },
+            "quality": {
+              "$ref": "pipeline-config.schema.json#/$defs/quality",
+              "description": "Optional direct diarization quality policy."
+            },
+            "batch_size": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64,
+              "description": "Local pyannote batch size; omission uses1. Classified CUDA OOM can reduce once to1 before permitted CPU fallback. Zero also selects the default."
+            }
+          },
+          "description": "Local diarization execution parameters."
+        },
+        "pipeline_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Id."
+        },
+        "pipeline_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Revision."
+        },
+        "overrides": {
+          "$ref": "pipeline-config.schema.json#/$defs/overrides",
+          "description": "Overrides."
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "speaker_ids": {
+              "type": "array",
+              "maxItems": 1000,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Id."
+              },
+              "description": "Speaker ids."
+            },
+            "language": {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64,
+              "description": "Language."
+            },
+            "context": {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 256,
+              "description": "Context."
+            }
+          },
+          "required": [],
+          "description": "Explicit speaker, language and context filters for deterministic recognition hints."
+        },
+        "quality": {
+          "$ref": "pipeline-config.schema.json#/$defs/quality",
+          "description": "Direct managed-worker quality policy; saved pipeline runs use explicit quality overrides instead."
+        },
+        "windows": {
+          "$ref": "pipeline-config.schema.json#/$defs/windows",
+          "description": "Explicit window policy for any source. New requests longer than30 seconds use default windows automatically."
+        }
+      },
+      "description": "Explicit direct or saved-pipeline processing elections, with source and current-recording compatibility checked by the runtime.",
+      "allOf": [
+        {
+          "if": {
+            "allOf": [
+              {
+                "properties": {
+                  "transcription": {
+                    "const": "generate",
+                    "description": "Explicit generated transcription selection."
+                  }
+                },
+                "required": [
+                  "transcription"
+                ]
+              },
+              {
+                "not": {
+                  "required": [
+                    "pipeline_id"
+                  ]
+                }
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "recognition_model_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "allOf": [
+              {
+                "not": {
+                  "properties": {
+                    "diarization": {
+                      "const": "reuse",
+                      "description": "Current result reuse selection."
+                    }
+                  },
+                  "required": [
+                    "diarization"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "pipeline_id"
+                  ]
+                }
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "diarization_model_id"
+            ]
+          }
+        },
+        {
+          "not": {
+            "properties": {
+              "transcription": {
+                "const": "reuse",
+                "description": "Current result reuse selection."
+              },
+              "diarization": {
+                "const": "reuse",
+                "description": "Current result reuse selection."
+              }
+            },
+            "required": [
+              "transcription",
+              "diarization"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "overrides": {
+                "type": "object",
+                "minProperties": 1,
+                "description": "A nonempty complete stage or quality override."
+              }
+            },
+            "required": [
+              "overrides"
+            ]
+          },
+          "then": {
+            "required": [
+              "pipeline_id"
+            ]
+          }
+        }
+      ],
+      "dependentRequired": {
+        "pipeline_revision": [
+          "pipeline_id"
+        ]
+      },
+      "examples": [
+        {
+          "diarization_model_id": "11111111-1111-4111-8111-111111111111"
+        }
+      ]
     }
   }
 }

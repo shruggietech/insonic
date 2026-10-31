@@ -266,7 +266,7 @@ func validProcessingWork(p ProcessingPlan, w Work) bool {
 		SourceRevision int64  `json:"source_revision"`
 		Expected       int64  `json:"expected_revision"`
 	}
-	return w.Kind == "recordings.process" && w.ID == p.WorkID && p.Attempt <= w.Generation && json.Unmarshal(w.Payload, &input) == nil && input.MediaID == p.MediaID && input.SourceRevision == p.SourceRevision && input.Expected == p.ExpectedRevision
+	return (w.Kind == "recordings.process" || w.Kind == "recordings.repair") && w.ID == p.WorkID && p.Attempt <= w.Generation && json.Unmarshal(w.Payload, &input) == nil && input.MediaID == p.MediaID && input.SourceRevision == p.SourceRevision && input.Expected == p.ExpectedRevision
 }
 func (s *Store) processingSourceAuthority(ctx context.Context, tx *sql.Tx, p ProcessingPlan) error {
 	var entry LibraryEntry
