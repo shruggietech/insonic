@@ -48,7 +48,7 @@
 - [x] T027 Run elected native media and applicable alternate-backend/backup fixtures; separately retain elected actual CPU/NVIDIA engine evidence or state exact unverified limits in specs/063-resumable-long-recording/verification.md (SC-002, SC-006).
 - [x] T028 Converge requirements, implementation and task evidence; check encoding, formatting and git diff; commit on codex/063-resumable-long-recording (all requirements).
 - [x] T029 Push and open official PR, attach it, map #212-#216 to In review/S063, and retain CI receipts under .local/s063/ (FR-014).
-- [ ] T030 Address every review comment, use at most two rounds, verify final-head CI and unresolved threads, then hand off for owner merge without merging (SC-006).
+- [x] T030 Address every review comment, use at most two rounds, verify final-head CI and unresolved threads, then hand off for owner merge without merging (SC-006).
 
 ## Dependencies and parallel execution
 

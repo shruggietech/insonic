@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-31
 
-**Status**: Specified
+**Status**: Implemented; owner review and merge pending
 
 **Input**: S063 under autopilot for GitHub issues [#212](https://github.com/shruggietech/insonic/issues/212), [#213](https://github.com/shruggietech/insonic/issues/213), [#214](https://github.com/shruggietech/insonic/issues/214), [#215](https://github.com/shruggietech/insonic/issues/215), and [#216](https://github.com/shruggietech/insonic/issues/216). Push and open a PR automatically, resolve findings within at most two review rounds, and stop for owner final review and merge.
 
