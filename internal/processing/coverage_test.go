@@ -178,3 +178,40 @@ func TestCoverageBoundsAndQuietControls(t *testing.T) {
 		t.Fatal("quiet/music no-speech control diagnosed as missing text", e)
 	}
 }
+
+func TestCoverageRepeatedTextNeedsNonemptyMatchingVoiceEvidence(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		left, right []string
+		uncertain   bool
+	}{
+		{"both unresolved", nil, nil, true}, {"one unresolved", []string{"voice-a"}, nil, true},
+		{"different voices", []string{"voice-a"}, []string{"voice-b"}, true},
+		{"same local voice", []string{"voice-a"}, []string{"voice-a"}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			in := coverageFixture()
+			first := in.Evidence.Observations[0]
+			second := first
+			second.WindowID = "f4e6a76c-83a6-4ad7-bb3d-b5e748dc975e"
+			in.Evidence.Observations = append(in.Evidence.Observations, second)
+			in.Cues = []CoverageCue{{ID: "a", Text: "Hello", StartUS: 1000000, EndUS: 2000000, TrackOrdinal: 0, WindowIDs: []string{first.WindowID}, VoiceIDs: tc.left}, {ID: "b", Text: "Hello", StartUS: 1100000, EndUS: 2100000, TrackOrdinal: 0, WindowIDs: []string{second.WindowID}, VoiceIDs: tc.right}}
+			report, err := EvaluateCoverage(in, CoverageOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			repeated := 0
+			for _, region := range report.Regions {
+				if region.Reason == "repeated_text" {
+					repeated++
+					if region.Uncertain != tc.uncertain {
+						t.Fatalf("uncertain=%v, want %v", region.Uncertain, tc.uncertain)
+					}
+				}
+			}
+			if repeated != 1 {
+				t.Fatal("repetition diagnosis disappeared")
+			}
+		})
+	}
+}

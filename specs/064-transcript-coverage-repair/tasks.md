@@ -51,7 +51,7 @@
 - [x] T024 Run Spec Kit converge against specs/064-transcript-coverage-repair/ and complete every required remaining task; preserve traceability and scope.
 - [ ] T025 Run required npm check/test, Go tests/vet, Python and affected native/frontend/site/package/backend checks; retain preparation/qualification/combined evidence under .local/s064/ and summarize in specs/064-transcript-coverage-repair/verification.md (FR-016, SC-006).
 - [x] T026 Update CHANGELOG.md and generated reference projections, verify UTF-8/LF/no mojibake and synchronized contract versions, then commit and push the authorized branch.
-- [ ] T027 Publish official PR closing #217-#219, mark project items In review/S064, and retain the bounded review ledger under .local/s064/.
+- [x] T027 Publish official PR closing #217-#219, mark project items In review/S064, and retain the bounded review ledger under .local/s064/.
 - [ ] T028 Address every external finding, request at most one second review round, verify exact final-head green CI and resolved threads, and hand off for owner final review/merge in specs/064-transcript-coverage-repair/verification.md.
 
 ## Dependencies and execution

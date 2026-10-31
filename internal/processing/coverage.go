@@ -617,7 +617,8 @@ func coverageTextKey(text string) string {
 	return strings.Join(words, " ")
 }
 func coverageSameVoices(a, b []string) bool {
-	if len(a) != len(b) {
+	// Two absent assignments provide no speaker evidence for automatic repair.
+	if len(a) == 0 || len(a) != len(b) {
 		return false
 	}
 	aa, bb := append([]string{}, a...), append([]string{}, b...)

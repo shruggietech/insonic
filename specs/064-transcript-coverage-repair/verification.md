@@ -29,3 +29,7 @@ All local gates are green: `npm run check` (1,982 project text files; 29 schemas
 The verification campaign began after already-present prerequisite readiness at 22:35:41 UTC and its final affected checks completed at 22:40:22 UTC (280.8 seconds including the diagnosed failures, corrections and reruns). Prerequisite acquisition was not performed in this campaign, so it is not represented as a measured zero-second preparation. These local intervals do not substitute for the separately measured CI preparation/qualification/combined receipt.
 
 The timing inventory now classifies the new successful waits under maintained expanded harness allowances; injected catalog leases retain their contract semantics. No production deadline or CI inference refusal was weakened. The schema registry expectation advances from 24 to 26 additive contracts and from 32 to 34 examples. UTF-8/LF, Markdown links, version alignment and upstream kit integrity passed the foundation check.
+
+## External review round 1
+
+The automatic Codex review at `1b9da18b` identified one P2 finding: two absent voice assignments compared equal, making corroborated overlapping repeated text incorrectly certain. The regression reproduced that defect. Coverage now requires nonempty matching voice assignments for certainty; both-unresolved, one-unresolved and different-voice repetitions remain visible but uncertain, while the same resolved local voice remains eligible. The complete processing package passes after the fix. No separate security review receipt has arrived.
