@@ -23,6 +23,10 @@ flowchart TB
 
 The runtime starts on demand as a hidden process and exits after idle time when no job or client needs it. Long jobs can continue after the GUI closes; the user can choose Cancel instead. No permanent system service or administrative account is required for ordinary local use. A user-only Unix domain socket or Windows named pipe is the preferred IPC boundary. A loopback fallback, if needed, requires a per-session credential and origin checks. Installation never exposes a network service by default.
 
+## Bounded processing and recovery
+
+Recording processing plans retain native sample ranges and rational source-clock origins. The extraction layer streams verified canonical bytes through bounded continuous decoding, while inference runs on temporary overlapping windows. Immutable completed-window artifacts are accepted under the durable work owner generation and a plan digest. The catalog verifies their publication kind, digest and size; retry rehashes retained bytes before reuse. Final Cueson acceptance retires checkpoint transcript artifacts and preserves compact cue, source and execution provenance. This keeps window outputs recoverable during work without creating a second accepted transcript authority.
+
 ## Supported backend roles
 
 Storage, operational catalog and graph are independently configurable adapter roles. Filesystem, SQLite and LadybugDB are the defaults. Generic S3-compliant storage, PostgreSQL and ArcadeDB are fully supported alternatives, with the same applicable media, pipeline, speaker, model, query, migration and recovery behavior. They are not emergency fallbacks. A workspace records the selected profiles and contract versions. Changing a profile is an explicit migration, not an automatic response to a connection failure.

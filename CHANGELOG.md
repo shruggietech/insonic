@@ -26,6 +26,10 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-31: Prefer NVIDIA for newly admitted local recognition, diarization and speaker embedding work, with one fresh CPU retry for classified CUDA execution failures under the original deadline. Preserve explicit CPU execution and historical admitted CPU work, and record requested, attempted and actual devices in processing and speaker-model provenance.
 
+- 2026-10-31: Process long recordings in bounded source-clock windows with durable verified resume, temporal/text overlap reconciliation, per-cue and per-voice source provenance, and one final current Cueson document. Preserve compatible checkpoints through cancellation, retry and portable backup, then retire temporary transcript bytes after acceptance.
+
+- 2026-10-31: Add a finite pyannote batch reduction for CUDA memory pressure before elected CPU fallback, with per-window resource/device receipts and actionable CPU memory exhaustion.
+
 ## [1.0.3] - 2026-10-29
 
 ### Fixed

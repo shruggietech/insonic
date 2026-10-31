@@ -29,6 +29,41 @@ def load(name, filename):
 
 
 class WorkerTests(unittest.TestCase):
+    def test_window_word_evidence_is_relative_and_preserves_native_text(self):
+        worker = load("processing_words", "processing-worker.py")
+        segments = [{"start": 0.1, "end": 0.8, "text": " Hello, 世界", "words": [{"start": 0.1, "end": 0.3, "word": " Hello,"}, {"start": 0.4, "end": 0.8, "word": " 世界"}]}]
+        result = worker.recognition_result(segments, 1000000, Fraction(10))
+        self.assertEqual(result["segments"][0]["start_us"], 100000)
+        self.assertEqual(result["segments"][0]["words"][0]["text"], " Hello,")
+        self.assertIn("00:00:10,100", result["srt"])
+        self.assertTrue(worker.recognition_arguments({})["word_timestamps"])
+
+    def test_memory_exhaustion_has_actionable_device_specific_code(self):
+        worker = load("processing_memory", "processing-worker.py")
+        native = SimpleNamespace(NativeFailure=type("NativeFailure", (Exception,), {}), NativeLibraries=nullcontext)
+        with patch.dict(os.environ, {name: "" for name in worker.CI_VARIABLES}), patch.dict(sys.modules, {"insonic_native": native}), \
+             patch.object(worker, "validate_request", side_effect=lambda request: request), \
+             patch.object(worker, "run_selected", side_effect=MemoryError("private detail")):
+            for device, code in (("cpu", "resource_exhausted"), ("cuda", "cuda_resource_exhausted")):
+                with self.assertRaisesRegex(worker.WorkerError, "^" + code + "$"):
+                    worker.run({"device": device})
+
+    def test_word_end_intersection_keeps_native_text_with_bounded_timing(self):
+        worker = load("processing_word_end", "processing-worker.py")
+        segment = {"start": 0, "end": 1.08, "text": "world", "words": [{"start": 0.5, "end": 1.08, "word": "world"}]}
+        result = worker.recognition_result([segment], 1000000, intersect_whisper_end=True)
+        self.assertEqual(result["segments"][0]["words"][0]["end_us"], 1000000)
+        self.assertEqual(result["segments"][0]["words"][0]["text"], "world")
+        self.assertIn("whisper_word_end_intersected_decoded_media", [d["code"] for d in result["diagnostics"]])
+        segment["words"][0]["end"] = 1.4
+        with self.assertRaises(worker.WorkerError):
+            worker.recognition_result([segment], 1000000, intersect_whisper_end=True)
+
+    def test_window_words_reject_out_of_bounds_evidence(self):
+        worker = load("processing_bad_words", "processing-worker.py")
+        with self.assertRaises(worker.WorkerError):
+            worker.recognition_result([{ "start": 0, "end": 1, "text": "x", "words": [{"start": 0, "end": 2, "word": "x"}]}], 1000000)
+
     def test_embedding_minimum_probe_preserves_classified_cuda_failures(self):
         worker = load("processing_embedding_cuda_failure", "processing-worker.py")
         helper_spec = importlib.util.spec_from_file_location("native_embedding_fixture", ROOT / "internal/workers/native.py")

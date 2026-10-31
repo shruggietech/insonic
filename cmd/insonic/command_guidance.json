@@ -94,7 +94,7 @@
     "recordings show": "Read recording authority, transcript identity and attribution state.",
     "recordings document": "Read a bounded page of the current transcript document.",
     "recordings mappings": "List speaker-mapping rows using their returned row UUID cursor.",
-    "recordings process": "Enqueue elected recording processing through its selected pipeline.",
+    "recordings process": "Enqueue elected processing; long recordings use resumable source-clock windows. Input windows core_us defaults to 30000000, context_us to min(2000000, core_us/2), and concurrency to1; explicit zero context disables overlap.",
     "recordings assemble": "Assemble the current recording transcript and speaker attribution.",
     "recordings map-speaker": "Correct one native/local speaker mapping using current authority.",
     "recordings match": "Elect voice matching against configured speaker profiles.",

@@ -11,6 +11,12 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	ProcessingPlan(context.Context, string) (ProcessingPlan, error)
+	ProcessingPlans(context.Context, string) ([]ProcessingPlan, error)
+	CommitProcessingPlan(context.Context, Work, ProcessingPlan) (ProcessingPlan, error)
+	ProcessingWindowCheckpoints(context.Context, string) ([]ProcessingWindowCheckpoint, error)
+	CommitProcessingWindowCheckpoint(context.Context, Work, ProcessingWindowCheckpoint) (ProcessingWindowCheckpoint, error)
+	RecoverProcessingWindowCleanup(context.Context, string) error
 	EnqueueChildWork(context.Context, Work, string, string, json.RawMessage) (Work, error)
 	ImportPresets(context.Context) ([]ImportPreset, error)
 	MutateImportPreset(context.Context, string, string, int64, ImportPreset) (ImportPreset, error)

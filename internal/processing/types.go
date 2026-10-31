@@ -61,6 +61,7 @@ type RecognitionOptions struct {
 }
 
 type DiarizationOptions struct {
+	BatchSize           int              `json:"batch_size,omitempty"`
 	Device              string           `json:"device,omitempty"`
 	MinSpeakers         int              `json:"min_speakers,omitempty"`
 	MaxSpeakers         int              `json:"max_speakers,omitempty"`
@@ -84,14 +85,15 @@ type Turn struct {
 }
 
 type RecognitionResult struct {
-	SRT         []byte         `json:"-"`
-	NoSpeech    bool           `json:"no_speech"`
-	Provenance  map[string]any `json:"provenance"`
-	Diagnostics []Diagnostic   `json:"diagnostics"`
+	Segments    []RecognitionSegment `json:"segments,omitempty"`
+	SRT         []byte               `json:"-"`
+	NoSpeech    bool                 `json:"no_speech"`
+	Provenance  map[string]any       `json:"provenance"`
+	Diagnostics []Diagnostic         `json:"diagnostics"`
 }
 
 type DiarizationResult struct {
-	Turns       []Turn         `json:"-"`
+	Turns       []Turn         `json:"turns,omitempty"`
 	NoSpeech    bool           `json:"no_speech"`
 	Provenance  map[string]any `json:"provenance"`
 	Diagnostics []Diagnostic   `json:"diagnostics"`

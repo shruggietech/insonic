@@ -32,19 +32,27 @@ func validProvenance(value map[string]any) bool {
 	allowed["requested_device"] = true
 	allowed["attempted_devices"] = true
 	allowed["fallback_reason"] = true
+	allowed["resource_adjustments"] = true
+	allowed["batch_size"] = true
 	if _, observed := value["requested_device"]; observed {
 		if _, valid := deviceExecution(value); !valid {
 			return false
 		}
-	} else if value["attempted_devices"] != nil || value["fallback_reason"] != nil {
+	} else if value["attempted_devices"] != nil || value["fallback_reason"] != nil || value["resource_adjustments"] != nil {
 		return false
 	}
 	for key, item := range value {
 		if !allowed[key] {
 			return false
 		}
-		if key == "attempted_devices" {
+		if key == "attempted_devices" || key == "resource_adjustments" {
 			continue
+		}
+		if key == "batch_size" {
+			count, ok := item.(float64)
+			if !ok || count < 1 || count > 64 || math.Trunc(count) != count {
+				return false
+			}
 		}
 		if key == "input_count" {
 			count, ok := item.(float64)

@@ -11,10 +11,17 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 )
 
-type RecognitionSegment struct {
+type RecognitionWord struct {
 	StartUS int64  `json:"start_us"`
 	EndUS   int64  `json:"end_us"`
 	Text    string `json:"text"`
+}
+
+type RecognitionSegment struct {
+	Words   []RecognitionWord `json:"words,omitempty"`
+	StartUS int64             `json:"start_us"`
+	EndUS   int64             `json:"end_us"`
+	Text    string            `json:"text"`
 }
 
 // MappedDuration validates the exact source map independently of any engine.
@@ -59,10 +66,29 @@ func RecognitionFromSegments(segments []RecognitionSegment, noSpeech bool, m Sou
 	if e != nil {
 		return RecognitionResult{}, e
 	}
-	if len(segments) > 20000 || noSpeech && len(segments) > 0 {
+	return renderRecognitionSegments(segments, noSpeech, duration, m.StartNumerator, m.StartDenominator)
+}
+
+func renderRecognitionSegments(segments []RecognitionSegment, noSpeech bool, duration int64, numerator, denominator string) (RecognitionResult, error) {
+	return renderRecognitionSegmentsBounded(segments, noSpeech, duration, numerator, denominator, false)
+}
+
+func renderAggregateRecognitionSegments(segments []RecognitionSegment, noSpeech bool, duration int64) (RecognitionResult, error) {
+	return renderRecognitionSegmentsBounded(segments, noSpeech, duration, "0", "1", true)
+}
+
+func renderRecognitionSegmentsBounded(segments []RecognitionSegment, noSpeech bool, duration int64, numerator, denominator string, aggregate bool) (RecognitionResult, error) {
+	maxSegments, maxWords, capacityCode := 20000, 100000, "invalid_engine_output"
+	if aggregate {
+		maxSegments, maxWords, capacityCode = maxReconciledAtoms, maxReconciledAtoms, "output_limit"
+	}
+	if noSpeech && len(segments) > 0 {
 		return RecognitionResult{}, contracts.Fail("invalid_engine_output")
 	}
-	origin, _ := new(big.Rat).SetString(m.StartNumerator + "/" + m.StartDenominator)
+	if err := validateRecognitionSegmentsBounded(segments, duration, maxSegments, maxWords, capacityCode); err != nil {
+		return RecognitionResult{}, err
+	}
+	origin, _ := new(big.Rat).SetString(numerator + "/" + denominator)
 	origin.Mul(origin, new(big.Rat).SetInt64(1000000))
 	var out strings.Builder
 	ds := []Diagnostic{}
@@ -107,7 +133,7 @@ func RecognitionFromSegments(segments []RecognitionSegment, noSpeech bool, m Sou
 			return RecognitionResult{}, contracts.Fail("output_limit")
 		}
 	}
-	return RecognitionResult{SRT: []byte(out.String()), NoSpeech: noSpeech, Diagnostics: ds, Provenance: map[string]any{"segment_count": len(segments), "source_clock_projection": "exact-source-origin;ceil-start/floor-end-millisecond"}}, nil
+	return RecognitionResult{Segments: segments, SRT: []byte(out.String()), NoSpeech: noSpeech, Diagnostics: ds, Provenance: map[string]any{"segment_count": len(segments), "source_clock_projection": "exact-source-origin;ceil-start/floor-end-millisecond"}}, nil
 }
 func DiarizationFromTurns(turns []Turn, noSpeech bool, m SourceMap) (DiarizationResult, error) {
 	duration, e := MappedDuration(m)
@@ -129,4 +155,36 @@ func DiarizationFromTurns(turns []Turn, noSpeech bool, m SourceMap) (Diarization
 		return DiarizationResult{}, e
 	}
 	return DiarizationResult{Turns: projected, NoSpeech: noSpeech, Diagnostics: ds, Provenance: map[string]any{"turn_count": len(turns), "source_clock_projection": "exact-source-origin;ceil-start/floor-end-microsecond"}}, nil
+}
+
+// ValidateRecognitionSegments validates evidence without inventing word timing.
+func ValidateRecognitionSegments(segments []RecognitionSegment, duration int64) error {
+	return validateRecognitionSegmentsBounded(segments, duration, 20000, 100000, "invalid_engine_output")
+}
+
+func validateRecognitionSegmentsBounded(segments []RecognitionSegment, duration int64, maxSegments, maxWords int, capacityCode string) error {
+	if duration < 0 {
+		return contracts.Fail("invalid_engine_output")
+	}
+	if len(segments) > maxSegments {
+		return contracts.Fail(capacityCode)
+	}
+	count := 0
+	for _, segment := range segments {
+		if segment.StartUS < 0 || segment.EndUS <= segment.StartUS || segment.EndUS > duration || !contracts.ValidTextLength(segment.Text, 0, 65536) {
+			return contracts.Fail("invalid_engine_output")
+		}
+		var previous int64 = -1
+		for _, word := range segment.Words {
+			count++
+			if count > maxWords {
+				return contracts.Fail(capacityCode)
+			}
+			if word.StartUS < segment.StartUS || word.EndUS < word.StartUS || word.EndUS > segment.EndUS || word.StartUS < previous || !contracts.ValidTextLength(word.Text, 1, 65536) || strings.ContainsFunc(word.Text, func(r rune) bool { return unicode.IsControl(r) && r != '\t' && r != '\n' && r != '\r' }) {
+				return contracts.Fail("invalid_engine_output")
+			}
+			previous = word.StartUS
+		}
+	}
+	return nil
 }

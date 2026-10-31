@@ -60,7 +60,7 @@ def read_request(stream):
 def validate_request(request):
     allowed = {"operation", "audio_path", "model_path", "device", "language",
                "min_speakers", "max_speakers", "threads", "max_duration_us",
-               "source_start_numerator", "source_start_denominator", "hints", "context_digest", "audio_paths"}
+               "source_start_numerator", "source_start_denominator", "hints", "context_digest", "audio_paths", "batch_size"}
     if not isinstance(request, dict) or set(request) - allowed:
         raise WorkerError("invalid_request")
     if request.get("operation") not in {"transcribe", "diarize", "embed", "embed-batch"}:
@@ -79,7 +79,7 @@ def validate_request(request):
     validate_language(language)
     for key, lower, upper, default in (("threads", 1, 64, 2),
                                         ("max_duration_us", 1, 604800000000, 3600000000),
-                                        ("min_speakers", 0, 64, 0), ("max_speakers", 0, 64, 0)):
+                                        ("min_speakers", 0, 64, 0), ("max_speakers", 0, 64, 0), ("batch_size", 1, 64, 1)):
         value = request.get(key, default)
         if type(value) is not int or not lower <= value <= upper:
             raise WorkerError("invalid_request")
@@ -92,6 +92,8 @@ def validate_request(request):
     if int(request.get("source_start_denominator", "1")) <= 0:
         raise WorkerError("invalid_request")
     validate_hints(request)
+    if "batch_size" in request and request["operation"] != "diarize":
+        raise WorkerError("invalid_request")
     if request["operation"] == "embed-batch":
         paths = request.get("audio_paths")
         if not isinstance(paths, list) or not 1 <= len(paths) <= 64:
@@ -140,7 +142,7 @@ def validate_hints(request):
 def recognition_arguments(request):
     hints, _digest = validate_hints(request)
     return {"language": None if request.get("language", "en") == "auto" else request.get("language", "en"),
-            "beam_size": 5, "vad_filter": False, "condition_on_previous_text": False,
+            "beam_size": 5, "word_timestamps": True, "vad_filter": False, "condition_on_previous_text": False,
             "hotwords": ", ".join(hints) if hints else None}
 
 
@@ -187,12 +189,13 @@ def _stamp(milliseconds):
 
 
 def recognition_result(segments, duration_us, source_start=Fraction(0), *, intersect_whisper_end=False):
-    output, diagnostics, count = [], [], 0
+    output, diagnostics, count, evidence, word_count = [], [], 0, [], 0
     for segment in segments:
         count += 1
         if count > MAX_RESULTS:
             raise WorkerError("output_limit")
         start, end = _us(segment["start"]), _us(segment["end"])
+        native_end = end
         # The pinned Whisper decoder can place its final timestamp just beyond
         # decoded media (observed 80 ms). Bound this elected adapter policy to
         # 250 ms and diagnose the exact intersection; generic results stay strict.
@@ -210,6 +213,27 @@ def recognition_result(segments, duration_us, source_start=Fraction(0), *, inter
             raise WorkerError("invalid_text")
         if not text:
             continue
+        words, previous = [], -1
+        raw_words = segment.get("words") or []
+        if not isinstance(raw_words, list):
+            raise WorkerError("invalid_engine_output")
+        for word in raw_words:
+            word_count += 1
+            first, last = _us(word["start"]), _us(word["end"])
+            token = word["word"]
+            if end < native_end and first <= last <= native_end and last > end:
+                diagnostics.append({"code": "whisper_word_end_intersected_decoded_media", "count": 1})
+                first, last = min(first, end), end
+            if (word_count > 100000 or first < start or last < first or last > end or first < previous
+                    or not isinstance(token, str) or not token or len(token) > 65536
+                    or any(ord(c) < 32 and c not in "\n\t\r" for c in token)):
+                raise WorkerError("invalid_engine_output")
+            words.append({"start_us": first, "end_us": last, "text": token})
+            previous = first
+        item = {"start_us": start, "end_us": end, "text": text}
+        if words:
+            item["words"] = words
+        evidence.append(item)
         source_start_ms = (source_start + Fraction(start, 1000000)) * 1000
         source_end_ms = (source_start + Fraction(end, 1000000)) * 1000
         start_ms, end_ms = -(-source_start_ms.numerator // source_start_ms.denominator), source_end_ms.numerator // source_end_ms.denominator
@@ -220,7 +244,7 @@ def recognition_result(segments, duration_us, source_start=Fraction(0), *, inter
             diagnostics.append({"code": "submillisecond_segment_unrepresentable", "count": 1})
             continue
         output.append(f"{len(output)+1}\n{_stamp(start_ms)} --> {_stamp(end_ms)}\n{text}\n\n")
-    return {"srt": "".join(output), "no_speech": count == 0,
+    return {"srt": "".join(output), "segments": evidence, "no_speech": count == 0,
             "diagnostics": diagnostics, "provenance": {"segment_count": count,
             "native_timing_projection": "nearest-microsecond;exact-source-origin;ceil-start/floor-end-millisecond"}}
 
@@ -437,7 +461,7 @@ def run_selected(request, native):
         origin = Fraction(int(request.get("source_start_numerator", "0")), int(request.get("source_start_denominator", "1")))
         result = silence_result(pcm, duration_us)
         if result is None:
-            result = recognition_result(({"start": segment.start, "end": segment.end, "text": segment.text} for segment in segments), duration_us, origin, intersect_whisper_end=True)
+            result = recognition_result(({"start": segment.start, "end": segment.end, "text": segment.text, "words": [{"start": word.start, "end": word.end, "word": word.word} for word in (getattr(segment, "words", None) or [])]} for segment in segments), duration_us, origin, intersect_whisper_end=True)
         else:
             # Finish the selected engine execution so device provenance remains
             # an observed inference fact. Its invented text never becomes data.
@@ -464,6 +488,9 @@ def run_selected(request, native):
         if pipeline is None:
             raise WorkerError("model_unavailable")
         pipeline.to(torch.device(device))
+        if request["operation"] == "diarize":
+            pipeline.segmentation_batch_size = request.get("batch_size", 1)
+            pipeline.embedding_batch_size = request.get("batch_size", 1)
         minimum = guard_pyannote_embeddings(pipeline, torch, np)
         audio = torch.from_numpy(np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0).reshape(1, -1)
         if request["operation"] in {"embed", "embed-batch"}:
@@ -497,6 +524,7 @@ def run_selected(request, native):
                 output = pipeline({"waveform": audio, "sample_rate": rate}, **options)
             turns, padding_diagnostics = intersect_pyannote_media(((turn.start, turn.end, str(label)) for turn, _, label in output.speaker_diarization.itertracks(yield_label=True)), duration_us)
             result = diarization_result(turns, duration_us)
+            result["provenance"]["batch_size"] = request.get("batch_size", 1)
             result["diagnostics"].extend(padding_diagnostics)
             embeddings = getattr(output, "speaker_embeddings", None)
             if embeddings is not None and not np.isfinite(embeddings).all():
@@ -526,6 +554,8 @@ def run(request):
             return run_selected(request, libraries)
     except WorkerError:
         raise
+    except MemoryError:
+        raise WorkerError("cuda_resource_exhausted" if device == "cuda" else "resource_exhausted") from None
     except native.NativeFailure as error:
         raise WorkerError(str(error)) from None
     except Exception as error:

@@ -28,6 +28,13 @@ func humanWorkSummary(b *humanBuffer, root map[string]any, errorShown bool) bool
 		b.line("Phase: %s", phase)
 	}
 	result, _ := root["result"].(map[string]any)
+	if completed, ok := windowProgressCount(result["completed_windows"]); ok {
+		if total, valid := windowProgressCount(result["total_windows"]); valid && completed <= total {
+			b.line("Windows complete: %d of %d", completed, total)
+		} else if state == "succeeded" {
+			b.line("Windows complete: %d", completed)
+		}
+	}
 	if recordingID, _ := result["recording_id"].(string); contracts.ValidID(recordingID) {
 		switch outcome, _ := result["state"].(string); outcome {
 		case "ready", "no-speech", "no-timed-subtitles":
@@ -70,7 +77,19 @@ func humanDeviceAttempt(b *humanBuffer, failure *contracts.Error) {
 	}
 	b.line("Requested device: %s", attempt.RequestedDevice)
 	b.line("Attempted devices: %s", strings.Join(attempt.AttemptedDevices, " -> "))
+	for _, adjustment := range attempt.ResourceAdjustments {
+		b.line("Resource adjustment: batch %d -> %d (%s)", adjustment.PreviousBatchSize, adjustment.BatchSize, adjustment.Reason)
+	}
 	if attempt.FallbackReason != "" {
 		b.line("Fallback cause: %s: %s", attempt.FallbackReason, contracts.Fail(attempt.FallbackReason).Message)
 	}
+}
+
+func windowProgressCount(value any) (int64, bool) {
+	raw, err := json.Marshal(value)
+	var count int64
+	if err != nil || value == nil || json.Unmarshal(raw, &count) != nil || count < 0 || count > 16384 {
+		return 0, false
+	}
+	return count, true
 }

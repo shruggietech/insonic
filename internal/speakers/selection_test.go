@@ -116,3 +116,10 @@ func TestSuppliedSourceClockWithoutInferredStream(t *testing.T) {
 		t.Fatal(got, e)
 	}
 }
+
+func TestSelectionRequiresProjectedWindowSource(t *testing.T) {
+	e := catalog.ResolvedEvidence{Reference: catalog.CurrentReference{CueID: "c", SpeakerID: "p", LocalSpeakerID: "v"}, Mapping: catalog.SpeakerMapping{SpeakerID: "p"}, SourceMap: json.RawMessage(`{"policy":"windowed-canonical-source-clock-v1","tracks":[{"stream_index":3}]}`), Cue: json.RawMessage(`{"id":"c","speaker_attributions":[{"speaker_id":"v","start_milliseconds":0,"end_milliseconds":100}]}`)}
+	if _, err := Select([]catalog.ResolvedEvidence{e}); err == nil {
+		t.Fatal("unprojected source treated as unknown or stream zero")
+	}
+}

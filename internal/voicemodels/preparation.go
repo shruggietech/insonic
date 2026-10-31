@@ -340,6 +340,7 @@ func (s *Service) prepare(ctx context.Context, dataset catalog.SpeakerDataset, o
 	limits, _ := normalizeLimits(options.Adapter.Limits)
 	total := int64(0)
 	audioCache := map[string]*Audio{}
+	recordingCache := map[string]catalog.Recording{}
 	unusable := map[string]bool{}
 	preparedReferences := map[string]bool{}
 	summary.DurationUS = 0
@@ -354,10 +355,36 @@ func (s *Service) prepare(ctx context.Context, dataset catalog.SpeakerDataset, o
 		if ctx.Err() != nil {
 			return nil, summary, contracts.Fail("cancelled")
 		}
-		if unusable[item.Reference.RecordingID] {
+		recording, known := recordingCache[item.Reference.RecordingID]
+		if !known {
+			var err error
+			recording, err = s.Catalog.Recording(ctx, item.Reference.RecordingID)
+			if err != nil {
+				return nil, summary, err
+			}
+			recordingCache[item.Reference.RecordingID] = recording
+		}
+		routed, err := catalog.ResolveEvidenceSourceMap(recording.SourceMap, recording.Provenance, item.Reference.CueID, item.Reference.LocalSpeakerID)
+		if err != nil {
+			return nil, summary, err
+		}
+		var selectedSource processing.SourceMap
+		if json.Unmarshal(routed, &selectedSource) != nil {
+			return nil, summary, contracts.Fail("conflict")
+		}
+		channel := selectedSource.Channel
+		if recipe.Channel != nil {
+			channel = recipe.Channel
+		}
+		channelKey := "downmix"
+		if channel != nil {
+			channelKey = fmt.Sprint(*channel)
+		}
+		cacheKey := fmt.Sprintf("%s:%d:%s", item.Reference.RecordingID, selectedSource.StreamIndex, channelKey)
+		if unusable[cacheKey] {
 			continue
 		}
-		audio := audioCache[item.Reference.RecordingID]
+		audio := audioCache[cacheKey]
 		if audio == nil {
 			entry, err := s.Catalog.Library(ctx, item.Reference.RecordingID)
 			if err != nil {
@@ -369,29 +396,17 @@ func (s *Service) prepare(ctx context.Context, dataset catalog.SpeakerDataset, o
 			if s.Prepare == nil {
 				return nil, summary, contracts.Fail("unavailable")
 			}
-			recording, err := s.Catalog.Recording(ctx, item.Reference.RecordingID)
-			if err != nil {
-				return nil, summary, err
-			}
-			var source processing.SourceMap
-			if json.Unmarshal(recording.SourceMap, &source) != nil {
-				return nil, summary, contracts.Fail("conflict")
-			}
-			channel := source.Channel
-			if recipe.Channel != nil {
-				channel = recipe.Channel
-			}
-			audio, err = s.Prepare(ctx, entry, processing.AudioOptions{StreamIndex: &source.StreamIndex, Channel: channel})
+			audio, err = s.Prepare(ctx, entry, processing.AudioOptions{StreamIndex: &selectedSource.StreamIndex, Channel: channel})
 			if err != nil {
 				var failure *contracts.Error
 				if errors.As(err, &failure) && (failure.Code == "invalid_audio" || failure.Code == "unsupported_audio" || failure.Code == "timing_unavailable") {
-					unusable[item.Reference.RecordingID] = true
+					unusable[cacheKey] = true
 					summary.Diagnostics = append(summary.Diagnostics, processing.Diagnostic{Code: "unusable_source_excluded", Count: 1})
 					continue
 				}
 				return nil, summary, err
 			}
-			audioCache[item.Reference.RecordingID] = audio
+			audioCache[cacheKey] = audio
 		}
 		for _, span := range item.Intervals {
 			first, last, err := sampleBounds(span.Start, span.End, audio.SourceMap)

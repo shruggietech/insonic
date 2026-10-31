@@ -99,6 +99,14 @@
     "worker-resources": {
       "$ref": "worker-resources.schema.json",
       "description": "Optional managed CPU profiles and verified environment identity receipts."
+    },
+    "processing-window-plan": {
+      "$ref": "processing-window-plan.schema.json",
+      "description": "Deterministic source-clock windows and compatible checkpoint reuse identity."
+    },
+    "processing-window": {
+      "$ref": "processing-window.schema.json",
+      "description": "Temporary verified per-window recognition and diarization evidence."
     }
   },
   "oneOf": [
@@ -171,6 +179,12 @@
     },
     {
       "$ref": "#/$defs/worker-resources"
+    },
+    {
+      "$ref": "#/$defs/processing-window-plan"
+    },
+    {
+      "$ref": "#/$defs/processing-window"
     }
   ]
 }

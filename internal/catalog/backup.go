@@ -258,6 +258,11 @@ func BackupPublications(snap Snapshot) ([]Publication, error) {
 			requiredArtifacts[*run.PreparationArtifactID] = true
 		}
 	}
+	for _, c := range snap.Records.ProcessingCheckpoints {
+		if c.State == "ready" {
+			selected[c.PublicationID] = true
+		}
+	}
 	for _, c := range snap.Records.SpeakerCheckpoints {
 		selected[c.PublicationID] = true
 	}
@@ -265,7 +270,7 @@ func BackupPublications(snap Snapshot) ([]Publication, error) {
 		if requiredArtifacts[p.ArtifactID] {
 			selected[p.ID] = true
 		}
-		if p.State == "available" && !excluded[p.ID] && p.Kind != "mapped-audio" && p.Kind != "speaker-clip" && p.Kind != "derived-manifest" && p.Kind != "subtitle-source" && p.Kind != "inference-preparation" {
+		if p.State == "available" && !excluded[p.ID] && p.Kind != "mapped-audio" && p.Kind != "speaker-clip" && p.Kind != "derived-manifest" && p.Kind != "subtitle-source" && p.Kind != "inference-preparation" && p.Kind != "processing-window" {
 			selected[p.ID] = true
 		}
 	}

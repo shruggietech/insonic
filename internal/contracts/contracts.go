@@ -104,6 +104,7 @@ func Fail(code string) *Error {
 		"cuda_library_missing":      "A required CUDA native library is missing from the selected environment. Prepare compatible cuBLAS/cuDNN or use CPU processing.",
 		"cuda_library_incompatible": "The selected CUDA native libraries are incompatible. Prepare the documented compatible environment or use CPU processing.",
 		"cuda_compute_unsupported":  "The selected NVIDIA device does not support the required compute type. Use a compatible device or CPU processing.",
+		"resource_exhausted":        "The selected worker could not provide the required memory. Free host memory, reduce the elected batch or window size, and retry.",
 		"cuda_resource_exhausted":   "The NVIDIA device could not provide the required resources. Free device memory, reduce the elected processing load or use CPU processing.",
 		"unsupported_language":      "recognition.language must be auto or a supported faster-whisper language code, such as en, es or fr. See local processing setup for the supported choices.",
 		"engine_failed":             "The local engine failed without a recognized device or input cause. Inspect worker readiness and the elected model before retrying; the prior accepted result is unchanged.",

@@ -212,6 +212,18 @@ func (d *Driver) Assemble(ctx context.Context, document []byte, durationNS *int6
 	}
 	return result, nil
 }
+
+func (d *Driver) AssembleScoped(ctx context.Context, document []byte, durationNS *int64, turns []Turn, participation []Participation, cueTracks, voiceTracks map[string]int) (Assembly, error) {
+	result, err := AssembleDocumentScoped(document, durationNS, turns, participation, cueTracks, voiceTracks)
+	if err != nil {
+		return result, err
+	}
+	if err = d.Validate(ctx, result.Document); err != nil {
+		result.Document = nil
+		return result, err
+	}
+	return result, nil
+}
 func omissionDiagnostics(document []byte, conversion bool) ([]Diagnostic, error) {
 	var doc semanticDocument
 	json.Unmarshal(document, &doc)

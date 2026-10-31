@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-const SchemaVersion = 10
+const SchemaVersion = 11
 
 type Store struct {
 	db        *sql.DB

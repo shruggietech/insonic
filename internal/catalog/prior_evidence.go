@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"strconv"
 )
 
 func (s *Store) evidenceJSONText(value, key string) string {
@@ -36,6 +37,23 @@ func (s *Store) evidenceMS(value, key string) string {
 	return "CAST(" + s.evidenceJSONText(value, key) + " AS BIGINT)"
 }
 
+// Resolve routing inside the scalar comparison query. Only route metadata is
+// projected; prior transcripts and assignment arrays remain in the database.
+func (s *Store) evidenceCueRoute(field string) string {
+	if s.backend == "postgresql" {
+		voice := "(SELECT (v.value->>'track_ordinal')::bigint FROM jsonb_array_elements(r.provenance::jsonb->'voice_sources') v(value) WHERE v.value->>'local_speaker_id'=r.local_speaker_id)"
+		cue := "(SELECT (v.value->'source'->>'track_ordinal')::bigint FROM jsonb_array_elements(r.provenance::jsonb->'cue_sources') v(value) WHERE v.value->>'cue_id'=c.value->>'id')"
+		ordinal := "COALESCE(" + voice + "," + cue + ",CASE WHEN jsonb_array_length(r.source_map::jsonb->'tracks')=1 THEN 0 END)"
+		track := "(SELECT t.value->>'" + field + "' FROM jsonb_array_elements(r.source_map::jsonb->'tracks') WITH ORDINALITY t(value,ordinality) WHERE t.ordinality-1=" + ordinal + ")"
+		return "CAST(CASE WHEN r.source_map::jsonb->>'policy'='windowed-canonical-source-clock-v1' THEN " + track + " ELSE r.source_map::jsonb->>'" + field + "' END AS BIGINT)"
+	}
+	voice := "(SELECT json_extract(v.value,'$.track_ordinal') FROM json_each(r.provenance,'$.voice_sources') v WHERE json_extract(v.value,'$.local_speaker_id')=r.local_speaker_id)"
+	cue := "(SELECT json_extract(v.value,'$.source.track_ordinal') FROM json_each(r.provenance,'$.cue_sources') v WHERE json_extract(v.value,'$.cue_id')=json_extract(c.value,'$.id'))"
+	ordinal := "COALESCE(" + voice + "," + cue + ",CASE WHEN json_array_length(r.source_map,'$.tracks')=1 THEN 0 END)"
+	track := "(SELECT json_extract(t.value,'$." + field + "') FROM json_each(r.source_map,'$.tracks') t WHERE CAST(t.key AS BIGINT)=" + ordinal + ")"
+	return "CAST(CASE WHEN json_extract(r.source_map,'$.policy')='windowed-canonical-source-clock-v1' THEN " + track + " ELSE json_extract(r.source_map,'$." + field + "') END AS BIGINT)"
+}
+
 // Compare only sole-current embedded evidence, in canonical reference and
 // assignment order. Each reference uses one scalar-result query for all its
 // assignments; no prior assignment arrays leave the database or enter cursors.
@@ -57,8 +75,8 @@ func (s *Store) ComparePriorSpeakerEvidence(ctx context.Context, selection Speak
 		return out, contracts.Fail("conflict")
 	}
 	var recordingRevision, mappingRevision int64
-	var document, source, sourceMap, person, mappingDocument string
-	e = s.row(ctx, tx, "SELECT r.revision,r.document_digest,r.source_digest,r.source_map,m.revision,m.speaker_id,m.document_digest FROM current_recording r JOIN speaker_mapping m ON m.workspace_id=r.workspace_id AND m.recording_id=r.id WHERE r.workspace_id=? AND r.id=? AND r.state='ready' AND m.local_speaker_id=?", s.workspace, ref.RecordingID, ref.LocalSpeakerID).Scan(&recordingRevision, &document, &source, &sourceMap, &mappingRevision, &person, &mappingDocument)
+	var document, source, sourceMap, provenance, person, mappingDocument string
+	e = s.row(ctx, tx, "SELECT r.revision,r.document_digest,r.source_digest,r.source_map,r.provenance,m.revision,m.speaker_id,m.document_digest FROM current_recording r JOIN speaker_mapping m ON m.workspace_id=r.workspace_id AND m.recording_id=r.id WHERE r.workspace_id=? AND r.id=? AND r.state='ready' AND m.local_speaker_id=?", s.workspace, ref.RecordingID, ref.LocalSpeakerID).Scan(&recordingRevision, &document, &source, &sourceMap, &provenance, &mappingRevision, &person, &mappingDocument)
 	if e == sql.ErrNoRows {
 		return out, contracts.Fail("conflict")
 	}
@@ -76,12 +94,16 @@ func (s *Store) ComparePriorSpeakerEvidence(ctx context.Context, selection Speak
 		Stream  *int64 `json:"stream_index"`
 		Channel *int64 `json:"channel"`
 	}
-	if json.Unmarshal(canonicalMap, &routing) != nil {
+	resolvedMap, e := ResolveEvidenceSourceMap([]byte(sourceMap), []byte(provenance), ref.CueID, ref.LocalSpeakerID)
+	if e != nil {
+		return out, e
+	}
+	if json.Unmarshal(resolvedMap, &routing) != nil {
 		return out, contracts.Fail("invalid_request")
 	}
 	// Filter source identity before expanding any prior cues. An unknown stream
 	// cannot establish equivalence across separate library entries.
-	prior := "SELECT r.id,r.document,m.local_speaker_id FROM speaker_mapping m JOIN current_recording r ON r.workspace_id=m.workspace_id AND r.id=m.recording_id WHERE m.workspace_id=? AND m.speaker_id=? AND r.state='ready' AND m.document_digest=r.document_digest AND r.source_digest=? AND r.id<=?"
+	prior := "SELECT r.id,r.document,r.source_map,r.provenance,m.local_speaker_id FROM speaker_mapping m JOIN current_recording r ON r.workspace_id=m.workspace_id AND r.id=m.recording_id WHERE m.workspace_id=? AND m.speaker_id=? AND r.state='ready' AND m.document_digest=r.document_digest AND r.source_digest=? AND r.id<=?"
 	args := []any{s.workspace, selection.SpeakerID, ref.SourceDigest, ref.RecordingID}
 	if selection.ConfirmedOnly {
 		prior += " AND m.origin='manual'"
@@ -90,22 +112,16 @@ func (s *Store) ComparePriorSpeakerEvidence(ctx context.Context, selection Speak
 		prior += " AND r.id=?"
 		args = append(args, selection.RecordingID)
 	}
+	routeFilter := ""
 	if routing.Stream == nil {
 		prior += " AND r.id=?"
 		args = append(args, ref.RecordingID)
 	} else {
-		mapValue := "r.source_map"
-		if s.backend == "postgresql" {
-			mapValue += "::jsonb"
-		}
-		prior += " AND " + s.evidenceMS(mapValue, "stream_index") + "=?"
-		args = append(args, *routing.Stream)
-		channelJSON := s.evidenceJSONText(mapValue, "channel")
+		routeFilter = " AND " + s.evidenceCueRoute("stream_index") + "=" + strconv.FormatInt(*routing.Stream, 10)
 		if routing.Channel != nil {
-			prior += " AND CAST(" + channelJSON + " AS BIGINT)=?"
-			args = append(args, *routing.Channel)
+			routeFilter += " AND " + s.evidenceCueRoute("channel") + "=" + strconv.FormatInt(*routing.Channel, 10)
 		} else {
-			prior += " AND " + channelJSON + " IS NULL"
+			routeFilter += " AND " + s.evidenceCueRoute("channel") + " IS NULL"
 		}
 	}
 	cueID := s.evidenceJSONText("c.value", "id")
@@ -118,10 +134,10 @@ func (s *Store) ComparePriorSpeakerEvidence(ctx context.Context, selection Speak
 	args = append(args, ref.RecordingID, ref.LocalSpeakerID, ref.CueID)
 	earlierRef := "(r.id<t.id OR (r.id=t.id AND " + cueOrdinal + "<t.cue_ordinal) OR (r.id=t.id AND " + cueOrdinal + "=t.cue_ordinal AND r.local_speaker_id<t.local_speaker_id))"
 	earlierAssignment := "(" + earlierRef + " OR (r.id=t.id AND " + cueOrdinal + "=t.cue_ordinal AND r.local_speaker_id=t.local_speaker_id AND " + assignmentOrdinal + "<t.assignment_ordinal))"
-	priorAssignments := "SELECT 1 FROM prior_recordings r " + s.evidenceJSONCues("r.document", "c") + " " + s.evidenceJSONAssignments("c.value", "a") + " WHERE " + assignmentSpeaker + "=r.local_speaker_id AND " + earlierAssignment
+	priorAssignments := "SELECT 1 FROM prior_recordings r " + s.evidenceJSONCues("r.document", "c") + " " + s.evidenceJSONAssignments("c.value", "a") + " WHERE " + assignmentSpeaker + "=r.local_speaker_id AND " + earlierAssignment + routeFilter
 	duplicate := "EXISTS(" + priorAssignments + " AND " + start + "=t.start_ms AND " + end + "=t.end_ms)"
 	overlap := "EXISTS(" + priorAssignments + " AND " + start + "<t.end_ms AND " + end + ">t.start_ms)"
-	firstRef := "NOT EXISTS(SELECT 1 FROM prior_recordings r " + s.evidenceJSONCues("r.document", "c") + " WHERE r.id=t.id AND " + earlierRef + " AND EXISTS(SELECT 1 FROM " + assignmentArrayFrom(s, "c.value", "a") + " WHERE " + assignmentSpeaker + "=r.local_speaker_id))"
+	firstRef := "NOT EXISTS(SELECT 1 FROM prior_recordings r " + s.evidenceJSONCues("r.document", "c") + " WHERE r.id=t.id AND " + earlierRef + routeFilter + " AND EXISTS(SELECT 1 FROM " + assignmentArrayFrom(s, "c.value", "a") + " WHERE " + assignmentSpeaker + "=r.local_speaker_id))"
 	q += "SELECT t.assignment_ordinal," + duplicate + "," + overlap + ",(SELECT count(DISTINCT r.local_speaker_id) FROM prior_recordings r WHERE r.id=t.id)," + firstRef + " FROM targets t ORDER BY t.assignment_ordinal LIMIT 65537"
 	rows, e := tx.QueryContext(ctx, s.query(q), args...)
 	if e != nil {

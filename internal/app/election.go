@@ -86,13 +86,16 @@ func (a *App) electRecordingOptions(o RecordingOptions) (RecordingOptions, *reco
 		}
 		budget, supported = capability.MaxHintBytes, capability.SupportsHints
 		o.PipelineRevision = p.Revision
+		if o.Windows == nil {
+			o.Windows = d.Windows
+		}
 		o.RecognitionModelID = d.Recognition.ModelID
 		o.DiarizationModelID = d.Diarization.ModelID
 		o.Recognition = d.Recognition.Recognition
 		o.Attribution = d.Diarization.Diarization
 		o.Quality = &d.Quality
 		election = &recordingElection{PipelineID: p.ID, Revision: p.Revision, Digest: documentHash(configurationBytes(p)), Preset: p.Preset, Definition: d}
-	} else if o.PipelineRevision != 0 || o.Overrides.Recognition != nil || o.Overrides.Diarization != nil || o.Overrides.Quality != nil {
+	} else if o.PipelineRevision != 0 || o.Overrides.Recognition != nil || o.Overrides.Diarization != nil || o.Overrides.Quality != nil || o.Overrides.Windows != nil {
 		return o, nil, contracts.Fail("invalid_request")
 	}
 	if o.PipelineID == "" {

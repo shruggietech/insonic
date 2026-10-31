@@ -207,7 +207,16 @@ func (s *Session) workerSelected(ctx context.Context, operation string, id strin
 	}
 	workerEnv := append(process.LocalEnvironment(), "HOME="+home, "USERPROFILE="+home, "HF_HUB_OFFLINE=1", "TRANSFORMERS_OFFLINE=1", "HF_HUB_DISABLE_TELEMETRY=1", "PYANNOTE_METRICS_ENABLED=0", "PYTHONIOENCODING=utf-8", "TOKENIZERS_PARALLELISM=false")
 	requested, _ := request["device"].(string)
-	raw, execution, err := runDevicePolicy(workerCtx, requested, func(attemptCtx context.Context, device string) ([]byte, error) {
+	batch := 1
+	if operation == "diarize" {
+		if selected, ok := request["batch_size"].(int); ok && selected > 0 {
+			batch = selected
+		}
+	}
+	raw, execution, err := runResourcePolicy(workerCtx, requested, batch, func(attemptCtx context.Context, device string, batch int) ([]byte, error) {
+		if operation == "diarize" {
+			request["batch_size"] = batch
+		}
 		request["device"] = device
 		encoded, e := json.Marshal(request)
 		if e != nil {
@@ -228,6 +237,9 @@ func (s *Session) workerSelected(ctx context.Context, operation string, id strin
 	}
 	provenance["requested_device"] = execution.RequestedDevice
 	provenance["attempted_devices"] = execution.AttemptedDevices
+	if len(execution.ResourceAdjustments) > 0 {
+		provenance["resource_adjustments"] = execution.ResourceAdjustments
+	}
 	provenance["device"] = execution.Device
 	if execution.FallbackReason != "" {
 		provenance["fallback_reason"] = execution.FallbackReason
@@ -278,18 +290,23 @@ func (s *Session) Recognize(ctx context.Context, modelID string, options Recogni
 	}
 	defer func() { returned = withDeviceProvenanceFailure(returned, provenance) }()
 	var output struct {
-		SRT         string         `json:"srt"`
-		NoSpeech    bool           `json:"no_speech"`
-		Provenance  map[string]any `json:"provenance"`
-		Diagnostics []Diagnostic   `json:"diagnostics"`
+		SRT         string               `json:"srt"`
+		Segments    []RecognitionSegment `json:"segments,omitempty"`
+		NoSpeech    bool                 `json:"no_speech"`
+		Provenance  map[string]any       `json:"provenance"`
+		Diagnostics []Diagnostic         `json:"diagnostics"`
 	}
 	if strict(raw, &output) != nil || len(output.SRT) > 8<<20 || len(output.Diagnostics) > 20000 || !validProvenance(output.Provenance) || !validDiagnostics(output.Diagnostics) || output.NoSpeech && output.SRT != "" {
+		return RecognitionResult{}, contracts.Fail("invalid_engine_output")
+	}
+	duration, durationErr := MappedDuration(s.SourceMap)
+	if durationErr != nil || ValidateRecognitionSegments(output.Segments, duration) != nil || output.NoSpeech && len(output.Segments) > 0 {
 		return RecognitionResult{}, contracts.Fail("invalid_engine_output")
 	}
 	for key, value := range output.Provenance {
 		provenance[key] = value
 	}
-	return RecognitionResult{SRT: []byte(output.SRT), NoSpeech: output.NoSpeech, Provenance: provenance, Diagnostics: output.Diagnostics}, nil
+	return RecognitionResult{Segments: output.Segments, SRT: []byte(output.SRT), NoSpeech: output.NoSpeech, Provenance: provenance, Diagnostics: output.Diagnostics}, nil
 }
 
 func decodeDiarization(raw []byte, durationUS int64) (DiarizationResult, error) {
@@ -332,7 +349,7 @@ func (s *Session) Diarize(ctx context.Context, modelID string, options Diarizati
 	if err = ValidateDiarizationOptions(options); err != nil {
 		return DiarizationResult{}, err
 	}
-	raw, provenance, err := s.workerSelected(operationCtx, "diarize", modelID, map[string]any{"device": options.Device, "min_speakers": options.MinSpeakers, "max_speakers": options.MaxSpeakers}, options.ExecutionLimits, options.ExpectedModelDigest)
+	raw, provenance, err := s.workerSelected(operationCtx, "diarize", modelID, map[string]any{"device": options.Device, "min_speakers": options.MinSpeakers, "max_speakers": options.MaxSpeakers, "batch_size": normalizedBatchSize(options.BatchSize)}, options.ExecutionLimits, options.ExpectedModelDigest)
 	if err != nil {
 		return DiarizationResult{}, err
 	}

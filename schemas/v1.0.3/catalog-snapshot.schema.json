@@ -81,7 +81,8 @@
         7,
         8,
         9,
-        10
+        10,
+        11
       ]
     },
     "digest": {
@@ -96,6 +97,165 @@
       "additionalProperties": false,
       "description": "Typed Records record with scoped associations.",
       "properties": {
+        "processing_plans": {
+          "description": "Frozen content-free processing plans. Ready checkpoints remain reusable across work attempts only while the source, current document, and plan identity still match.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Frozen content-free processing plans. Ready checkpoints remain reusable across work attempts only while the source, current document, and plan identity still match.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable identity."
+              },
+              "work_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable identity."
+              },
+              "media_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable identity."
+              },
+              "source_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Frozen source revision."
+              },
+              "source_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "SHA-256 of the immutable accepted value."
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Frozen current document revision; zero means absent."
+              },
+              "document_digest": {
+                "type": "string",
+                "pattern": "^([a-f0-9]{64})?$",
+                "description": "Frozen current document SHA-256, or empty when no document exists."
+              },
+              "configuration_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "SHA-256 of the immutable accepted value."
+              },
+              "plan_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "SHA-256 of the immutable accepted value."
+              },
+              "plan": {
+                "$ref": "processing-window-plan.schema.json",
+                "description": "Bounded deterministic processing plan, at most 16 MiB when encoded."
+              },
+              "attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Work attempt that first accepted the plan; never relabeled by retry."
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "completed",
+                  "invalidated"
+                ],
+                "description": "Current plan authority. Completion or replacement retires temporary checkpoint bytes."
+              }
+            },
+            "required": [
+              "id",
+              "work_id",
+              "media_id",
+              "source_revision",
+              "source_digest",
+              "expected_revision",
+              "document_digest",
+              "configuration_digest",
+              "plan_digest",
+              "plan",
+              "attempt",
+              "state"
+            ]
+          }
+        },
+        "processing_checkpoints": {
+          "description": "Verified per-window output references. Ready rows pin their exact publication; retired rows retain provenance without retaining temporary output bytes.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Verified per-window output references. Ready rows pin their exact publication; retired rows retain provenance without retaining temporary output bytes.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable identity."
+              },
+              "plan_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable identity."
+              },
+              "work_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable identity."
+              },
+              "window_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable identity."
+              },
+              "stage": {
+                "enum": [
+                  "combined",
+                  "recognition",
+                  "diarization"
+                ],
+                "description": "Completed processing stage represented by the exact publication."
+              },
+              "attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Producing work attempt; remains unchanged across retries."
+              },
+              "publication_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable identity."
+              },
+              "output_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "SHA-256 of the immutable accepted value."
+              },
+              "output_size": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact verified publication byte length."
+              },
+              "state": {
+                "enum": [
+                  "ready",
+                  "retired"
+                ],
+                "description": "Only ready checkpoint publications are eligible for resume and backup."
+              }
+            },
+            "required": [
+              "id",
+              "plan_id",
+              "work_id",
+              "window_id",
+              "stage",
+              "attempt",
+              "publication_id",
+              "output_digest",
+              "output_size",
+              "state"
+            ]
+          }
+        },
         "artifacts": {
           "description": "Deterministically ordered typed records, or null when empty.",
           "items": {

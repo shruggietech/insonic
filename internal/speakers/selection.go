@@ -69,6 +69,7 @@ func selectEvidence(evidence []catalog.ResolvedEvidence, compare func(catalog.Cu
 			} `json:"speaker_attributions"`
 		}
 		var source struct {
+			Policy      string `json:"policy"`
 			Numerator   string `json:"start_numerator"`
 			Denominator string `json:"start_denominator"`
 			Stream      *int   `json:"stream_index"`
@@ -76,6 +77,9 @@ func selectEvidence(evidence []catalog.ResolvedEvidence, compare func(catalog.Cu
 		}
 		if json.Unmarshal(resolved.Cue, &cue) != nil || json.Unmarshal(resolved.SourceMap, &source) != nil || cue.ID != ref.CueID || resolved.Mapping.SpeakerID != ref.SpeakerID {
 			return out, contracts.Fail("invalid_request")
+		}
+		if source.Policy == "windowed-canonical-source-clock-v1" {
+			return out, contracts.Condition("conflict", "source_map_incompatible")
 		}
 		flags := map[int]catalog.PriorEvidenceComparison{}
 		if compare != nil {

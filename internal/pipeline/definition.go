@@ -18,10 +18,11 @@ import (
 )
 
 type Definition struct {
-	Recognition     Stage                    `json:"recognition,omitzero"`
-	Diarization     Stage                    `json:"diarization,omitzero"`
-	Quality         processing.QualityConfig `json:"quality,omitzero"`
-	SpeakerTraining json.RawMessage          `json:"speaker_training,omitempty"`
+	Windows         *processing.WindowOptions `json:"windows,omitempty"`
+	Recognition     Stage                     `json:"recognition,omitzero"`
+	Diarization     Stage                     `json:"diarization,omitzero"`
+	Quality         processing.QualityConfig  `json:"quality,omitzero"`
+	SpeakerTraining json.RawMessage           `json:"speaker_training,omitempty"`
 }
 type Stage struct {
 	Adapter       string                        `json:"adapter"`
@@ -44,6 +45,7 @@ type Limits struct {
 	TimeoutMS        int64 `json:"timeout_ms,omitempty"`
 }
 type Override struct {
+	Windows     *processing.WindowOptions `json:"windows,omitempty"`
 	Recognition *Stage                    `json:"recognition,omitempty"`
 	Diarization *Stage                    `json:"diarization,omitempty"`
 	Quality     *processing.QualityConfig `json:"quality,omitempty"`
@@ -158,7 +160,7 @@ func ValidateStage(s Stage, operation string) error {
 			return contracts.Fail("invalid_request")
 		}
 	} else {
-		if s.ModelID != "" || !contracts.ValidTextLength(s.RemoteModel, 1, 256) || strings.ContainsFunc(s.RemoteModel, unicode.IsControl) || s.RemoteModel != strings.TrimSpace(s.RemoteModel) || endpoint(s.Endpoint, s.CredentialID) != nil || s.Recognition.Device != "" || s.Diarization.Device != "" {
+		if s.ModelID != "" || !contracts.ValidTextLength(s.RemoteModel, 1, 256) || strings.ContainsFunc(s.RemoteModel, unicode.IsControl) || s.RemoteModel != strings.TrimSpace(s.RemoteModel) || endpoint(s.Endpoint, s.CredentialID) != nil || s.Recognition.Device != "" || s.Diarization.Device != "" || s.Diarization.BatchSize != 0 {
 			return contracts.Fail("invalid_request")
 		}
 	}
@@ -187,6 +189,11 @@ func ValidateStage(s Stage, operation string) error {
 	return nil
 }
 func Validate(preset string, d Definition) error {
+	if d.Windows != nil {
+		if _, e := processing.NormalizeWindowOptions(*d.Windows); e != nil {
+			return e
+		}
+	}
 	if preset != "local" && preset != "connected" && preset != "custom" {
 		return contracts.Fail("invalid_request")
 	}
@@ -221,6 +228,9 @@ func HasProcessing(d Definition) bool {
 	return !reflect.ValueOf(d.Recognition).IsZero() || !reflect.ValueOf(d.Diarization).IsZero()
 }
 func Elect(preset string, d Definition, o Override) (Definition, error) {
+	if o.Windows != nil {
+		d.Windows = o.Windows
+	}
 	if !HasProcessing(d) {
 		return Definition{}, contracts.Fail("unsupported_capability")
 	}
@@ -238,6 +248,10 @@ func Elect(preset string, d Definition, o Override) (Definition, error) {
 	}
 	d.Recognition.Limits, _ = NormalizeLimits(d.Recognition.Limits)
 	d.Diarization.Limits, _ = NormalizeLimits(d.Diarization.Limits)
+	if d.Windows != nil {
+		normalized, _ := processing.NormalizeWindowOptions(*d.Windows)
+		d.Windows = &normalized
+	}
 	// JSON copy also detaches all pointers, hint/capability arrays and thresholds.
 	raw, e := json.Marshal(d)
 	if e != nil {

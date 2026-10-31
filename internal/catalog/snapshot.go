@@ -109,7 +109,7 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 }
 
 func (s *Store) restoreSnapshot(ctx context.Context, snap Snapshot, activate func(*sql.Tx) error) error {
-	if !contracts.SupportedDocumentVersion(snap.Version) || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5 && snap.CatalogSchema != 6 && snap.CatalogSchema != 7 && snap.CatalogSchema != 8 && snap.CatalogSchema != 9) {
+	if !contracts.SupportedDocumentVersion(snap.Version) || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5 && snap.CatalogSchema != 6 && snap.CatalogSchema != 7 && snap.CatalogSchema != 8 && snap.CatalogSchema != 9 && snap.CatalogSchema != 10) {
 		return contracts.Fail("incompatible_version")
 	}
 	if snap.CatalogSchema < 8 && len(snap.Records.ModelAliases)+len(snap.Records.ModelSources) > 0 {
@@ -157,6 +157,9 @@ func (s *Store) restoreSnapshot(ctx context.Context, snap Snapshot, activate fun
 	}
 	digest, e := snap.digest()
 	if e != nil || digest != snap.Digest {
+		return contracts.Fail("invalid_request")
+	}
+	if snap.CatalogSchema < 11 && len(snap.Records.ProcessingPlans)+len(snap.Records.ProcessingCheckpoints) > 0 {
 		return contracts.Fail("invalid_request")
 	}
 	if snap.CatalogSchema < 9 {
@@ -292,6 +295,9 @@ func (s *Store) restoreSnapshot(ctx context.Context, snap Snapshot, activate fun
 			return e
 		}
 		if e = s.validateModelReferenceState(ctx, tx, snap.Records); e != nil {
+			return e
+		}
+		if e = s.validateProcessingState(ctx, tx, snap.Records); e != nil {
 			return e
 		}
 		if e = s.validateSpeakerModelState(ctx, tx, snap.Records); e != nil {

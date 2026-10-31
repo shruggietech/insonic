@@ -295,6 +295,22 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 		}
 		cause = code
 		failure := map[string]any{"state": "failed", "error": code, "cause": contracts.SafeError(e)}
+		if claim.Kind == "recordings.process" {
+			if current, readErr := a.Catalog.Work(ctx, claim.ID); readErr == nil && current.Generation == claim.Generation {
+				var progress struct {
+					PlanDigest string `json:"plan_digest"`
+					Completed  int    `json:"completed_windows"`
+					Total      int    `json:"total_windows"`
+					Active     string `json:"active_window_id"`
+				}
+				if json.Unmarshal(current.Result, &progress) == nil && len(progress.PlanDigest) == 64 && progress.Completed >= 0 && progress.Total > 0 && progress.Total <= 16384 && progress.Completed <= progress.Total {
+					failure["plan_digest"], failure["completed_windows"], failure["total_windows"] = progress.PlanDigest, progress.Completed, progress.Total
+					if contracts.ValidID(progress.Active) {
+						failure["active_window_id"] = progress.Active
+					}
+				}
+			}
+		}
 		if claim.Kind == "workers.setup" {
 			if facts := workerProbeFailureFacts(result); facts != nil {
 				failure["worker_probe"] = facts

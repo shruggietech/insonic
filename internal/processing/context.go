@@ -50,6 +50,9 @@ func ValidateRecognitionOptions(o RecognitionOptions, maxHintBytes int) (Recogni
 }
 
 func ValidateDiarizationOptions(o DiarizationOptions) error {
+	if o.BatchSize < 0 || o.BatchSize > 64 {
+		return contracts.Fail("invalid_request")
+	}
 	if o.ExpectedModelDigest != "" && !pinnedDigest.MatchString(o.ExpectedModelDigest) {
 		return contracts.Fail("invalid_request")
 	}
@@ -60,4 +63,11 @@ func ValidateDiarizationOptions(o DiarizationOptions) error {
 		return ValidateQuality(*o.Quality)
 	}
 	return nil
+}
+
+func normalizedBatchSize(batch int) int {
+	if batch == 0 {
+		return 1
+	}
+	return batch
 }

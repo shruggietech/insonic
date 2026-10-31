@@ -106,8 +106,8 @@ def qualify(invoke, workspace, version):
     snapshot_file = directory / 'persisted unicode and duration.json'
     invoke(['catalog', 'export', snapshot_file])
     snapshot = json.loads(snapshot_file.read_text(encoding='utf-8'))
-    if snapshot['catalog_schema'] != 10:
-        raise ValueError('Installed catalog did not report the widened schema-10 contract')
+    if snapshot['catalog_schema'] < 10:
+        raise ValueError('Installed catalog predates the widened duration and Unicode contract')
     exported_jobs = {row[0]: row for table in snapshot['state'] if table['name'] == 'job' for row in table['rows']}
     for identity, duration in jobs.items():
         row = exported_jobs.get(identity)

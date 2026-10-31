@@ -176,7 +176,7 @@ func (a *App) freezeImportProcessing(id string, supplied bool) (recordingPayload
 	for _, selected := range selections {
 		digests[selected.Target.ID] = selected.Digest
 	}
-	return recordingPayload{Options: options, Election: election, Tools: tools, ModelSelections: selections, ModelDigests: digests}, nil
+	return recordingPayload{WindowPolicyVersion: 1, Options: options, Election: election, Tools: tools, ModelSelections: selections, ModelDigests: digests}, nil
 }
 func (a *App) resolveImportChoices(input library.ImportRequest) (library.ImportRequest, error) {
 	input.Selections = map[int]string{}
@@ -255,6 +255,12 @@ func (a *App) queueImportProcessing(ctx context.Context, parent catalog.Work, or
 	}
 	plan.MediaID = mediaID
 	plan.SourceRevision = entry.Revision
+	if plan.WindowPolicyVersion == 1 {
+		plan.Options, e = electWindowOptions(plan.Options, entry)
+		if e != nil {
+			return nil, e
+		}
+	}
 	plan.RequestDigest = digest
 	current, e := a.Catalog.Recording(ctx, mediaID)
 	if e == nil {
