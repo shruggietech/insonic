@@ -39,7 +39,7 @@
 
 - [x] T013 [P] Update authoritative `docs/v1.0.3/storage.md` and unreleased `CHANGELOG.md` with resulting behavior and dated tooling decision.
 - [x] T014 Run root, affected Go/Python/site and encoding checks from `specs/061-backup-capacity-recovery/quickstart.md`; resolve all failures and complete Spec Kit convergence.
-- [ ] T015 Commit/push, open and attach official PR, monitor exact-head CI, resolve every review finding within two Codex rounds, retain/read back evidence and leave PR open for owner merge; record concise verification in `specs/061-backup-capacity-recovery/quickstart.md`.
+- [x] T015 Commit/push, open and attach official PR, monitor exact-head CI, resolve every review finding within two Codex rounds, retain/read back evidence and leave PR open for owner merge; record concise verification in `specs/061-backup-capacity-recovery/quickstart.md`.
 
 ## Dependencies and execution
 

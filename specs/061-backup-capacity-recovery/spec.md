@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-31
 
-**Status**: Implemented; verification and external review in progress
+**Status**: Implemented and reviewed; final branch-revision verification tracked in PR #201
 
 **Input**: S061, continuing #147: exercise backup/restore capacity failures, repair demonstrated gaps, preserve accepted authority, and prove recovery through source and packaged paths.
 
