@@ -172,11 +172,23 @@ func (s *Store) validateRecordingSource(ctx context.Context, tx *sql.Tx, r Recor
 		if json.Unmarshal(r.Document, &doc) != nil {
 			return contracts.Fail("invalid_request")
 		}
-		if entry.DurationUS == nil && doc.MediaTiming != nil {
+		var durationMS *int64
+		if entry.DurationUS != nil {
+			value := *entry.DurationUS / 1000
+			durationMS = &value
+		}
+		if importMap.Policy == "windowed-canonical-source-clock-v1" {
+			var err error
+			durationMS, err = windowSourceDurationMS(r.SourceMap, r.SourceDigest)
+			if err != nil {
+				return err
+			}
+		}
+		if durationMS == nil && doc.MediaTiming != nil {
 			return contracts.Fail("invalid_request")
 		}
-		if entry.DurationUS != nil {
-			ms := *entry.DurationUS / 1000
+		if durationMS != nil {
+			ms := *durationMS
 			if doc.MediaTiming == nil || doc.MediaTiming.DurationMS == nil || *doc.MediaTiming.DurationMS != ms {
 				return contracts.Fail("invalid_request")
 			}
@@ -462,7 +474,7 @@ func (s *Store) QueueDerivedCleanup(ctx context.Context, op, entryID, publicatio
 		if e != nil {
 			return e
 		}
-		if p.Kind != "mapped-audio" && p.Kind != "speaker-clip" && p.Kind != "derived-manifest" {
+		if p.Kind != "mapped-audio" && p.Kind != "speaker-clip" && p.Kind != "derived-manifest" && p.Kind != "processing-window" {
 			return contracts.Fail("invalid_request")
 		}
 		referenced, e := s.libraryArtifactReference(ctx, tx, p.ArtifactID)

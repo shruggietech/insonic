@@ -200,3 +200,74 @@ func priorEvidenceSuite(t *testing.T, s *Store) {
 func TestSQLitePriorSpeakerEvidence(t *testing.T) {
 	priorEvidenceSuite(t, localStore(t, contracts.ID()))
 }
+
+func TestWindowedSpeakerEvidenceTracks(t *testing.T) {
+	windowedEvidenceSuite(t, localStore(t, contracts.ID()))
+}
+
+func windowedEvidenceSuite(t *testing.T, s *Store) {
+	t.Helper()
+	ctx := context.Background()
+	r, voice, _ := priorEvidenceFixture(t, s, true)
+	r.SourceMap = json.RawMessage(`{"policy":"windowed-canonical-source-clock-v1","tracks":[{"stream_index":2,"source_sample_rate":16000,"source_sample_count":16000,"start_numerator":"0","start_denominator":"1","start_sample":0,"end_sample":16000},{"stream_index":3,"channel":1,"source_sample_rate":16000,"source_sample_count":16000,"start_numerator":"0","start_denominator":"1","start_sample":0,"end_sample":16000}]}`)
+	var sourceMap, document map[string]json.RawMessage
+	json.Unmarshal(r.SourceMap, &sourceMap)
+	sourceMap["source_digest"], _ = json.Marshal(r.SourceDigest)
+	r.SourceMap, _ = json.Marshal(sourceMap)
+	json.Unmarshal(r.Document, &document)
+	document["media_timing"] = json.RawMessage(`{"duration_milliseconds":1000}`)
+	r.Document, _ = json.Marshal(document)
+	r.DocumentDigest = hash(r.Document)
+	r.Provenance = json.RawMessage(`{"cue_sources":[{"cue_id":"cue-000000","source":{"track_ordinal":0,"stream_index":2}},{"cue_id":"cue-000001","source":{"track_ordinal":1,"stream_index":3,"channel":1}}]}`)
+	var err error
+	r, err = s.CommitRecording(ctx, speakerWork(t, s, "recordings.process"), r.Revision, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	person, err := s.PutSpeaker(ctx, contracts.ID(), 0, SpeakerIdentity{Speaker: Speaker{ID: contracts.ID(), Name: "Track evidence"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.SetSpeakerMapping(ctx, contracts.ID(), r.Revision, SpeakerMapping{RecordingID: r.ID, LocalSpeakerID: voice, SpeakerID: person.Speaker.ID, DocumentDigest: r.DocumentDigest}); err != nil {
+		t.Fatal(err)
+	}
+	scope := SpeakerSelection{SpeakerID: person.Speaker.ID, Limit: 100}
+	page, err := s.CurrentSpeakerReferences(ctx, scope)
+	if err != nil || len(page.References) != 2 {
+		t.Fatal(page, err)
+	}
+	resolved, err := s.ResolveEvidence(ctx, page.References[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var route struct {
+		Stream  int  `json:"stream_index"`
+		Channel *int `json:"channel"`
+	}
+	if json.Unmarshal(resolved.SourceMap, &route) != nil || route.Stream != 3 || route.Channel == nil || *route.Channel != 1 {
+		t.Fatal("per-cue source track lost", string(resolved.SourceMap))
+	}
+	full, _ := canonical(r.SourceMap)
+	if resolved.Reference.SourceMapDigest != hash(full) {
+		t.Fatal("ephemeral projection changed authoritative map digest")
+	}
+	flags, err := s.ComparePriorSpeakerEvidence(ctx, scope, page.References[1], page.Epoch)
+	if err != nil || len(flags) != 1 || flags[0].Duplicate || flags[0].Overlap {
+		t.Fatal("independent tracks collapsed", flags, err)
+	}
+	// When a supplied cue contains several window-local voices, voice lineage
+	// selects a track before cue-level lineage.
+	r.Provenance = json.RawMessage(`{"voice_sources":[{"local_speaker_id":"` + voice + `","track_ordinal":0}],"cue_sources":[{"cue_id":"cue-000000","source":{"track_ordinal":0,"stream_index":2}},{"cue_id":"cue-000001","source":{"track_ordinal":1,"stream_index":3,"channel":1}}]}`)
+	r, err = s.CommitRecording(ctx, speakerWork(t, s, "recordings.process"), r.Revision, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, err = s.CurrentSpeakerReferences(ctx, scope)
+	if err != nil || len(page.References) != 2 {
+		t.Fatal(page, err)
+	}
+	flags, err = s.ComparePriorSpeakerEvidence(ctx, scope, page.References[1], page.Epoch)
+	if err != nil || len(flags) != 1 || !flags[0].Duplicate {
+		t.Fatal("voice-specific track lineage ignored", flags, err)
+	}
+}

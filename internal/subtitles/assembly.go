@@ -55,6 +55,12 @@ func DocumentCues(data []byte) ([]Cue, error) {
 // observations and integer instants, while the exact source clock remains in
 // the recording's external rational map. Engine turns are never persisted here.
 func AssembleDocument(data []byte, durationNS *int64, turns []Turn, participation []Participation) (Assembly, error) {
+	return AssembleDocumentScoped(data, durationNS, turns, participation, nil, nil)
+}
+
+// AssembleDocumentScoped confines generated cues and voices to their elected
+// source track. Nil maps preserve ordinary supplied-transcript assembly.
+func AssembleDocumentScoped(data []byte, durationNS *int64, turns []Turn, participation []Participation, cueTracks, voiceTracks map[string]int) (Assembly, error) {
 	result := Assembly{Diagnostics: []Diagnostic{}}
 	if err := ValidateDocument(data); err != nil {
 		return result, err
@@ -80,6 +86,11 @@ func AssembleDocument(data []byte, durationNS *int64, turns []Turn, participatio
 	cueIDs := map[string]int{}
 	intervals := make([]cueInterval, 0, len(cues))
 	for i, cue := range doc.Cues {
+		if cueTracks != nil {
+			if _, ok := cueTracks[cue.ID]; !ok {
+				return result, contracts.Fail("invalid_request")
+			}
+		}
 		cueIDs[cue.ID] = i
 		delete(cues[i], "speaker_attributions")
 		if cue.Timing.Start <= math.MaxInt64/nanosecondsPerMillisecond {
@@ -104,10 +115,17 @@ func AssembleDocument(data []byte, durationNS *int64, turns []Turn, participatio
 		return nil
 	}
 	for _, turn := range turns {
+		lane, known := voiceTracks[turn.SpeakerID]
+		if cueTracks != nil && !known {
+			return result, contracts.Fail("invalid_request")
+		}
 		intersections := []cueInterval{}
 		tree.query(turn.StartNS, turn.EndNS, &intersections)
 		coverage := make([]cueInterval, 0, len(intersections))
 		for _, cue := range intersections {
+			if cueTracks != nil && cueTracks[doc.Cues[cue.index].ID] != lane {
+				continue
+			}
 			start, end := max(turn.StartNS, cue.start), min(turn.EndNS, cue.end)
 			coverage = append(coverage, cueInterval{start: start, end: end})
 			pointer := "/cues/" + integer(cue.index) + "/speaker_attributions/" + integer(len(assignments[cue.index]))
@@ -158,6 +176,12 @@ func AssembleDocument(data []byte, durationNS *int64, turns []Turn, participatio
 		index, ok := cueIDs[participant.CueID]
 		if !ok || !contracts.ValidLocalSpeakerID(participant.SpeakerID) {
 			return result, contracts.Fail("invalid_request")
+		}
+		if cueTracks != nil {
+			lane, known := voiceTracks[participant.SpeakerID]
+			if !known || lane != cueTracks[participant.CueID] {
+				return result, contracts.Fail("invalid_request")
+			}
 		}
 		if len(assignments[index]) >= 1024 || total >= MaxAssignments {
 			return result, contracts.Fail("output_limit")

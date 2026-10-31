@@ -1431,6 +1431,12 @@
                   "quality": {
                     "$ref": "pipeline-config.schema.json#/$defs/quality",
                     "description": "Optional direct diarization quality policy."
+                  },
+                  "batch_size": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64,
+                    "description": "Local pyannote batch size; omission uses1. Classified CUDA OOM can reduce once to1 before permitted CPU fallback. Zero also selects the default."
                   }
                 },
                 "description": "Local diarization execution parameters."
@@ -1480,6 +1486,10 @@
               "quality": {
                 "$ref": "pipeline-config.schema.json#/$defs/quality",
                 "description": "Direct managed-worker quality policy; saved pipeline runs use explicit quality overrides instead."
+              },
+              "windows": {
+                "$ref": "pipeline-config.schema.json#/$defs/windows",
+                "description": "Explicit window policy for any source. New requests longer than30 seconds use default windows automatically."
               }
             },
             "description": "Explicit direct or saved-pipeline processing elections, with source and current-recording compatibility checked by the runtime.",

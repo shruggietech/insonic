@@ -33,11 +33,11 @@ func TestQualitySweepsVoicesInsteadOfCountingDuplicateIntervals(t *testing.T) {
 }
 func TestRecognitionProjectionAndHints(t *testing.T) {
 	mapping := SourceMap{StartNumerator: "1", StartDenominator: "3", SampleRate: 16000, SampleCount: 16000}
-	r, err := RecognitionFromSegments([]RecognitionSegment{{0, 500000, "hello"}}, false, mapping)
+	r, err := RecognitionFromSegments([]RecognitionSegment{{StartUS: 0, EndUS: 500000, Text: "hello"}}, false, mapping)
 	if err != nil || !strings.Contains(string(r.SRT), "00:00:00,334 --> 00:00:00,833") {
 		t.Fatal("source clock not projected conservatively")
 	}
-	if _, err := RecognitionFromSegments([]RecognitionSegment{{0, 1000001, "hello"}}, false, mapping); err == nil {
+	if _, err := RecognitionFromSegments([]RecognitionSegment{{StartUS: 0, EndUS: 1000001, Text: "hello"}}, false, mapping); err == nil {
 		t.Fatal("out of range segment accepted")
 	}
 	if _, err := ValidateRecognitionOptions(RecognitionOptions{Hints: []string{strings.Repeat("x", 201)}}, 200); err == nil {

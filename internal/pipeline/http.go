@@ -219,6 +219,22 @@ func requiredIntervals(raw []byte, operation string) bool {
 				return false
 			}
 		}
+		if operation == "transcription" {
+			if rawWords, present := item["words"]; present {
+				var words []map[string]json.RawMessage
+				if json.Unmarshal(rawWords, &words) != nil || words == nil || len(words) > 100000 {
+					return false
+				}
+				for _, word := range words {
+					for _, name := range []string{"start_us", "end_us", "text"} {
+						value, present := word[name]
+						if !present || bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+							return false
+						}
+					}
+				}
+			}
+		}
 	}
 	return true
 }

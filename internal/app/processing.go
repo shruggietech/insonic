@@ -35,6 +35,7 @@ type ProcessingTools struct {
 	PortableFiles     []library.PinnedFile `json:"portable_files,omitempty"`
 }
 type RecordingOptions struct {
+	Windows            *processing.WindowOptions     `json:"windows,omitempty"`
 	PipelineID         string                        `json:"pipeline_id,omitempty"`
 	PipelineRevision   int64                         `json:"pipeline_revision,omitempty"`
 	Overrides          pipeline.Override             `json:"overrides,omitempty"`
@@ -50,18 +51,19 @@ type RecordingOptions struct {
 	Attribution        processing.DiarizationOptions `json:"attribution,omitempty"`
 }
 type recordingPayload struct {
-	Destination       *workspace.Profile  `json:"destination,omitempty"`
-	ModelSelections   []models.Resolution `json:"model_selections,omitempty"`
-	ModelDependencies []string            `json:"model_dependencies,omitempty"`
-	RequestDigest     string              `json:"request_digest,omitempty"`
-	Tools             *ProcessingTools    `json:"tools,omitempty"`
-	Election          *recordingElection  `json:"election,omitempty"`
-	ModelDigests      map[string]string   `json:"model_digests,omitempty"`
-	MediaID           string              `json:"media_id"`
-	Expected          int64               `json:"expected_revision"`
-	SourceRevision    int64               `json:"source_revision"`
-	Options           RecordingOptions    `json:"options"`
-	AssemblyDigest    string              `json:"assembly_digest,omitempty"`
+	WindowPolicyVersion int                 `json:"window_policy_version,omitempty"`
+	Destination         *workspace.Profile  `json:"destination,omitempty"`
+	ModelSelections     []models.Resolution `json:"model_selections,omitempty"`
+	ModelDependencies   []string            `json:"model_dependencies,omitempty"`
+	RequestDigest       string              `json:"request_digest,omitempty"`
+	Tools               *ProcessingTools    `json:"tools,omitempty"`
+	Election            *recordingElection  `json:"election,omitempty"`
+	ModelDigests        map[string]string   `json:"model_digests,omitempty"`
+	MediaID             string              `json:"media_id"`
+	Expected            int64               `json:"expected_revision"`
+	SourceRevision      int64               `json:"source_revision"`
+	Options             RecordingOptions    `json:"options"`
+	AssemblyDigest      string              `json:"assembly_digest,omitempty"`
 }
 type AssemblyInput struct {
 	SubtitleFormat string            `json:"subtitle_format,omitempty"`
@@ -86,8 +88,9 @@ type audioExecution struct {
 	Close       func() error
 }
 type recordingExecution struct {
-	Subtitles subtitleEngine
-	Prepare   func(context.Context, catalog.LibraryEntry, processing.AudioOptions) (*audioExecution, error)
+	Subtitles      subtitleEngine
+	Prepare        func(context.Context, catalog.LibraryEntry, processing.AudioOptions) (*audioExecution, error)
+	PrepareWindows func(context.Context, catalog.LibraryEntry, processing.WindowOptions, processing.PlanIdentity) (*windowExecution, error)
 }
 
 func readBoundedConfiguration(path string, out any) error {
@@ -176,7 +179,19 @@ func (a *App) recordingExecutorWithTools(elected *ProcessingTools) (*recordingEx
 		return nil, e
 	}
 	engine := &processing.Service{Artifacts: artifacts, Catalog: a.Catalog, Config: c.Processing}
-	return &recordingExecution{Subtitles: driver, Prepare: func(ctx context.Context, entry catalog.LibraryEntry, options processing.AudioOptions) (*audioExecution, error) {
+	return &recordingExecution{Subtitles: driver, PrepareWindows: func(ctx context.Context, entry catalog.LibraryEntry, options processing.WindowOptions, identity processing.PlanIdentity) (*windowExecution, error) {
+		s, e := engine.PrepareWindows(ctx, entry, options, identity)
+		if e != nil {
+			return nil, e
+		}
+		return &windowExecution{Plan: s.Plan, Close: s.Close, Finish: s.Finish, Window: func(ctx context.Context, index int) (*audioExecution, error) {
+			w, e := s.Window(ctx, index)
+			if e != nil {
+				return nil, e
+			}
+			return &audioExecution{Path: w.MappedPath, SourceMap: w.SourceMap, Provenance: w.Provenance, Diagnostics: w.Diagnostics, Recognize: w.Recognize, Diarize: w.Diarize, Close: w.Close}, nil
+		}}, nil
+	}, Prepare: func(ctx context.Context, entry catalog.LibraryEntry, options processing.AudioOptions) (*audioExecution, error) {
 		s, e := engine.Prepare(ctx, entry, options)
 		if e != nil {
 			return nil, e
@@ -185,6 +200,11 @@ func (a *App) recordingExecutorWithTools(elected *ProcessingTools) (*recordingEx
 	}}, nil
 }
 func validateRecordingOptions(o RecordingOptions) error {
+	if o.Windows != nil {
+		if _, e := processing.NormalizeWindowOptions(*o.Windows); e != nil {
+			return e
+		}
+	}
 	if o.PipelineRevision < 0 || o.PipelineID != "" && !contracts.ValidID(o.PipelineID) || o.PipelineRevision != 0 && o.PipelineID == "" {
 		return contracts.Fail("invalid_request")
 	}
@@ -316,6 +336,9 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 	previous, previousErr := a.Catalog.Recording(ctx, entry.ID)
 	if input.Expected == 0 && previousErr == nil || input.Expected != 0 && (previousErr != nil || previous.Revision != input.Expected) {
 		return nil, contracts.Fail("conflict")
+	}
+	if input.Options.Windows != nil {
+		return a.processWindowedRecording(ctx, claim, input, entry, previous)
 	}
 	execution, e := a.recordingExecutorWithTools(input.Tools)
 	if e != nil {
@@ -709,6 +732,10 @@ func (a *App) recordingDispatch(req contracts.Request) (any, error) {
 		if e != nil {
 			return nil, e
 		}
+		options, e = electWindowOptions(options, entry)
+		if e != nil {
+			return nil, e
+		}
 		if e = validateRecordingOptions(options); e != nil {
 			return nil, e
 		}
@@ -931,6 +958,9 @@ func (a *App) recoverDerivedCleanup() {
 		return
 	}
 	for _, w := range work {
+		if w.Kind == "recordings.process" {
+			a.Catalog.RecoverProcessingWindowCleanup(ctx, w.ID)
+		}
 		if w.Kind != "recordings.process" || (w.State != "failed" && w.State != "cancelled" && w.State != "succeeded") {
 			continue
 		}

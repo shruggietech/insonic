@@ -1,0 +1,362 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "processing-window-plan",
+      "description": "Document kind."
+    },
+    "schema_version": {
+      "const": "1.0.3",
+      "description": "System contract version."
+    },
+    "plan_version": {
+      "const": 1,
+      "description": "Window planning algorithm version."
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Canonical recording identity."
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Canonical source byte digest."
+        },
+        "source_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Frozen source revision."
+        },
+        "document_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Current document digest when present."
+        },
+        "document_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Expected current document revision."
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Effective settings and pinned executable identity."
+        },
+        "model_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Frozen model byte identity."
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Processing adapter identity."
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Processing adapter version."
+        },
+        "device_policy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Requested device and finite fallback policy."
+        }
+      },
+      "required": [
+        "source_id",
+        "source_sha256",
+        "source_revision",
+        "configuration_sha256"
+      ],
+      "description": "Frozen compatible reuse identity."
+    },
+    "options": {
+      "$ref": "pipeline-config.schema.json#/$defs/windows",
+      "description": "Normalized window election."
+    },
+    "tracks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "stream_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+            "description": "Canonical source stream."
+          },
+          "channel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Selected channel; omitted means downmix."
+          },
+          "source_sample_rate": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 768000,
+            "description": "Native sample rate."
+          },
+          "source_sample_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Verified native sample count."
+          },
+          "start_numerator": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Canonical source origin numerator."
+          },
+          "start_denominator": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Canonical source origin denominator."
+          },
+          "start_sample": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Inclusive selected native sample."
+          },
+          "end_sample": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Exclusive selected native sample."
+          }
+        },
+        "required": [
+          "stream_index",
+          "source_sample_rate",
+          "source_sample_count",
+          "start_numerator",
+          "start_denominator",
+          "start_sample",
+          "end_sample"
+        ]
+      },
+      "description": "Ordered selected native source tracks."
+    },
+    "windows": {
+      "type": "array",
+      "maxItems": 16384,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Deterministic window identity."
+          },
+          "ordinal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16383,
+            "description": "Stable global window order."
+          },
+          "track_ordinal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Index into the selected tracks."
+          },
+          "stream_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+            "description": "Canonical source stream."
+          },
+          "channel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Selected channel; omitted means downmix."
+          },
+          "source_sample_rate": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 768000,
+            "description": "Native source sample rate."
+          },
+          "core_start_sample": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Inclusive native core boundary."
+          },
+          "core_end_sample": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Exclusive native core boundary."
+          },
+          "context_start_sample": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Inclusive native extraction boundary."
+          },
+          "context_end_sample": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Exclusive native extraction boundary."
+          },
+          "mapped_start_sample": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Inclusive continuous resampler sample boundary."
+          },
+          "mapped_end_sample": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Exclusive continuous resampler sample boundary."
+          },
+          "mapping": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "start_numerator": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "Exact source origin numerator."
+              },
+              "start_denominator": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "Positive exact source origin denominator."
+              },
+              "sample_count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Mapped PCM sample count."
+              },
+              "sample_rate": {
+                "const": 16000,
+                "description": "Mapped PCM rate in samples per second."
+              },
+              "stream_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 65535,
+                "description": "Canonical source stream."
+              },
+              "channel": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 63,
+                "description": "Selected channel; omitted means downmix."
+              },
+              "policy": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Continuous resampling and inward boundary policy."
+              }
+            },
+            "required": [
+              "start_numerator",
+              "start_denominator",
+              "sample_count",
+              "sample_rate",
+              "stream_index",
+              "channel",
+              "policy"
+            ],
+            "description": "Exact extracted window to source-clock mapping."
+          }
+        },
+        "required": [
+          "id",
+          "ordinal",
+          "track_ordinal",
+          "stream_index",
+          "source_sample_rate",
+          "core_start_sample",
+          "core_end_sample",
+          "context_start_sample",
+          "context_end_sample",
+          "mapped_start_sample",
+          "mapped_end_sample",
+          "mapping"
+        ]
+      },
+      "description": "Contiguous non-overlapping cores and bounded extraction context."
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of sorted-key JSON excluding this digest field."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "plan_version",
+    "identity",
+    "options",
+    "tracks",
+    "windows",
+    "digest"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.3/schemas/v1.0.3/processing-window-plan.schema.json",
+  "title": "insonic processing window plan",
+  "description": "Versioned bounded source-clock plan. The runtime additionally verifies exact per-track core coverage, rational mappings, selected ranges, frozen identity and the canonical plan digest.",
+  "examples": [
+    {
+      "kind": "processing-window-plan",
+      "schema_version": "1.0.3",
+      "plan_version": 1,
+      "identity": {
+        "source_id": "11111111-1111-4111-8111-111111111111",
+        "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_revision": 1,
+        "configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "options": {
+        "core_us": 30000000,
+        "context_us": 2000000,
+        "concurrency": 1
+      },
+      "tracks": [
+        {
+          "stream_index": 0,
+          "source_sample_rate": 16000,
+          "source_sample_count": 0,
+          "start_numerator": "0",
+          "start_denominator": "1",
+          "start_sample": 0,
+          "end_sample": 0
+        }
+      ],
+      "windows": [],
+      "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ]
+}

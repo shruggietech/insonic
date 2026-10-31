@@ -117,14 +117,17 @@ func TestAssistanceCancellationDisabledAndWorkspace(t *testing.T) {
 	if r := realRequest(a, "query.assist", "", map[string]any{"prompt": "test"}); r.Error == nil {
 		t.Fatal("unconfigured ran")
 	}
+	ctx, stop := context.WithCancel(context.Background())
+	defer stop()
 	a.AssistanceFixture = func(ctx context.Context, r assistance.Request, c assistance.Config) (assistance.Proposal, error) {
+		// Cancel inside the elected operation, after dependency preparation.
+		// A short wall clock races catalog setup on a loaded test machine.
+		stop()
 		<-ctx.Done()
 		return assistance.Proposal{}, contracts.Fail("cancelled")
 	}
 	data, _ := json.Marshal(map[string]any{"prompt": "test", "configuration": assistanceConfig()})
 	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: a.Workspace.Config.WorkspaceID, RequestID: contracts.ID(), Operation: "query.assist", Data: data}
-	ctx, stop := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer stop()
 	r := a.DispatchContext(ctx, req)
 	if r.Error == nil || r.Error.Code != "cancelled" {
 		t.Fatal(r)

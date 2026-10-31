@@ -159,6 +159,9 @@ func (s *Store) ResolveEvidence(ctx context.Context, ref CurrentReference) (out 
 		return out, e
 	}
 	out.Reference = ref
-	out.SourceMap = r.SourceMap
+	out.SourceMap, e = ResolveEvidenceSourceMap(r.SourceMap, r.Provenance, ref.CueID, ref.LocalSpeakerID)
+	if e != nil {
+		return out, e
+	}
 	return out, sanitize(tx.Commit())
 }

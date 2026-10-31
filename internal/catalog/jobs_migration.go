@@ -14,6 +14,15 @@ func (s *Store) finishMigration(ctx context.Context, tx *sql.Tx) error {
 	if err := s.migrateJobDuration(ctx, tx); err != nil {
 		return sanitize(err)
 	}
+	return s.finishProcessingMigration(ctx, tx)
+}
+
+func (s *Store) finishProcessingMigration(ctx context.Context, tx *sql.Tx) error {
+	for _, field := range []string{"ProcessingPlans", "ProcessingCheckpoints"} {
+		if _, err := tx.ExecContext(ctx, domainNamed(field).ddl()); err != nil {
+			return sanitize(err)
+		}
+	}
 	if _, err := s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); err != nil {
 		return sanitize(err)
 	}

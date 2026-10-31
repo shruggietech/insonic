@@ -194,3 +194,21 @@ func TestPostgreSQLCompositeAdmission(t *testing.T) {
 func TestPostgreSQLDeclaredRosters(t *testing.T) { rosterSuite(t, postgresStore(t, contracts.ID())) }
 
 func TestPostgreSQLImportPresets(t *testing.T) { importPresetSuite(t, postgresStore) }
+
+func TestPostgreSQLProcessingWindows(t *testing.T) {
+	processingWindowsSuite(t, postgresStore(t, contracts.ID()))
+}
+func TestPostgreSQLProcessingInvalidation(t *testing.T) {
+	processingInvalidationSuite(t, func(t *testing.T) *Store { return postgresStore(t, contracts.ID()) })
+}
+func TestPostgreSQLPublishedV10ProcessingMigration(t *testing.T) {
+	processingMigrationSuite(t, postgresStore(t, contracts.ID()))
+}
+
+func TestPostgreSQLWindowedSpeakerEvidenceTracks(t *testing.T) {
+	windowedEvidenceSuite(t, postgresStore(t, contracts.ID()))
+}
+
+func TestPostgreSQLProcessingOrphanCleanup(t *testing.T) {
+	processingOrphanCleanupSuite(t, postgresStore(t, contracts.ID()))
+}

@@ -12,6 +12,26 @@ const catalog = loadSchemaCatalog();
 const { master, examples } = validateCatalog(catalog);
 const example = kind => structuredClone(catalog.contracts.find(item => item.schema.properties.kind.const === kind).schema.examples[0]);
 
+test('window contracts retain explicit zero context and native word evidence', () => {
+  const plan = example('processing-window-plan');
+  plan.options.context_us = 0;
+  assert.equal(master(plan), true, JSON.stringify(master.errors));
+  plan.options.core_us = 999999;
+  assert.equal(master(plan), false, 'subsecond core rejected');
+  plan.options.core_us = 0;
+  assert.equal(master(plan), true, JSON.stringify(master.errors));
+  const output = example('processing-window');
+  output.recognition.no_speech = false;
+  output.recognition.segments = [{ start_us: 0, end_us: 1000000, text: 'Again', words: [{ start_us: 0, end_us: 1000000, text: 'Again' }] }];
+  assert.equal(master(output), true, JSON.stringify(master.errors));
+  delete output.recognition.segments[0].words[0].end_us;
+  assert.equal(master(output), false, 'incomplete native word interval rejected');
+  delete output.recognition.segments[0].words;
+  assert.equal(master(output), true, 'segment-only observations remain supported');
+  delete output.schema_version;
+  assert.equal(master(output), false, 'checkpoint format is versioned');
+});
+
 test('generated asset errors and local readiness facts remain bounded through the release master',()=>{
   const response=example('runtime-response');
   response.error={code:'checksum_mismatch',reason:'asset_hash',message:'Generated correction.',asset:{role:'model_file',name:'weights/model.bin'}};
@@ -27,8 +47,8 @@ test('generated asset errors and local readiness facts remain bounded through th
 });
 
 test('all documented contracts and local references validate through the release master', () => {
-  assert.equal(catalog.contracts.length, 22);
-  assert.equal(examples, 30);
+  assert.equal(catalog.contracts.length, 24);
+  assert.equal(examples, 32);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 

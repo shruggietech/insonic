@@ -122,28 +122,28 @@ func (s *Service) ExecuteMatch(ctx context.Context, claim catalog.Work) (any, er
 		return nil, err
 	}
 	defer os.RemoveAll(directory)
-	var audio *Audio
+	var entry catalog.LibraryEntry
+	audioCache := map[string]*Audio{}
+	defer func() {
+		for _, audio := range audioCache {
+			if audio.Close != nil {
+				audio.Close()
+			}
+		}
+	}()
 	if len(candidates) > 0 {
-		entry, err := s.Catalog.Library(ctx, options.RecordingID)
+		entry, err = s.Catalog.Library(ctx, options.RecordingID)
 		if err != nil {
 			return nil, err
 		}
 		if entry.Digest != recording.SourceDigest {
 			return nil, contracts.Fail("conflict")
 		}
-		var source processing.SourceMap
-		if json.Unmarshal(recording.SourceMap, &source) != nil {
-			return nil, contracts.Fail("conflict")
-		}
 		if s.Prepare == nil || s.Embed == nil && s.EmbedBatch == nil && s.EmbedBatchWithPolicy == nil {
 			return nil, contracts.Fail("unavailable")
 		}
-		audio, err = s.Prepare(ctx, entry, processing.AudioOptions{StreamIndex: &source.StreamIndex, Channel: source.Channel})
-		if err != nil {
-			return nil, err
-		}
-		defer audio.Close()
 	}
+
 	names := []string{}
 	for local := range voices {
 		names = append(names, local)
@@ -159,7 +159,7 @@ func (s *Service) ExecuteMatch(ctx context.Context, claim catalog.Work) (any, er
 		if manual {
 			report.State = "manual-preserved"
 		} else if len(candidates) > 0 {
-			vector, duration, observed, err := s.voiceEmbedding(ctx, audio, voices[local], options, directory)
+			vector, duration, observed, err := s.voiceEmbeddingBySource(ctx, recording, entry, local, voices[local], options, directory, audioCache)
 			if err != nil {
 				return nil, err
 			}
@@ -348,5 +348,89 @@ func (s *Service) voiceEmbedding(ctx context.Context, audio *Audio, spans []voic
 		return vector, availableUS, executions, nil
 	}
 	vector, err := normalized(vector)
+	return vector, duration, executions, err
+}
+
+// Independent tracks are prepared separately and their valid vectors are
+// combined by duration, never by mixing unrelated source waveforms.
+func (s *Service) voiceEmbeddingBySource(ctx context.Context, recording catalog.Recording, entry catalog.LibraryEntry, local string, spans []voiceSpan, options MatchOptions, directory string, cache map[string]*Audio) ([]float64, int64, []processing.DeviceExecution, error) {
+	groups := map[string][]voiceSpan{}
+	selections := map[string]processing.SourceMap{}
+	for _, span := range spans {
+		raw, err := catalog.ResolveEvidenceSourceMap(recording.SourceMap, recording.Provenance, span.cueID, local)
+		if err != nil {
+			return nil, 0, nil, err
+		}
+		var source processing.SourceMap
+		if json.Unmarshal(raw, &source) != nil {
+			return nil, 0, nil, contracts.Fail("conflict")
+		}
+		channel := "downmix"
+		if source.Channel != nil {
+			channel = fmt.Sprint(*source.Channel)
+		}
+		key := fmt.Sprintf("%d:%s", source.StreamIndex, channel)
+		groups[key] = append(groups[key], span)
+		selections[key] = source
+	}
+	keys := []string{}
+	var available int64
+	var bytesNeeded int64
+	for key, group := range groups {
+		keys = append(keys, key)
+		us := observedVoiceDuration(group)
+		available += us
+		bytesNeeded += us*16000/1000000*2 + int64(len(group))*44
+	}
+	sort.Strings(keys)
+	limits, _ := normalizeLimits(options.Adapter.Limits)
+	if bytesNeeded > limits.MaxInputBytes {
+		return nil, 0, nil, contracts.Fail("input_limit")
+	}
+	if available < options.MinEvidenceUS {
+		return nil, available, nil, nil
+	}
+	var aggregate []float64
+	var duration int64
+	var executions []processing.DeviceExecution
+	for _, key := range keys {
+		source := selections[key]
+		audio := cache[key]
+		if audio == nil {
+			var err error
+			audio, err = s.Prepare(ctx, entry, processing.AudioOptions{StreamIndex: &source.StreamIndex, Channel: source.Channel})
+			if err != nil {
+				return nil, duration, nil, err
+			}
+			cache[key] = audio
+		}
+		perTrack := options
+		perTrack.MinEvidenceUS = 1
+		vector, observed, receipt, err := s.voiceEmbedding(ctx, audio, groups[key], perTrack, directory)
+		if err != nil {
+			return nil, duration, nil, err
+		}
+		executions, err = processing.AccumulateDeviceExecutions(executions, receipt)
+		if err != nil {
+			return nil, duration, nil, err
+		}
+		if len(vector) == 0 {
+			continue
+		}
+		if len(aggregate) == 0 {
+			aggregate = make([]float64, len(vector))
+		}
+		if len(vector) != len(aggregate) {
+			return nil, duration, nil, contracts.Fail("incompatible_version")
+		}
+		for i, value := range vector {
+			aggregate[i] += value * float64(observed)
+		}
+		duration += observed
+	}
+	if len(aggregate) == 0 {
+		return nil, available, executions, nil
+	}
+	vector, err := normalized(aggregate)
 	return vector, duration, executions, err
 }

@@ -101,7 +101,7 @@ func durationMigrationSuite(t *testing.T, s *Store, open func(string) *Store) {
 	} else if err = s.migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if SchemaVersion != 10 {
+	if SchemaVersion < 10 {
 		t.Fatal("duration correction requires forward migration")
 	}
 	if err = s.checkVersion(ctx); err != nil {

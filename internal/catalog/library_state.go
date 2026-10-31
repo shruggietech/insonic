@@ -24,6 +24,7 @@ func (s *Store) libraryArtifactReference(ctx context.Context, tx *sql.Tx, artifa
 		"EXISTS (SELECT 1 FROM " + libraryRefs + " WHERE refs.value=p.id))) OR " +
 		"EXISTS (SELECT 1 FROM current_recording r WHERE r.workspace_id=p.workspace_id AND r.mapped_audio_publication_id=p.id) OR " +
 		"EXISTS (SELECT 1 FROM speaker_checkpoint c WHERE c.workspace_id=p.workspace_id AND c.publication_id=p.id) OR " +
+		"EXISTS (SELECT 1 FROM processing_window_checkpoint c WHERE c.workspace_id=p.workspace_id AND c.publication_id=p.id AND c.state='ready') OR " +
 		"EXISTS (SELECT 1 FROM base_model_install m WHERE m.workspace_id=p.workspace_id AND " +
 		"EXISTS (SELECT 1 FROM " + modelRefs + " WHERE refs.value=p.id))))"
 	var referenced bool
