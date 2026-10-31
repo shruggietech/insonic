@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Actual confined backup/restore obstructions, exact retry and byte recovery."""
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 import hashlib
 import json
 import os
@@ -50,10 +50,11 @@ def validate_receipt(receipt, executable_sha256, platform):
         raise ValueError('Backup publication identity differs')
     for name, case in receipt['cases'].items():
         if (not isinstance(case, dict) or set(case) != {'failed_request_id', 'retry_request_id', 'failed_code', 'bundle_id',
-                                                      'bundle_digest', 'verified_digest', 'destination_profile_id', 'checks'}
+                                                      'bundle_digest', 'verified_digest', 'destination_profile_id', 'destination_storage_root', 'checks'}
                 or not identifier(case['failed_request_id']) or not identifier(case['retry_request_id'])
                 or case['failed_code'] != FAILURES[name][0] or case['bundle_id'] != receipt['bundle_id']
                 or case['bundle_digest'] != receipt['bundle_digest'] or case['verified_digest'] != publication['digest']
+                or case['destination_storage_root'] != ('artifacts' if name == 'backup-parent' else '.')
                 or not identifier(case['destination_profile_id']) or not isinstance(case['checks'], dict)
                 or set(case['checks']) != set(checks_for(name)) or any(v is not True for v in case['checks'].values())):
             raise ValueError('Backup failure/retry/integrity evidence differs')
@@ -62,14 +63,26 @@ def validate_receipt(receipt, executable_sha256, platform):
 
 
 def block(root, path, *, directory=False):
-    root, path = Path(root).resolve(strict=True), Path(path)
-    if path.is_symlink() or path.resolve().is_relative_to(root) is not True or path.resolve() == root:
+    root, candidate = Path(root).resolve(strict=True), Path(path)
+    if candidate.is_symlink():
+        raise ValueError('Obstruction target is linked')
+    path = candidate.resolve()
+    if not path.is_relative_to(root) or path == root:
         raise ValueError('Obstruction escapes owned fixture')
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if directory: path.mkdir()
+    # mkdir(parents=True, mode=...) applies the mode only to the last directory.
+    # Create each owned ancestor explicitly so Unix storage/progress admission
+    # reaches the intended obstruction without introducing public directories.
+    current = root
+    for part in path.relative_to(root).parts[:-1]:
+        current = current / part
+        try: current.mkdir(mode=0o700)
+        except FileExistsError:
+            if current.is_symlink() or not current.is_dir():
+                raise ValueError('Owned obstruction ancestor changed')
+    if directory: path.mkdir(mode=0o700)
     marker = path / '.owned-blocker' if directory else path
     data = ('owned-backup-obstruction-' + str(uuid.uuid4())).encode('utf-8')
-    with marker.open('xb') as output:
+    with os.fdopen(os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600), 'wb') as output:
         output.write(data)
         output.flush()
         os.fsync(output.fileno())
@@ -121,31 +134,41 @@ def qualify(invoke, workspace, version, *, executable, environment, process_fact
             options.update(execution_environment=selected, timeout_seconds=remaining(options.get('timeout_seconds', bounds.SUBPROCESS_SECONDS)))
             return invoke(args, **options)
 
-        def initialize(path):
+        def initialize(path, storage_root=None):
             call(['workspace', 'init', path], scoped=False)
+            marker = path / '.insonic/workspace.json'
+            configuration = json.loads(marker.read_text(encoding='utf-8'))
+            if storage_root is not None:
+                configuration['profiles']['storage']['configuration']['root'] = storage_root
+                marker.write_text(json.dumps(configuration) + '\n', encoding='utf-8', newline='\n')
             call(['credentials', 'select', 'session'], workspace_path=path)
-            return json.loads((path / '.insonic/workspace.json').read_text(encoding='utf-8'))
+            return configuration
+
+        @contextmanager
+        def runtime(library, configuration):
+            startup = str(uuid.uuid4())
+            with owned_runtime([str(executable), '--workspace', str(library), '--startup-id', startup, '--json', 'runtime', 'serve'],
+                               cwd=root, env=selected, gates={}, factory=process_factory or ProcessTree) as owner:
+                mailbox = queue.Queue(maxsize=1)
+                reader = threading.Thread(target=lambda: mailbox.put(owner.process.stdout.readline(4097)), daemon=True)
+                reader.start()
+                try: ready = json.loads(mailbox.get(timeout=remaining(bounds.READINESS_SECONDS)))
+                finally:
+                    reader.join(bounds.CLEANUP_SECONDS)
+                    if reader.is_alive(): raise ValueError('Backup startup reader remains')
+                if ready.get('state') != 'ready' or ready.get('startup_id') != startup or ready.get('workspace_id') != configuration['workspace_id']:
+                    raise ValueError('Backup runtime readiness identity differs')
+                yield
+                output, error = owner.process.communicate(timeout=remaining(bounds.FIXTURE_IDLE_SECONDS))
+                if owner.process.returncode != 0 or error or not owner.wait_for_descendants(remaining(bounds.CLEANUP_SECONDS)):
+                    raise ValueError('Backup fixture runtime did not exit naturally')
 
         config = initialize(source)
         original = root / 'accepted input résumé.txt'
         original.write_bytes(('immutable backup fixture café\n' * 100).encode('utf-8'))
         input_sha = sha(original)
-        startup = str(uuid.uuid4())
-        with owned_runtime([str(executable), '--workspace', str(source), '--startup-id', startup, '--json', 'runtime', 'serve'],
-                           cwd=root, env=selected, gates={}, factory=process_factory or ProcessTree) as owner:
-            mailbox = queue.Queue(maxsize=1)
-            reader = threading.Thread(target=lambda: mailbox.put(owner.process.stdout.readline(4097)), daemon=True)
-            reader.start()
-            try: ready = json.loads(mailbox.get(timeout=remaining(bounds.READINESS_SECONDS)))
-            finally:
-                reader.join(bounds.CLEANUP_SECONDS)
-                if reader.is_alive(): raise ValueError('Backup startup reader remains')
-            if ready.get('state') != 'ready' or ready.get('startup_id') != startup or ready.get('workspace_id') != config['workspace_id']:
-                raise ValueError('Backup runtime readiness identity differs')
+        with runtime(source, config):
             publication = call(['artifacts', 'publish', original, 'derived'])['result']
-            output, error = owner.process.communicate(timeout=remaining(bounds.FIXTURE_IDLE_SECONDS))
-            if owner.process.returncode != 0 or error or not owner.wait_for_descendants(remaining(bounds.CLEANUP_SECONDS)):
-                raise ValueError('Backup source runtime did not exit naturally')
         publication = {k: publication[k] for k in ('id', 'digest', 'size')}
         if publication['digest'] != input_sha or publication['size'] != original.stat().st_size:
             raise ValueError('Accepted backup fixture differs from original input')
@@ -164,6 +187,7 @@ def qualify(invoke, workspace, version, *, executable, environment, process_fact
         cases['backup-parent'] = {'failed_request_id': request, 'retry_request_id': request, 'failed_code': failed['error']['code'],
             'bundle_id': manifest['id'], 'bundle_digest': manifest['sha256'], 'verified_digest': sha(bundle / 'objects' / input_sha),
             'destination_profile_id': config['profiles']['storage']['profile_id'],
+            'destination_storage_root': 'artifacts',
             'checks': {'authority_preserved': sha(original) == input_sha, 'blocker_unchanged': preserved,
                        'blocker_removed': blocked_parent.is_dir(), 'identical_retry': manifest['id'] == request,
                        'accepted_bytes_verified': verified['sha256'] == manifest['sha256'] and sha(bundle / 'objects' / input_sha) == input_sha,
@@ -174,16 +198,29 @@ def qualify(invoke, workspace, version, *, executable, environment, process_fact
 
         for name in CASES[1:]:
             destination = root / name
-            destination_config = initialize(destination)
+            # The fresh workspace initializer already owns this protected root.
+            # Selecting it avoids fixture-created private roots (and avoids a
+            # live owner seeding a catalog that must remain empty for restore).
+            destination_config = initialize(destination, storage_root='.')
             profile = destination_config['profiles']['storage']
-            if profile['adapter_id'] != 'filesystem' or profile['configuration']['root'] != 'artifacts':
+            if profile['adapter_id'] != 'filesystem' or profile['configuration']['root'] != '.':
                 raise ValueError('Backup fixture destination storage differs')
+            storage_root = destination / '.insonic'
             marker = destination / '.insonic/workspace.json'
             marker_sha = sha(marker)
             if name == 'restore-publication':
-                obstruction_path = destination / '.insonic/artifacts/objects' / config['workspace_id'] / profile['profile_id'] / str(profile['profile_revision']) / 'restored'
+                obstruction_path = storage_root / 'objects' / config['workspace_id'] / profile['profile_id'] / str(profile['profile_revision']) / 'restored'
                 obstruction = block(root, obstruction_path)
             else:
+                # Let restore create and secure its own progress directories.
+                # A preceding actual publication refusal leaves the destination
+                # empty; only the progress-file obstruction is fixture-created.
+                prelude_path = storage_root / 'objects' / config['workspace_id'] / profile['profile_id'] / str(profile['profile_revision']) / 'restored'
+                prelude = block(root, prelude_path)
+                preflight = call(['backup', 'restore', bundle], workspace_path=destination, expected=4)
+                if preflight['error']['code'] != 'unavailable':
+                    raise ValueError('Progress preparation did not observe publication refusal')
+                unblock(root, prelude)
                 obstruction_path = destination / '.insonic/backup-restore-progress' / manifest['id'] / (publication['id'] + '.json')
                 obstruction = block(root, obstruction_path, directory=True)
             failed_request, retry_request = str(uuid.uuid4()), str(uuid.uuid4())
@@ -202,10 +239,10 @@ def qualify(invoke, workspace, version, *, executable, environment, process_fact
             expected_key = 'objects/' + config['workspace_id'] + '/' + profile['profile_id'] + '/' + str(profile['profile_revision']) + '/restored/' + manifest['id'] + '/' + publication['id']
             if current['key'] != expected_key or current['profile_id'] != profile['profile_id'] or current['state'] != 'available':
                 raise ValueError('Restored publication authority differs')
-            actual = sha(destination / '.insonic/artifacts' / expected_key)
+            actual = sha(storage_root / expected_key)
             cases[name] = {'failed_request_id': failed_request, 'retry_request_id': retry_request, 'failed_code': failed['error']['code'],
                 'bundle_id': restored['id'], 'bundle_digest': restored['sha256'], 'verified_digest': actual,
-                'destination_profile_id': profile['profile_id'], 'checks': {
+                'destination_profile_id': profile['profile_id'], 'destination_storage_root': '.', 'checks': {
                     'authority_preserved': preserved and empty, 'blocker_unchanged': preserved, 'blocker_removed': not obstruction_path.is_file() if name == 'restore-publication' else not obstruction_path.exists(),
                     'identical_retry': restored['sha256'] == manifest['sha256'], 'accepted_bytes_verified': actual == input_sha == current['digest'],
                     'replay_verified': replay['sha256'] == manifest['sha256'], 'source_unchanged': sha(original) == input_sha,
