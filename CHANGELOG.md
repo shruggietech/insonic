@@ -12,6 +12,8 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-31: Preserve native and catalog capacity causes during backup/restore, reject incomplete output, observe secondary cleanup failures, and repeat durability confirmation on a completed backup retry. Retain existing capture pins, restore progress and activation fencing while allowing identical recovery after capacity returns.
 
+- 2026-10-31: Retain the same capacity classification while initializing filesystem/catalog destinations and observe failure to close the initial private SQLite file.
+
 ### Changed
 
 - 2026-10-31: Qualify bounded native backup/restore I/O failures and actual confined source/package filesystem obstructions separately. Require complete recovery receipts bound to exact platform/image/package authority; keep only the four digest-pinned original v1.0.3 package receipts exempt from the new field. Existing qualification timing, product deadlines, release assets and owner-controlled merge remain unchanged.

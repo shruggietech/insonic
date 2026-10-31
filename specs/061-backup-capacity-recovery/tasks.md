@@ -38,9 +38,13 @@
 ## Phase 6: Documentation, verification and handoff
 
 - [x] T013 [P] Update authoritative `docs/v1.0.3/storage.md` and unreleased `CHANGELOG.md` with resulting behavior and dated tooling decision.
-- [ ] T014 Run root, affected Go/Python/site and encoding checks from `specs/061-backup-capacity-recovery/quickstart.md`; resolve all failures and complete Spec Kit convergence.
+- [x] T014 Run root, affected Go/Python/site and encoding checks from `specs/061-backup-capacity-recovery/quickstart.md`; resolve all failures and complete Spec Kit convergence.
 - [ ] T015 Commit/push, open and attach official PR, monitor exact-head CI, resolve every review finding within two Codex rounds, retain/read back evidence and leave PR open for owner merge; record concise verification in `specs/061-backup-capacity-recovery/quickstart.md`.
 
 ## Dependencies and execution
 
 T001-T005 precede stories. US1 and US2 share I/O helpers and service edits, so execute sequentially. US3 follows runtime regressions; its validator test file can be authored independently. Documentation can proceed alongside evidence integration. T014-T015 require all stories. Implement US1 as the first testable increment, then US2, then US3; every increment must preserve existing security and backend checks. No concurrent service edits are planned.
+
+## Phase 7: Convergence
+
+- [x] T016 Preserve capacity causes during filesystem/catalog initialization and observe initial SQLite file close in `internal/artifact/filesystem.go` and `internal/catalog/store.go`, using the existing tested classifiers; rerun affected initialization, capacity and recovery checks per FR-001 (partial, HIGH).

@@ -24,7 +24,7 @@ func NewFilesystem(location string) (*Filesystem, error) {
 	created := false
 	if _, e := os.Lstat(location); os.IsNotExist(e) {
 		if e = os.MkdirAll(location, 0700); e != nil {
-			return nil, contracts.Fail("unavailable")
+			return nil, redact(context.Background(), e)
 		}
 		created = true
 	}
@@ -33,7 +33,7 @@ func NewFilesystem(location string) (*Filesystem, error) {
 	}
 	root, e := os.OpenRoot(location)
 	if e != nil {
-		return nil, contracts.Fail("unavailable")
+		return nil, redact(context.Background(), e)
 	}
 	return &Filesystem{root: root, lock: flock.New(filepath.Join(location, ".lifecycle.lock")), persist: persistObject}, nil
 }
