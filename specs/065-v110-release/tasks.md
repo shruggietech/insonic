@@ -39,13 +39,13 @@ Independent test: complete final-source candidate/platform acceptance and indivi
 - [x] T014 [US3] Complete foreground root check/test, full Python and Go tests/vet, frontend check/test/build and site test/public/offline build with logs under .local/s065/; preserve all mandatory substantive and security/integrity assertions (FR-006, FR-008; SC-003).
 - [x] T015 [US3] Finalize executable accepted-main release-workflow, separately elected real-engine and exact-retained-byte publication/public-verification commands in specs/065-v110-release/quickstart.md (FR-010, FR-011; SC-005).
 - [x] T016 [US3] Converge actual implementation against every requirement, acceptance scenario, decision and constitution principle using specs/065-v110-release/tasks.md, adding any genuine gap before delivery (FR-001 through FR-011; SC-001 through SC-005).
-- [ ] T017 [US3] Commit/push complete source and genuine captures, open the official non-draft PR and update issue #237/Project tracking, recording the first review trigger in .local/s065/reviews.json (FR-009; SC-004).
-- [ ] T018 [US3] Monitor/fix final PR and direct-head CI, retain digest-verified acceptance archives and original run/job/artifact metadata, terminal-audit them sequentially, and retain/load-validate the complete final direct-head candidate archive using scripts/release.py against exact source (FR-006, FR-007, FR-008; SC-003).
-- [ ] T019 [US3] Resolve every actionable review and individual thread within the automatic first plus at most one explicit second round, retaining actual receipts and any absent security-review evidence in .local/s065/reviews.json (FR-009, FR-011; SC-004).
+- [x] T017 [US3] Commit/push complete source and genuine captures, open the official non-draft PR and update issue #237/Project tracking, recording the first review trigger in .local/s065/reviews.json (FR-009; SC-004).
+- [x] T018 [US3] Monitor/fix final PR and direct-head CI, retain digest-verified acceptance archives and original run/job/artifact metadata, terminal-audit them sequentially, and retain/load-validate the complete final direct-head candidate archive using scripts/release.py against exact source (FR-006, FR-007, FR-008; SC-003).
+- [x] T019 [US3] Resolve every actionable review and individual thread within the automatic first plus at most one explicit second round, retaining actual receipts and any absent security-review evidence in .local/s065/reviews.json (FR-009, FR-011; SC-004).
 
 ## Phase 6: Closeout
 
-- [ ] T020 Finalize specs/065-v110-release/verification.md and task status, commit/push records, re-establish T018 acceptance on the final head, verify clean source and issue/project/review state, and publish final exact-source receipts in the PR before owner handoff (FR-007, FR-009, FR-010, FR-011; SC-003, SC-004, SC-005).
+- [x] T020 Finalize specs/065-v110-release/verification.md and task status, commit/push records, re-establish T018 acceptance on the final head, verify clean source and issue/project/review state, and publish final exact-source receipts in the PR before owner handoff (FR-007, FR-009, FR-010, FR-011; SC-003, SC-004, SC-005).
 
 ## Dependencies and execution
 

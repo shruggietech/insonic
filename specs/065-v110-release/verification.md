@@ -35,6 +35,19 @@ Both baseline and prepared release/history suites passed 98 tests. Current repos
 
 Convergence checked eleven requirements, five success criteria, ten acceptance scenarios, eight plan decisions and five constitution principles. One internal contract sentence overstated capability metadata; T023 aligned it with plan D2. The second assessment found no additional implementation gaps and left tasks unchanged. External delivery gates remain below; code convergence is not final delivery acceptance.
 
-## Final delivery gates
+## Qualified delivery and closeout
 
-Official PR publication, capped external review closure, final PR and direct branch-head CI, complete retained candidate load-validation and owner handoff remain pending at this capture commit. Final source identity, terminal receipts, review evidence and any absent security receipt will be recorded in the PR conversation and retained local ledger. They remain external to source to avoid self-referential commit identities. Any later source commit requires applicable final-head qualification before handoff.
+[PR #238](https://github.com/shruggietech/insonic/pull/238) is open and non-draft, linked to issue #237 and milestone 50; Project 7 is In Review with Slice S065 and Release 1.1.0. Source `c343430af87db8495567dca800a394473d28919d` passed both complete qualification campaigns:
+
+| Campaign | Accepted revision | Preparation | Qualification | Combined |
+| --- | --- | --- | --- | --- |
+| [PR CI 41262097081](https://github.com/shruggietech/insonic/actions/runs/41262097081) | `3c60f8770ae08d400e47a9ba7a76ccd1d68e35e8` (temporary merge) | 206 s | 743 s | 949 s |
+| [Direct-head CI 41262222634](https://github.com/shruggietech/insonic/actions/runs/41262222634) | `c343430af87db8495567dca800a394473d28919d` | 259 s | 810 s | 1069 s |
+
+Both retained archives match GitHub size/digest metadata, and sequential terminal audits accept all elected results with no timing failures. PR acceptance archive SHA-256: `a9540f7a656e0eb303235ec33a56057918e7ae0e32e7072fb642407b93ef8c8f`; direct-head acceptance archive SHA-256: `cbff8196b8aa9967ca9998e3a953904404b6c537a08befe428bc736b4010d99a`. Original run/job/artifact metadata, archives and audits remain outside workflow retention under ignored `.local/s065/`.
+
+The complete direct-head candidate artifact 13066206485 contains 10 assets in an 886436676-byte ZIP, SHA-256 `ce8d88c1f3f29fc74cebae52784e6dd2e932c091a495fa25c9ad00bd7ec3bcce`. Safe extraction and the maintained candidate loader validate all four Windows/Linux CLI/desktop packages, one MSI and its setup executable, public/offline documentation, manifest and checksums against clean exact source. Capability metadata includes backup, recordings coverage and recordings repair; real-model inference remains explicitly not executed.
+
+The automatic first Codex review completed on that source without findings, with a thumbs-up reaction and no review threads. No separate security receipt was observed. One manual second review is reserved for the closeout head; no third review may be requested. Its actual outcome and any individual resolutions are recorded in the external review ledger and final PR receipt.
+
+This closeout record changes source identity. Handoff therefore requires green applicable PR checks, a fresh complete direct-head campaign, retained terminal acceptance and complete candidate load-validation for the resulting final commit. The latest exact-source PR conversation receipt is the authority for that final identity and review outcome; those self-referential details stay external to source. Task completion is subject to that receipt. No tag, release publication, Pages promotion or owner merge is performed by S065.
