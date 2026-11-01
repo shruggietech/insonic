@@ -1,0 +1,124 @@
+{
+  "fixture": {
+    "disposable_ci_default_desktop": true,
+    "isolated": true,
+    "kind": "unique owned package families, exact payload install/removal plus instrumented native client reporters for bounded maintenance/elections",
+    "native_return_codes": [
+      0,
+      1602,
+      1603
+    ],
+    "private_inputs": false,
+    "private_nonvisible_desktop": false,
+    "production_msi_authoring": true,
+    "separate_ordinary_user": true,
+    "transaction_proven": true
+  },
+  "images": [
+    {
+      "caption": "Native full-UI install transaction on the owned disposable ordinary-user desktop; engine-driven execution progress.",
+      "fixture_msi_sha256": "60a227951147bc08993786beda8cdb11e526d476ddcadd924fb39e6c13621b57",
+      "height": 425,
+      "landmark": "Installing insonic",
+      "path": "installer-08-progress-exact-install.png",
+      "sha256": "0bdfee70455533d8459aac8b069e6c356df8cc805e42b52052e97f86c0816caa",
+      "width": 576
+    },
+    {
+      "caption": "Native full-UI repair transaction on the owned disposable ordinary-user desktop; final outcome, native return code 0.",
+      "fixture_msi_sha256": "2ae5435aa23c2656162c7aeb7b85485d371f19449e205104cfdabbf94446384a",
+      "height": 425,
+      "landmark": "insonic repaired",
+      "path": "installer-09-finish-repair.png",
+      "sha256": "c0599f4fad4705c107c763c821699c61a074622ec9e546b178e4b42427a8f11f",
+      "width": 576
+    },
+    {
+      "caption": "Native full-UI remove transaction on the owned disposable ordinary-user desktop; final outcome, native return code 0.",
+      "fixture_msi_sha256": "6e56fb081ac89ee313679e0ebaaee22d0bae64f7cda96eeaf36922fcb0aea3a2",
+      "height": 425,
+      "landmark": "insonic removed",
+      "path": "installer-10-finish-remove.png",
+      "sha256": "28d9152b59e7365cfe838dab7ee9583d5ccedee2a588327bdd119c3ed4222cdb",
+      "width": 576
+    },
+    {
+      "caption": "Native full-UI upgrade transaction on the owned disposable ordinary-user desktop; final outcome, native return code 1602.",
+      "fixture_msi_sha256": "6e56fb081ac89ee313679e0ebaaee22d0bae64f7cda96eeaf36922fcb0aea3a2",
+      "height": 425,
+      "landmark": "Setup cancelled",
+      "path": "installer-11-cancelled-execution-cancel.png",
+      "sha256": "7d28e5941d70a6f9cfbd509f2023bdf7049e79dea41cb5dc4102ac2ed27aa8e7",
+      "width": 576
+    },
+    {
+      "caption": "Native full-UI upgrade transaction on the owned disposable ordinary-user desktop; final outcome, native return code 1603.",
+      "fixture_msi_sha256": "824540fca3f8e2d83585fb9de6977f5f2a5e3f3c228cc8330c1e565ff91b666c",
+      "height": 425,
+      "landmark": "Setup could not finish",
+      "path": "installer-12-fatalerror-failed-upgrade.png",
+      "sha256": "b192bad0cc08959525ca0add1b8421737101d62a4be36c876186c9637783a052",
+      "width": 576
+    },
+    {
+      "caption": "Native full-UI change transaction on the owned disposable ordinary-user desktop; final outcome, native return code 0.",
+      "fixture_msi_sha256": "2ae5435aa23c2656162c7aeb7b85485d371f19449e205104cfdabbf94446384a",
+      "height": 425,
+      "landmark": "insonic changed",
+      "path": "installer-13-finish-change.png",
+      "sha256": "1e679b4d328f6b0967e7db09d673adec244c40c80b0dab199d936fa4d770d865",
+      "width": 576
+    },
+    {
+      "caption": "Native full-UI upgrade transaction on the owned disposable ordinary-user desktop; final outcome, native return code 0.",
+      "fixture_msi_sha256": "6e56fb081ac89ee313679e0ebaaee22d0bae64f7cda96eeaf36922fcb0aea3a2",
+      "height": 425,
+      "landmark": "insonic updated",
+      "path": "installer-14-finish-upgrade.png",
+      "sha256": "d13a374ca9350515d589e1e58875471cc6f9624e589c02702a7839ee10de400d",
+      "width": 576
+    }
+  ],
+  "kind": "installer-transactions-ui-capture",
+  "locale": "en-US",
+  "parent_artifact_sha256": "a4fa53431896f01778f1f1148eedeb371407565a95862d361749777ee06fcea8",
+  "renderer": {
+    "kind": "windows-installer-full-ui",
+    "windows_build": "20348"
+  },
+  "schema_version": "1.1.0",
+  "source": {
+    "dirty": false,
+    "files": [
+      {
+        "path": "scripts/windows_msi.py",
+        "sha256": "f12430a35f6c29b8d9a54ac7effed9c5d0d443de41264f065e80cee05fe025c0"
+      },
+      {
+        "path": "scripts/qualify-windows-msi.py",
+        "sha256": "54b348e176025b3e8ee86ba0af141879c7029b4464dc27b957ac05757d585abb"
+      },
+      {
+        "path": "scripts/qualify_installer_ui.py",
+        "sha256": "f814284b49f962aee547dd4ee5c29f6e027aaa77be2f82c87e4a479f4ccf3832"
+      },
+      {
+        "path": "scripts/qualification_timing.py",
+        "sha256": "54922621bddec6802128bd98308dc8b6f962d6a98c91b60ba1aaf137945fe23a"
+      },
+      {
+        "path": "internal/qualificationtiming/policy.json",
+        "sha256": "fc6e6d9db0c4d34705d715f74eb47a4ddeee8935c3bc8629d0a7801aec1bbf32"
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      {
+        "path": "brand/kit/icons/windows/classic/app.ico",
+        "sha256": "d4b871a2e1c60680d6a999a73b140ad8371e7ecdadae0dcc50cb6bd6d922f78c"
+      }
+    ],
+    "revision": "58acb9740f39b99e1b66e676b1debddf87da0de4"
+  }
+}

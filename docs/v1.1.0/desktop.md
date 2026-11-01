@@ -108,6 +108,12 @@ Desktop forms use compact spacing and content-sized actions. Checkboxes retain a
 
 The window opens at 1200 by 800 and supports a 720 by 600 minimum. Enlarged text can wrap commands; the header and content scroll independently so commands remain reachable. Wide tables keep their own horizontal scrolling region.
 
+![Compact Library controls and workspace navigation](../screenshots/v1.1.0/desktop-library.png)
+
+![Settings at the minimum window size with text enlarged to 200 percent](../screenshots/v1.1.0/desktop-settings-enlarged.png)
+
+These images record a clean source build in an isolated Chromium renderer. The capture receipt records the window, renderer scale, text scale and geometry observations. Renderer scale checks do not establish behavior under every operating-system display setting. Native Windows and Linux qualification separately observes the controls in their application webviews.
+
 ## Native package layouts
 
 insonic supports a recommended unsigned Windows x86-64 setup EXE containing its selectable-client raw MSI, Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. [Windows installation, updates and removal](windows-installation.md) covers MSI controls, first launch, optional setup and conditional download/Windows warnings. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.
