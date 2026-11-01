@@ -41,7 +41,7 @@ func TestFixtureBoundaryRequiresOwnedProfileIsolation(t *testing.T) {
 func TestCaptureExcludesOwnerPathsSecretsAndExternalBackends(t *testing.T) {
 	library := "C:/insonic-capture-fixture/library"
 	id := "11111111-1111-4111-8111-111111111111"
-	local := `{"kind":"backend-plan","schema_version":"1.0.3","display_name":"My voice archive"}`
+	local := `{"kind":"backend-plan","schema_version":"1.1.0","display_name":"My voice archive"}`
 	good := []call{fixtureCall("Show"), fixtureCall("SetupDraft", "show", "{}", id), fixtureCall("SetupDraft", "location", `{"path":"`+library+`"}`, id), fixtureCall("BackendSetup", "plan", library, local, "{}", "native", id)}
 	good = append(good, fixtureCall("SetupDraft", "save", `{"expected_revision":0,"path":"`+library+`","plan":`+local+`,"stage":"backends","status":"active","credential_backend":"native"}`, id))
 	for _, c := range good {
@@ -49,7 +49,7 @@ func TestCaptureExcludesOwnerPathsSecretsAndExternalBackends(t *testing.T) {
 			t.Fatal(c.Method, e)
 		}
 	}
-	bad := []call{fixtureCall("Choose", "media"), fixtureCall("SetupDraft", "location", `{"path":"C:/Users/Owner"}`, id), fixtureCall("BackendSetup", "plan", library, local, `{"session":{"secret":"value"}}`, "native", id), fixtureCall("BackendSetup", "plan", library, local, `{"passphrase":"value"}`, "vault", id), fixtureCall("BackendSetup", "plan", library, `{"kind":"backend-plan","schema_version":"1.0.3","display_name":"My voice archive","profiles":{"storage":{"adapter_id":"filesystem","configuration":{"root":"C:/Users/Owner"}}}}`, "{}", "native", id), fixtureCall("SelectWorkspace", library, "My voice archive", true), fixtureCall("Credential", "add"), fixtureCall("Operate", map[string]any{"request_id": id, "operation": "media.import", "source_path": "C:/Users/Owner/audio.wav"}), fixtureCall("Operate", map[string]any{"request_id": id, "operation": "settings.set", "data": map[string]any{"endpoint": "https://outside.example"}})}
+	bad := []call{fixtureCall("Choose", "media"), fixtureCall("SetupDraft", "location", `{"path":"C:/Users/Owner"}`, id), fixtureCall("BackendSetup", "plan", library, local, `{"session":{"secret":"value"}}`, "native", id), fixtureCall("BackendSetup", "plan", library, local, `{"passphrase":"value"}`, "vault", id), fixtureCall("BackendSetup", "plan", library, `{"kind":"backend-plan","schema_version":"1.1.0","display_name":"My voice archive","profiles":{"storage":{"adapter_id":"filesystem","configuration":{"root":"C:/Users/Owner"}}}}`, "{}", "native", id), fixtureCall("SelectWorkspace", library, "My voice archive", true), fixtureCall("Credential", "add"), fixtureCall("Operate", map[string]any{"request_id": id, "operation": "media.import", "source_path": "C:/Users/Owner/audio.wav"}), fixtureCall("Operate", map[string]any{"request_id": id, "operation": "settings.set", "data": map[string]any{"endpoint": "https://outside.example"}})}
 	for _, c := range bad {
 		if authorize(c, library) == nil {
 			t.Fatalf("accepted boundary %s", c.Method)

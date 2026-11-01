@@ -105,12 +105,12 @@ export function Settings({ client, run, appearance,onWorkspace,onSetup }: Props)
       : {};
     const mediaEditor = {
       kind: 'media-tools',
-      schema_version: '1.0.3',
+      schema_version: '1.1.0',
       ...media,
     };
     const processingEditor = {
       kind: 'processing-tools',
-      schema_version: '1.0.3',
+      schema_version: '1.1.0',
       ...processing,
     };
     setMediaOverride(mediaExplicit);
@@ -296,7 +296,7 @@ export function Settings({ client, run, appearance,onWorkspace,onSetup }: Props)
               setProcessingTools((old) => ({
                 ...old,
                 kind: 'processing-tools',
-                schema_version: '1.0.3',
+                schema_version: '1.1.0',
                 cueson: value,
               }))
             }
@@ -311,7 +311,7 @@ export function Settings({ client, run, appearance,onWorkspace,onSetup }: Props)
                   setProcessingTools((old) => ({
                     ...old,
                     kind: 'processing-tools',
-                    schema_version: '1.0.3',
+                    schema_version: '1.1.0',
                     processing: { ...old.processing, [key]: value },
                   }))
                 }
@@ -334,7 +334,7 @@ export function Settings({ client, run, appearance,onWorkspace,onSetup }: Props)
                 setProcessingTools((old) => ({
                   ...old,
                   kind: 'processing-tools',
-                  schema_version: '1.0.3',
+                  schema_version: '1.1.0',
                   processing: { ...old.processing, [key]: Number(value) },
                 }))
               }
@@ -599,7 +599,7 @@ export function Settings({ client, run, appearance,onWorkspace,onSetup }: Props)
                 run(async () => {
                   const manifest = {
                     kind: 'base-model-manifest',
-                    schema_version: '1.0.3',
+                    schema_version: '1.1.0',
                     name: modelName,
                     model_version: modelVersion,
                     upstream_revision: upstream,

@@ -86,7 +86,3 @@ Processing options elect supplied, generated or reused transcription and running
 The desktop bridge exposes the same operations. Full recording and model controls remain documented GUI lag.
 
 Direct current/historical import and embedded selection use the [shared admission contract](ingestion.md#transcript-and-embedded-admission). Supplied timing remains unchanged, including native cues outside measured audio. Timed consumer assignments must fit known canonical audio intervals mapped into the original source clock; unknown duration leaves that check unavailable, while measured zero remains zero. Untimed participation does not claim continuous audio. Engine-produced assembly retains its measured-bound validation.
-
-## Targeted repair preservation
-
-[Bounded transcript repair](pipelines.md#transcript-coverage-and-bounded-repair) keeps the canonical audio and the accepted native source envelope. It replaces only complete cues inside the declared scope. Unaffected cue IDs, timing, payload, language, words and speaker assignments retain their semantic values; array ordinals and document summary counts may change. SubRip, WebVTT, ASS and SSA candidates are checked by the pinned native Cueson executable. WebVTT block order and ASS/SSA physical records are retained, with inactive native positions represented without moving unaffected records. New ASS/SSA dependencies receive distinct IDs and style names. Existing source-capture evidence is not rewritten to claim that generated repair text occurred in the imported bytes.

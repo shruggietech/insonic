@@ -159,12 +159,12 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertEqual(set(release.selected_release_platforms(ROOT, "1.0.0")), {"windows_amd64", "linux_amd64", "darwin_arm64"})
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            schema = json.loads((ROOT / "schemas/v1.0.3/release-candidate.schema.json").read_text())
+            schema = json.loads((ROOT / "schemas/v1.1.0/release-candidate.schema.json").read_text())
             schema["properties"]["packages"]["items"]["properties"]["platform"]["enum"].append("darwin_arm64")
-            path = root / "schemas/v1.0.3/release-candidate.schema.json"
+            path = root / "schemas/v1.1.0/release-candidate.schema.json"
             path.parent.mkdir(parents=True); path.write_text(json.dumps(schema))
             with self.assertRaisesRegex(ValueError, "platform contract"):
-                release.selected_release_platforms(root, "1.0.3")
+                release.selected_release_platforms(root, "1.1.0")
 
     def test_release_highlights_state_package_choices_and_real_signature_disposition(self):
         target = self.candidate(); api = GitHubFixture()
@@ -293,6 +293,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         target = self.root / 'summary-candidate'
         summary = release.collect(source, target, REVISION, self.root, verify_fixture, runner, summary=True)
         full = release.read_json(target / 'release-manifest.json')
+        self.assertEqual(full['capabilities']['advanced_cli'], ['backup', 'recordings coverage', 'recordings repair'])
         self.assertEqual(summary['kind'], 'release-candidate-summary')
         self.assertEqual(summary['manifest'], release.file_entry(target / 'release-manifest.json'))
         self.assertEqual(summary['package_count'], 4)

@@ -35,7 +35,7 @@ func recordingRepairSuite(t *testing.T, s *Store) {
 	mappings, _ := s.SpeakerMappings(ctx, r.ID)
 	md, _ := intent(mappings)
 	f := RecordingRepairFence{ExpectedRevision: current.Revision, DocumentDigest: current.DocumentDigest, SourceRevision: current.SourceRevision, SourceDigest: current.SourceDigest, MappingDigest: strings.Repeat("f", 64)}
-	decision := json.RawMessage(`{"kind":"recording-repair","schema_version":"1.0.3","status":"unchanged","reason":"not_improved"}`)
+	decision := json.RawMessage(`{"kind":"recording-repair","schema_version":"1.1.0","status":"unchanged","reason":"not_improved"}`)
 	if _, e = s.CommitRecordingRepair(ctx, w, f, nil, decision); e == nil {
 		t.Fatal("stale mapping fence accepted")
 	}
@@ -73,7 +73,7 @@ func recordingRepairSuite(t *testing.T, s *Store) {
 	}
 	next := current
 	next.State = "no-timed-subtitles"
-	acceptedDecision := json.RawMessage(`{"kind":"recording-repair","schema_version":"1.0.3","status":"accepted","reason":"improved"}`)
+	acceptedDecision := json.RawMessage(`{"kind":"recording-repair","schema_version":"1.1.0","status":"accepted","reason":"improved"}`)
 	if _, e = s.CommitRecordingRepair(ctx, w2, f, &next, acceptedDecision); e != nil {
 		t.Fatal(e)
 	}
@@ -119,7 +119,7 @@ func recordingRepairConcurrentFenceSuite(t *testing.T, s *Store) {
 	}
 	mappings, _ := s.SpeakerMappings(ctx, r.ID)
 	f := RecordingRepairFence{ExpectedRevision: current.Revision, DocumentDigest: current.DocumentDigest, SourceRevision: current.SourceRevision, SourceDigest: current.SourceDigest, MappingDigest: SpeakerMappingsDigest(mappings)}
-	decision := json.RawMessage(`{"kind":"recording-repair","schema_version":"1.0.3","status":"unchanged","reason":"not_improved"}`)
+	decision := json.RawMessage(`{"kind":"recording-repair","schema_version":"1.1.0","status":"unchanged","reason":"not_improved"}`)
 	for _, change := range []func(*RecordingRepairFence){func(f *RecordingRepairFence) { f.DocumentDigest = strings.Repeat("f", 64) }, func(f *RecordingRepairFence) { f.SourceDigest = strings.Repeat("f", 64) }, func(f *RecordingRepairFence) { f.SourceRevision++ }, func(f *RecordingRepairFence) { f.ExpectedRevision++ }} {
 		altered := f
 		change(&altered)
@@ -147,7 +147,7 @@ func recordingRepairConcurrentFenceSuite(t *testing.T, s *Store) {
 	if same.Revision != current.Revision || string(same.Document) != string(current.Document) {
 		t.Fatal("mapping-only correction changed document")
 	}
-	accepted := json.RawMessage(`{"kind":"recording-repair","schema_version":"1.0.3","status":"accepted","reason":"improved"}`)
+	accepted := json.RawMessage(`{"kind":"recording-repair","schema_version":"1.1.0","status":"accepted","reason":"improved"}`)
 	if _, e = s.CommitRecordingRepair(ctx, work, f, &current, accepted); e == nil {
 		t.Fatal("accepted repair bypassed mapping fence")
 	}

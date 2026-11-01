@@ -15,8 +15,8 @@ pipeline=importlib.util.module_from_spec(spec);spec.loader.exec_module(pipeline)
 
 class WindowsPipelineTests(unittest.TestCase):
     def fixture(self):
-        prefix='insonic_1.0.3_windows_amd64'
-        initial={'schema_version':'1.0.3','revision':'a'*40,'source_dirty':False,'platform':'windows_amd64','variant':'desktop',
+        prefix='insonic_1.1.0_windows_amd64'
+        initial={'schema_version':'1.1.0','revision':'a'*40,'source_dirty':False,'platform':'windows_amd64','variant':'desktop',
                  'dirname':prefix+'_desktop','archive':prefix+'_desktop.zip','archive_sha256':'b'*64,'archive_size_bytes':12,
                  'signing':{'status':'unconfigured'},'distribution':{'source_complete':True}}
         base={'revision':initial['revision'],'source_dirty':False,'payload_receipt':deepcopy(initial),'payload_archive':initial['archive'],

@@ -18,7 +18,7 @@ def fixture(directory):
     files=[]
     for name,value in data.items():
         p=directory/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(value);files.append({'path':name,'sha256':m.digest(value),'size_bytes':len(value)})
-    inv={'kind':'native-package-inventory','schema_version':'1.0.3','platform':'windows_amd64','variant':'desktop','revision':'a'*40,'source_dirty':False,'signing':{'configured':False,'verified':False,'status':'unconfigured'},'distribution':{'source_complete':True},'files':files}
+    inv={'kind':'native-package-inventory','schema_version':'1.1.0','platform':'windows_amd64','variant':'desktop','revision':'a'*40,'source_dirty':False,'signing':{'configured':False,'verified':False,'status':'unconfigured'},'distribution':{'source_complete':True},'files':files}
     (directory/'package-inventory.json').write_bytes(m.inventory_bytes(inv))
     return inv,m.installer_model(inv,m.digest(m.inventory_bytes(inv)),(ROOT/'LICENSE').read_text(encoding='utf-8'))
 
@@ -246,7 +246,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_full_ui_prepare_rebuilds_inherited_inventory_without_native_execution(self):
         import qualify_installer_ui as ui
         source=self.path/'diagnostic-input';fixture(source)
-        (source/'help/offline-manifest.json').write_text(json.dumps({'version':'1.0.3','entrypoint':'index.html','public_landing_included':False}),encoding='utf-8')
+        (source/'help/offline-manifest.json').write_text(json.dumps({'version':'1.1.0','entrypoint':'index.html','public_landing_included':False}),encoding='utf-8')
         stage=self.path/'diagnostic-stage';stage.mkdir();models=[]
         def author(path,payload,model):models.append(model);path.write_bytes(b'owned portable MSI placeholder')
         def clone(old,target,*args,**kwargs):target.write_bytes(old.read_bytes())
@@ -1020,7 +1020,7 @@ class InstallerModelTests(unittest.TestCase):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('package_msi_provisional',ROOT/'scripts/package-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         called=[];artifact=self.path/'provisional.msi';artifact.write_bytes(b'byte-identity fixture')
-        receipt={'kind':'windows-installer-receipt','format':'msi','platform':'windows_amd64','variant':'selectable','schema_version':'1.0.3','product_version':'1.0.3','documentation_version':'1.0.3','artifact':artifact.name,'artifact_sha256':m.sha(artifact),'artifact_size_bytes':artifact.stat().st_size,'source_dirty':False,'revision':'a'*40,'payload_receipt':dict(self.inv),'payload_inventory':self.inv,'qualification':{key:'pending' for key in m.QUALIFICATION_KEYS}}
+        receipt={'kind':'windows-installer-receipt','format':'msi','platform':'windows_amd64','variant':'selectable','schema_version':'1.1.0','product_version':'1.1.0','documentation_version':'1.1.0','artifact':artifact.name,'artifact_sha256':m.sha(artifact),'artifact_size_bytes':artifact.stat().st_size,'source_dirty':False,'revision':'a'*40,'payload_receipt':dict(self.inv),'payload_inventory':self.inv,'qualification':{key:'pending' for key in m.QUALIFICATION_KEYS}}
         capture=SimpleNamespace(capture=lambda *args:called.append('native-ui'))
         qualifier=SimpleNamespace(qualify=lambda *args:called.append('actual-lifecycle') or {key:'passed' for key in m.QUALIFICATION_KEYS if key!='native_ui_capture'})
         with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[qualifier,capture]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
@@ -1056,8 +1056,8 @@ class InstallerModelTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'disposable'):module.run(None,None,None)
         scripts=self.path/'scripts';scripts.mkdir()
         for name in ('diagnose-windows-msi.py','qualify-windows-msi.py','windows_msi.py'):shutil.copyfile(ROOT/'scripts'/name,scripts/name)
-        name='insonic_1.0.3_windows_amd64_desktop';archive=self.path/(name+'.zip');archive.write_bytes(b'exact qualified archive fixture')
-        receipt={'kind':'native-package-receipt','platform':'windows_amd64','variant':'desktop','schema_version':'1.0.3','dirname':name,'archive':archive.name,'revision':'a'*40,'source_dirty':False,'inventory_sha256':m.digest(m.inventory_bytes(self.inv)),'signing':self.inv['signing']};receipt_path=self.path/'diagnostic-input.json';receipt_path.write_text(json.dumps(receipt),encoding='utf-8')
+        name='insonic_1.1.0_windows_amd64_desktop';archive=self.path/(name+'.zip');archive.write_bytes(b'exact qualified archive fixture')
+        receipt={'kind':'native-package-receipt','platform':'windows_amd64','variant':'desktop','schema_version':'1.1.0','dirname':name,'archive':archive.name,'revision':'a'*40,'source_dirty':False,'inventory_sha256':m.digest(m.inventory_bytes(self.inv)),'signing':self.inv['signing']};receipt_path=self.path/'diagnostic-input.json';receipt_path.write_text(json.dumps(receipt),encoding='utf-8')
         calls=[]
         def extract(archive,destination):fixture(destination/name)
         def install(args,log):
@@ -1080,8 +1080,8 @@ class InstallerModelTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('msi_diagnostic_upgrade_failure',ROOT/'scripts/diagnose-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         scripts=self.path/'scripts';scripts.mkdir()
         for name in ('diagnose-windows-msi.py','qualify-windows-msi.py','windows_msi.py'):shutil.copyfile(ROOT/'scripts'/name,scripts/name)
-        name='insonic_1.0.3_windows_amd64_desktop';archive=self.path/(name+'.zip');archive.write_bytes(b'qualified archive fixture')
-        receipt={'kind':'native-package-receipt','platform':'windows_amd64','variant':'desktop','schema_version':'1.0.3','dirname':name,'archive':archive.name,'revision':'a'*40,'source_dirty':False,'inventory_sha256':m.digest(m.inventory_bytes(self.inv)),'signing':self.inv['signing']};receipt_path=self.path/'diagnostic-input.json';receipt_path.write_text(json.dumps(receipt),encoding='utf-8')
+        name='insonic_1.1.0_windows_amd64_desktop';archive=self.path/(name+'.zip');archive.write_bytes(b'qualified archive fixture')
+        receipt={'kind':'native-package-receipt','platform':'windows_amd64','variant':'desktop','schema_version':'1.1.0','dirname':name,'archive':archive.name,'revision':'a'*40,'source_dirty':False,'inventory_sha256':m.digest(m.inventory_bytes(self.inv)),'signing':self.inv['signing']};receipt_path=self.path/'diagnostic-input.json';receipt_path.write_text(json.dumps(receipt),encoding='utf-8')
         calls=[];identities={};upgraded=False
         def clone(source,target,version,upgrade):shutil.copyfile(source,target);identities[target.name]=m.product_code(version,upgrade)
         def install(args,log):
@@ -1186,10 +1186,10 @@ class InstallerModelTests(unittest.TestCase):
     def test_restore_verifies_before_replacing_owned_payload(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('package_msi_restore_contract',ROOT/'scripts/package-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-        name='insonic_1.0.3_windows_amd64_desktop';base=self.path/'build/packages';target=base/name;target.mkdir(parents=True);sentinel=target/'prior-owned-payload';sentinel.write_bytes(b'keep until verified')
+        name='insonic_1.1.0_windows_amd64_desktop';base=self.path/'build/packages';target=base/name;target.mkdir(parents=True);sentinel=target/'prior-owned-payload';sentinel.write_bytes(b'keep until verified')
         receipt_path=self.path/'restore.json';receipt={'dirname':name,'archive':name+'.zip','platform':'windows_amd64','variant':'desktop'};receipt_path.write_text(json.dumps(receipt),encoding='utf-8')
         def reject_archive(*args):raise ValueError('tampered archive')
-        package=SimpleNamespace(VERSION='1.0.3',verify_archive_receipt=reject_archive)
+        package=SimpleNamespace(VERSION='1.1.0',verify_archive_receipt=reject_archive)
         with patch.object(module,'ROOT',self.path),patch.object(module,'load',return_value=package):
             with self.assertRaisesRegex(ValueError,'tampered'):module.restore_payload(receipt_path)
         self.assertEqual(sentinel.read_bytes(),b'keep until verified')
@@ -1200,12 +1200,12 @@ class InstallerModelTests(unittest.TestCase):
     def test_native_clone_reinserts_composite_upgrade_keys(self):
         spec=importlib.util.spec_from_file_location('qualify_clone_database',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         original=self.path/'original.msi';m.author(original,self.path,self.model)
-        target=self.path/'version-fixture.msi';upgrade=m.guid('native-qualification-clone-test');module.clone(original,target,'1.0.3',upgrade)
+        target=self.path/'version-fixture.msi';upgrade=m.guid('native-qualification-clone-test');module.clone(original,target,'1.1.0',upgrade)
         streams=m.CompoundFile(target).streams;properties=dict(m.table_rows(streams,'Property'))
-        self.assertEqual(properties['ProductCode'],m.product_code('1.0.3',upgrade));self.assertEqual(properties['ProductVersion'],'1.0.3');self.assertEqual(properties['UpgradeCode'],upgrade)
+        self.assertEqual(properties['ProductCode'],m.product_code('1.1.0',upgrade));self.assertEqual(properties['ProductVersion'],'1.1.0');self.assertEqual(properties['UpgradeCode'],upgrade)
         relations={row[6]:row for row in m.table_rows(streams,'Upgrade')}
-        self.assertEqual(relations['OLDPRODUCTS'],[upgrade,None,'1.0.3',None,1,None,'OLDPRODUCTS'])
-        self.assertEqual(relations['NEWPRODUCTS'],[upgrade,'1.0.3',None,None,2,None,'NEWPRODUCTS'])
+        self.assertEqual(relations['OLDPRODUCTS'],[upgrade,None,'1.1.0',None,1,None,'OLDPRODUCTS'])
+        self.assertEqual(relations['NEWPRODUCTS'],[upgrade,'1.1.0',None,None,2,None,'NEWPRODUCTS'])
         self.assertEqual(dict(m.table_rows(streams,'AppSearch'))['SAVED_INSTALLDIR'],'SavedInstall')
         self.assertNotIn('INSTALLDIR',dict(m.table_rows(streams,'AppSearch')))
         self.assertEqual(next(r[1:] for r in m.table_rows(streams,'CustomAction') if r[0]=='RestoreInstallDir'),[51,'INSTALLDIR','[SAVED_INSTALLDIR]'])
@@ -1224,7 +1224,7 @@ class InstallerModelTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('qualify_clone_package_identity',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         original=self.path/'package-original.msi';m.author(original,self.path,self.model)
         first=self.path/'package-first.msi';second=self.path/'package-second.msi';upgrade=m.guid('summary-code-test')
-        module.clone(original,first,'1.0.3',upgrade);module.clone(original,second,'1.0.3',upgrade)
+        module.clone(original,first,'1.1.0',upgrade);module.clone(original,second,'1.1.0',upgrade)
         def package_code(path):
             db=m.NativeDatabase(path);summary=C.c_uint()
             db.dll.MsiSummaryInfoGetPropertyW.argtypes=[C.c_uint,C.c_uint,C.POINTER(C.c_uint),C.POINTER(C.c_int),C.c_void_p,C.c_wchar_p,C.POINTER(C.c_uint)];db.dll.MsiSummaryInfoGetPropertyW.restype=C.c_uint
@@ -1247,13 +1247,13 @@ class InstallerModelTests(unittest.TestCase):
         (self.path/'package-inventory.json').write_bytes(m.inventory_bytes(self.inv))
         inv_sha=m.sha(self.path/'package-inventory.json')
         model=m.installer_model(self.inv,inv_sha,(ROOT/'LICENSE').read_text(encoding='utf-8'))
-        artifact=self.path/'insonic_1.0.3_windows_amd64_installer.msi';m.author(artifact,self.path,model)
+        artifact=self.path/'insonic_1.1.0_windows_amd64_installer.msi';m.author(artifact,self.path,model)
         payload={k:self.inv[k] for k in ('revision','source_dirty','platform','schema_version','distribution','signing')}
         payload.update({'archive':'desktop.zip','archive_sha256':'b'*64,'inventory_sha256':inv_sha,'variant':'desktop','extracted_inventory':'passed','relocation_path_spaces':'passed','cli_real_audio_video_import':'passed','development_native_libraries':'isolated-and-restored','windows_copy_install':'passed','windows_first_use':'passed','gui_bridge':'passed','native_webview':'passed'})
         from cli_terminal_qualification_test import package_contract_fixture
         payload['cli_contract'] = package_contract_fixture(payload)
         receipt={k:self.inv[k] for k in ('revision','source_dirty','platform','schema_version','distribution')}
-        receipt.update({'kind':'windows-installer-receipt','format':'msi','variant':'selectable','product_version':'1.0.3','documentation_version':'1.0.3','signing':dict(m.UNSIGNED_SIGNING),'artifact':artifact.name,'artifact_sha256':m.sha(artifact),'artifact_size_bytes':artifact.stat().st_size,'payload_receipt':payload,'payload_inventory':self.inv,'payload_archive':'desktop.zip','payload_archive_sha256':'b'*64,'qualification':{k:'passed' for k in m.QUALIFICATION_KEYS},'msi_product_version':'1.0.3','product_code':model['product_code'],'upgrade_code':model['upgrade_code'],'scope':'per-user','license_sha256':m.sha(ROOT/'LICENSE'),'icon_sha256':m.sha(ROOT/m.ICON)})
+        receipt.update({'kind':'windows-installer-receipt','format':'msi','variant':'selectable','product_version':'1.1.0','documentation_version':'1.1.0','signing':dict(m.UNSIGNED_SIGNING),'artifact':artifact.name,'artifact_sha256':m.sha(artifact),'artifact_size_bytes':artifact.stat().st_size,'payload_receipt':payload,'payload_inventory':self.inv,'payload_archive':'desktop.zip','payload_archive_sha256':'b'*64,'qualification':{k:'passed' for k in m.QUALIFICATION_KEYS},'msi_product_version':'1.1.0','product_code':model['product_code'],'upgrade_code':model['upgrade_code'],'scope':'per-user','license_sha256':m.sha(ROOT/'LICENSE'),'icon_sha256':m.sha(ROOT/m.ICON)})
         # Isolate the MSI disposition. Setup bytes/resources and their separate
         # unsigned state have independent artifact and native qualification tests.
         receipt['setup']={'artifact':'isolated-setup.exe'}

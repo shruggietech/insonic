@@ -165,7 +165,7 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
                 stack.enter_context(patch.object(module, 'qualify', side_effect=fixture(name)))
             with self.assertRaisesRegex(ValueError, 'readiness fixture failure'):
                 with qualification.parallel_regressions(lambda *a, **k: {}, Path(directory),
-                        '1.0.3', False, {}, 'fixture-cli', {}) as checks:
+                        '1.1.0', False, {}, 'fixture-cli', {}) as checks:
                     checks['readiness'].result()
         self.assertEqual(set(finished), set(names))
         self.assertEqual(len(set(roots)), 8)

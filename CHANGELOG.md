@@ -4,6 +4,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-31
+
 ### Fixed
 
 - 2026-10-29: Run mandatory foundation and documentation checks after verified readiness when optional component preparation is unelected. Preserve explicit dependency success and required aggregate acceptance.
@@ -17,6 +19,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-31: Resolve CUDA native libraries from the elected Python environment on Windows and the Linux system loader, bind lazy component aliases to verified receipt bytes, preserve typed worker failures and reject unsupported recognition languages before execution. Discard recognition output for exact silence, retain valid recognition when diarization finds no speech, and expose the disagreement. Correct model-setup commands and distinguish shipped engines from upstream alternatives.
 
 - 2026-10-31: Keep normal durable-work output concise and actionable, remove wait/cancel suggestions for terminal work, and explain artifact grace, active-lease and retained-reference refusals without weakening retirement rules.
+
+- 2026-10-31: Admit the expanded versioned documentation export with a shared 128 MiB static payload bound across Pages, same-run transfer and deployed-site verification. Preserve 16 MiB per-file and 10,000-file limits, confined paths, exact digests and finite historical-alias expansion.
 
 ### Changed
 
@@ -35,6 +39,8 @@ All notable changes to this project will be documented here. The format follows 
 ### Decisions
 
 - 2026-10-31: Retain compact text-free acoustic observations before cue assembly and compare repairs against that fixed basis. Reuse the existing window/checkpoint and atomic recording-commit paths, adding a transactional speaker-mapping digest because mappings may change independently of the document revision. Extend maintained installed-CLI qualification with deterministic recording coverage/repair fixtures; real-model acoustic and GPU checks remain separately elected.
+
+- 2026-10-31: Prepare the unpublished v1.1.0 minor candidate from the accepted reliability and long-recording work. Declare coverage and repair in the advanced CLI capability metadata, preserve original v1.0.3 documentation/schema authority after copying current changes forward, and obtain genuine isolated hosted captures. Keep catalog schema 11, mandatory qualification and owner-controlled merge/publication boundaries unchanged.
 
 ## [1.0.3] - 2026-10-29
 
@@ -510,7 +516,7 @@ All notable changes to this project will be documented here. The format follows 
 - Preserve closed GitHub Projects when rerunning repository setup.
 - Cover root schema-validation dependencies in grouped Dependabot updates and correct contributor installation guidance.
 
-[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.1.0...HEAD
 
 ## Decisions (2026-10-08)
 
@@ -531,3 +537,5 @@ All notable changes to this project will be documented here. The format follows 
 [1.0.2]: https://github.com/shruggietech/insonic/compare/v1.0.1...v1.0.2
 
 [1.0.3]: https://github.com/shruggietech/insonic/compare/v1.0.2...v1.0.3
+
+[1.1.0]: https://github.com/shruggietech/insonic/compare/v1.0.3...v1.1.0

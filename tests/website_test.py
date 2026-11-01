@@ -55,9 +55,9 @@ class WebsiteTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'required'): website.green_main(Missing(), REV)
 
     def test_historical_schema_bytes_cannot_change_or_disappear(self):
-        data = b'original'; destination = {'entries': {'schemas/v1.0.3/master.schema.json': website.pages.git_blob_sha(data)}}
-        website.immutable_schemas(destination, {'schemas/v1.0.3/master.schema.json': data})
-        for files in ({}, {'schemas/v1.0.3/master.schema.json': b'changed'}):
+        data = b'original'; destination = {'entries': {'schemas/v1.1.0/master.schema.json': website.pages.git_blob_sha(data)}}
+        website.immutable_schemas(destination, {'schemas/v1.1.0/master.schema.json': data})
+        for files in ({}, {'schemas/v1.1.0/master.schema.json': b'changed'}):
             with self.assertRaises(ValueError): website.immutable_schemas(destination, files)
 
     def test_only_exact_github_package_redirects_to_approved_cdn(self):
@@ -141,11 +141,11 @@ class WebsiteTest(unittest.TestCase):
         self.assertFalse(any(args[0] == 'push' for args in calls))
 
     def product_fixture(self):
-        names = {f'insonic_1.0.3_{platform}_{variant}{suffix}' for platform, suffix in [('windows_amd64', '.zip'), ('linux_amd64', '.tar.gz')] for variant in ('cli', 'desktop')}
-        names |= {'insonic_1.0.3_windows_amd64_installer.msi', 'insonic_1.0.3_windows_amd64_setup.exe', 'documentation.tar.gz', 'offline-help.tar.gz'}
+        names = {f'insonic_1.1.0_{platform}_{variant}{suffix}' for platform, suffix in [('windows_amd64', '.zip'), ('linux_amd64', '.tar.gz')] for variant in ('cli', 'desktop')}
+        names |= {'insonic_1.1.0_windows_amd64_installer.msi', 'insonic_1.1.0_windows_amd64_setup.exe', 'documentation.tar.gz', 'offline-help.tar.gz'}
         data = {name: name.encode() for name in names}
         entries = [{'name': name, 'size_bytes': len(data[name]), 'sha256': hashlib.sha256(data[name]).hexdigest()} for name in sorted(names)]
-        manifest = {'kind': 'release-candidate', 'repository': website.REPOSITORY, 'version': '1.0.3', 'schema_version': '1.0.3', 'tag': 'v1.0.3', 'revision': REV, 'assets': entries}
+        manifest = {'kind': 'release-candidate', 'repository': website.REPOSITORY, 'version': '1.1.0', 'schema_version': '1.1.0', 'tag': 'v1.1.0', 'revision': REV, 'assets': entries}
         data['release-manifest.json'] = json.dumps(manifest).encode()
         checks = entries + [{'name': 'release-manifest.json', 'sha256': hashlib.sha256(data['release-manifest.json']).hexdigest()}]
         data['SHA256SUMS'] = ''.join(e['sha256'] + '  ' + e['name'] + '\n' for e in sorted(checks, key=lambda e: e['name'])).encode()
@@ -154,7 +154,7 @@ class WebsiteTest(unittest.TestCase):
         class Product(API):
             def call(self, method, endpoint, value=None):
                 if method != 'GET': raise AssertionError('product mutation')
-                if '/releases/tags/' in endpoint: return {'id': 10, 'target_commitish': REV, 'draft': False, 'prerelease': False, 'tag_name': 'v1.0.3'}
+                if '/releases/tags/' in endpoint: return {'id': 10, 'target_commitish': REV, 'draft': False, 'prerelease': False, 'tag_name': 'v1.1.0'}
                 if '/git/ref/tags/' in endpoint: return {'object': {'type': 'commit', 'sha': REV}}
                 if '/assets?' in endpoint: return assets
                 raise AssertionError(endpoint)
@@ -162,7 +162,7 @@ class WebsiteTest(unittest.TestCase):
 
     def test_product_metadata_preserves_exact_six_packages_without_mutation(self):
         api, assets, data = self.product_fixture()
-        product = website.published_product(api, '1.0.3', lambda url: data[url.rsplit('/', 1)[1]])
+        product = website.published_product(api, '1.1.0', lambda url: data[url.rsplit('/', 1)[1]])
         self.assertEqual(len(product['packages']), 6)
         self.assertEqual(product['release_revision'], REV)
         self.assertEqual(api.writes, [])
@@ -174,7 +174,7 @@ class WebsiteTest(unittest.TestCase):
             if failure == 'digest': assets[0]['digest'] = 'sha256:' + 'f' * 64
             if failure == 'bytes': data['release-manifest.json'] = b'changed'
             if failure == 'foreign-url': assets[0]['browser_download_url'] = 'https://evil.test/file'
-            with self.assertRaises(ValueError): website.published_product(api, '1.0.3', lambda url: data[url.rsplit('/', 1)[1]])
+            with self.assertRaises(ValueError): website.published_product(api, '1.1.0', lambda url: data[url.rsplit('/', 1)[1]])
             self.assertEqual(api.writes, [])
 
     def test_real_git_publishes_complete_binary_tree_then_replays_without_commit(self):

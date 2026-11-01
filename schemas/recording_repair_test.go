@@ -8,7 +8,7 @@ import (
 )
 
 func TestRecordingRepairRequestContracts(t *testing.T) {
-	base := map[string]any{"schema_version": "1.0.3", "kind": "runtime-request", "workspace_id": "10000000-0000-4000-8000-000000000001", "request_id": "10000000-0000-4000-8000-000000000002", "item_id": "10000000-0000-4000-8000-000000000003", "operation": "recordings.repair", "data": map[string]any{"expected_revision": 1, "source_revision": 1, "document_digest": strings.Repeat("a", 64), "automatic": true, "processing": map[string]any{"pipeline_id": "10000000-0000-4000-8000-000000000004"}}}
+	base := map[string]any{"schema_version": "1.1.0", "kind": "runtime-request", "workspace_id": "10000000-0000-4000-8000-000000000001", "request_id": "10000000-0000-4000-8000-000000000002", "item_id": "10000000-0000-4000-8000-000000000003", "operation": "recordings.repair", "data": map[string]any{"expected_revision": 1, "source_revision": 1, "document_digest": strings.Repeat("a", 64), "automatic": true, "processing": map[string]any{"pipeline_id": "10000000-0000-4000-8000-000000000004"}}}
 	for _, tc := range []struct {
 		name   string
 		change func(map[string]any)
@@ -48,7 +48,7 @@ func TestRecordingRepairRequestContracts(t *testing.T) {
 }
 
 func TestSavedCoverageCannotSkipRepairDiagnostics(t *testing.T) {
-	raw, err := registry.ReadFile("v1.0.3/pipeline-config.schema.json")
+	raw, err := registry.ReadFile("v1.1.0/pipeline-config.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}

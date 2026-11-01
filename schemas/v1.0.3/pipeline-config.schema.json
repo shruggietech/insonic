@@ -88,14 +88,6 @@
             "parameters": {
               "$ref": "common.schema.json#/$defs/nonsecretOptions",
               "description": "Effective training parameters."
-            },
-            "device": {
-              "enum": [
-                "auto",
-                "cpu",
-                "cuda"
-              ],
-              "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
             }
           },
           "required": [
@@ -103,29 +95,6 @@
             "output_kind"
           ],
           "description": "Saved speaker-training profile, independent of recognition and diarization."
-        },
-        "windows": {
-          "$ref": "#/$defs/windows",
-          "description": "Window policy; explicit per-run windows override saved policy."
-        },
-        "coverage": {
-          "$ref": "#/$defs/coverage",
-          "description": "Coverage tolerances used by a subsequently elected repair.",
-          "allOf": [
-            {
-              "properties": {
-                "after": {
-                  "const": 0,
-                  "description": "Repair comparisons start at the first diagnostic region."
-                }
-              },
-              "type": "object"
-            }
-          ]
-        },
-        "repair": {
-          "$ref": "#/$defs/repair",
-          "description": "Saved bounded repair policy; saving it alone does not launch repair."
         }
       },
       "description": "Saved worker selections and optional quality configuration. Defaults are normalized when an immutable election is submitted.",
@@ -367,11 +336,6 @@
                       "required": [
                         "device"
                       ]
-                    },
-                    {
-                      "required": [
-                        "batch_size"
-                      ]
                     }
                   ]
                 },
@@ -514,11 +478,10 @@
       "properties": {
         "device": {
           "enum": [
-            "auto",
             "cpu",
             "cuda"
           ],
-          "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
+          "description": "Device."
         },
         "language": {
           "type": "string",
@@ -550,11 +513,10 @@
       "properties": {
         "device": {
           "enum": [
-            "auto",
             "cpu",
             "cuda"
           ],
-          "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
+          "description": "Device."
         },
         "min_speakers": {
           "type": "integer",
@@ -567,12 +529,6 @@
           "minimum": 0,
           "maximum": 64,
           "description": "Max speakers."
-        },
-        "batch_size": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 64,
-          "description": "Local pyannote batch size; omission uses1. Classified CUDA OOM can reduce once to1 before permitted CPU fallback. Zero also selects the default."
         }
       },
       "required": [],
@@ -649,29 +605,6 @@
         "quality": {
           "$ref": "#/$defs/quality",
           "description": "Quality."
-        },
-        "windows": {
-          "$ref": "#/$defs/windows",
-          "description": "Window policy; explicit per-run windows override saved policy."
-        },
-        "coverage": {
-          "$ref": "#/$defs/coverage",
-          "description": "Coverage tolerances used by a subsequently elected repair.",
-          "allOf": [
-            {
-              "properties": {
-                "after": {
-                  "const": 0,
-                  "description": "Repair comparisons start at the first diagnostic region."
-                }
-              },
-              "type": "object"
-            }
-          ]
-        },
-        "repair": {
-          "$ref": "#/$defs/repair",
-          "description": "Saved bounded repair policy; saving it alone does not launch repair."
         }
       },
       "required": [],
@@ -717,146 +650,6 @@
         "configuration"
       ],
       "description": "Stable saved pipeline with monotonic revision. Expected revision controls mutation; new input revision may be omitted or zero."
-    },
-    "windows": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "core_us": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 300000000,
-          "description": "Core duration in microseconds; omission uses 30000000. Zero also selects the default.",
-          "anyOf": [
-            {
-              "const": 0
-            },
-            {
-              "minimum": 1000000
-            }
-          ]
-        },
-        "context_us": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 150000000,
-          "description": "Context per side in microseconds, at most half the core. Omission uses min(2000000, core/2); zero disables context."
-        },
-        "concurrency": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4,
-          "description": "Maximum simultaneous windows; default1. Current execution is serial within this cap. Zero also selects the default."
-        },
-        "tracks": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 64,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "stream_index": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 65535,
-                "description": "Canonical stream index."
-              },
-              "channel": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 63,
-                "description": "Zero-based source channel; omission downmixes selected stream."
-              },
-              "start_sample": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9007199254740991,
-                "description": "Inclusive canonical native sample start; default zero."
-              },
-              "end_sample": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 9007199254740991,
-                "description": "Exclusive native sample end; omission uses exact decoded count."
-              }
-            },
-            "required": [
-              "stream_index"
-            ]
-          },
-          "description": "Selected canonical tracks/channel/ranges. Omission preserves audio selection. Duplicate lanes are refused."
-        }
-      },
-      "description": "Bounded source-clock windows. Runtime validates relational bounds and freezes normalized options."
-    },
-    "coverage": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "gap_tolerance_us": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 60000000,
-          "description": "Accepted cue expansion for uncovered-speech subtraction in microseconds; default 0."
-        },
-        "minimum_gap_us": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 60000000,
-          "description": "Minimum reported uncovered-speech region; default 250000 microseconds."
-        },
-        "boundary_tolerance_us": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 60000000,
-          "description": "Allowed cue/source-boundary difference; default 1000 microseconds."
-        },
-        "duplicate_overlap_fraction": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "maximum": 1,
-          "description": "Minimum duplicate overlap divided by the shorter cue duration; default 0.5."
-        },
-        "after": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 65536,
-          "description": "Zero-based region offset; summary metrics always cover the whole snapshot."
-        },
-        "limit": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 1000,
-          "description": "Maximum detail regions returned, default 100."
-        }
-      },
-      "description": "Read-only coverage tolerances and detail pagination."
-    },
-    "repair": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Finite repair execution budgets, frozen at admission and retained across retries.",
-      "properties": {
-        "max_attempts": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 3,
-          "description": "Execution attempts per selected window across all retries; zero or omission selects1."
-        },
-        "max_windows": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 16384,
-          "description": "Maximum selected windows; zero or omission selects64."
-        },
-        "max_duration_us": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 604800000000,
-          "description": "Maximum total declared scope duration; zero or omission selects300000000."
-        }
-      }
     }
   },
   "examples": [

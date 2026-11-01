@@ -7,7 +7,7 @@
       "description": "Verified checkpoint output kind."
     },
     "schema_version": {
-      "const": "1.0.3",
+      "const": "1.1.0",
       "description": "System contract version."
     },
     "version": {
@@ -224,13 +224,13 @@
     "audio_diagnostics"
   ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.3/schemas/v1.0.3/processing-window.schema.json",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.1.0/schemas/v1.1.0/processing-window.schema.json",
   "title": "insonic completed processing window",
   "description": "Temporary verified window evidence. Only a fenced catalog checkpoint makes these bytes reusable. Current Cueson acceptance retires transcript-bearing checkpoint artifacts.",
   "examples": [
     {
       "kind": "processing-window",
-      "schema_version": "1.0.3",
+      "schema_version": "1.1.0",
       "version": 1,
       "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "window_id": "11111111-1111-4111-8111-111111111111",

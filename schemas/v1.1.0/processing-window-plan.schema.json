@@ -7,7 +7,7 @@
       "description": "Document kind."
     },
     "schema_version": {
-      "const": "1.0.3",
+      "const": "1.1.0",
       "description": "System contract version."
     },
     "plan_version": {
@@ -325,13 +325,13 @@
     "digest"
   ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.3/schemas/v1.0.3/processing-window-plan.schema.json",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.1.0/schemas/v1.1.0/processing-window-plan.schema.json",
   "title": "insonic processing window plan",
   "description": "Versioned bounded source-clock plan. The runtime additionally verifies exact per-track core coverage, rational mappings, selected ranges, frozen identity and the canonical plan digest.",
   "examples": [
     {
       "kind": "processing-window-plan",
-      "schema_version": "1.0.3",
+      "schema_version": "1.1.0",
       "plan_version": 1,
       "identity": {
         "source_id": "11111111-1111-4111-8111-111111111111",
