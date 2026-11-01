@@ -209,12 +209,12 @@ var commandDefinitions = func() []commandDefinition {
 		}
 		add("media "+a, operand, n, max, opts, required)
 	}
-	for _, a := range strings.Fields("show document mappings process assemble map-speaker match export resolve-segment cues") {
+	for _, a := range strings.Fields("show document mappings process assemble map-speaker match export resolve-segment cues coverage repair") {
 		opts, required := "--input", "--input"
 		if a == "show" {
 			opts, required = "", ""
 		}
-		if a == "document" || a == "mappings" || a == "cues" {
+		if a == "document" || a == "mappings" || a == "cues" || a == "coverage" {
 			required = ""
 		}
 		add("recordings "+a, "MEDIA_UUID", 1, 1, opts, required)

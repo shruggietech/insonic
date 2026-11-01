@@ -334,7 +334,9 @@ def qualify(invoke, supplied, workspace, version):
         invoke(['media', 'refresh', media_id, '--preset', preset_id], expected=1)
     finally:
         finish_server(server, thread)
-    return {'preset_lifecycle_destination_precedence_refresh': 'passed',
+    from cli_recording_qualification import qualify as qualify_recording
+    recording_journey = qualify_recording(invoke, supplied, workspace, version, example)
+    return {'recording_journey': recording_journey, 'preset_lifecycle_destination_precedence_refresh': 'passed',
             'pipeline_actual_child_supplied_bypass': 'passed', 'documented_advanced_inputs': 'passed',
             'deterministic_training_fetch': 'passed', 'trainer_output_integrity': 'passed',
             'training_only_readiness': 'passed', 'model_setup_readback': 'passed', 'short_wait_budget': 'passed', 'acoustic_accuracy': 'not-tested'}

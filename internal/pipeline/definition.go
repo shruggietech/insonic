@@ -18,11 +18,13 @@ import (
 )
 
 type Definition struct {
-	Windows         *processing.WindowOptions `json:"windows,omitempty"`
-	Recognition     Stage                     `json:"recognition,omitzero"`
-	Diarization     Stage                     `json:"diarization,omitzero"`
-	Quality         processing.QualityConfig  `json:"quality,omitzero"`
-	SpeakerTraining json.RawMessage           `json:"speaker_training,omitempty"`
+	Coverage        *processing.CoverageOptions `json:"coverage,omitempty"`
+	Repair          *processing.RepairPolicy    `json:"repair,omitempty"`
+	Windows         *processing.WindowOptions   `json:"windows,omitempty"`
+	Recognition     Stage                       `json:"recognition,omitzero"`
+	Diarization     Stage                       `json:"diarization,omitzero"`
+	Quality         processing.QualityConfig    `json:"quality,omitzero"`
+	SpeakerTraining json.RawMessage             `json:"speaker_training,omitempty"`
 }
 type Stage struct {
 	Adapter       string                        `json:"adapter"`
@@ -45,10 +47,12 @@ type Limits struct {
 	TimeoutMS        int64 `json:"timeout_ms,omitempty"`
 }
 type Override struct {
-	Windows     *processing.WindowOptions `json:"windows,omitempty"`
-	Recognition *Stage                    `json:"recognition,omitempty"`
-	Diarization *Stage                    `json:"diarization,omitempty"`
-	Quality     *processing.QualityConfig `json:"quality,omitempty"`
+	Coverage    *processing.CoverageOptions `json:"coverage,omitempty"`
+	Repair      *processing.RepairPolicy    `json:"repair,omitempty"`
+	Windows     *processing.WindowOptions   `json:"windows,omitempty"`
+	Recognition *Stage                      `json:"recognition,omitempty"`
+	Diarization *Stage                      `json:"diarization,omitempty"`
+	Quality     *processing.QualityConfig   `json:"quality,omitempty"`
 }
 type Capability struct {
 	Adapter       string   `json:"adapter"`
@@ -189,6 +193,16 @@ func ValidateStage(s Stage, operation string) error {
 	return nil
 }
 func Validate(preset string, d Definition) error {
+	if d.Coverage != nil {
+		if _, e := processing.NormalizeCoverageOptions(*d.Coverage); e != nil || d.Coverage.After != 0 {
+			return contracts.Fail("invalid_request")
+		}
+	}
+	if d.Repair != nil {
+		if _, e := processing.NormalizeRepairPolicy(*d.Repair); e != nil {
+			return e
+		}
+	}
 	if d.Windows != nil {
 		if _, e := processing.NormalizeWindowOptions(*d.Windows); e != nil {
 			return e
@@ -228,6 +242,12 @@ func HasProcessing(d Definition) bool {
 	return !reflect.ValueOf(d.Recognition).IsZero() || !reflect.ValueOf(d.Diarization).IsZero()
 }
 func Elect(preset string, d Definition, o Override) (Definition, error) {
+	if o.Coverage != nil {
+		d.Coverage = o.Coverage
+	}
+	if o.Repair != nil {
+		d.Repair = o.Repair
+	}
 	if o.Windows != nil {
 		d.Windows = o.Windows
 	}
@@ -251,6 +271,14 @@ func Elect(preset string, d Definition, o Override) (Definition, error) {
 	if d.Windows != nil {
 		normalized, _ := processing.NormalizeWindowOptions(*d.Windows)
 		d.Windows = &normalized
+	}
+	if d.Coverage != nil {
+		n, _ := processing.NormalizeCoverageOptions(*d.Coverage)
+		d.Coverage = &n
+	}
+	if d.Repair != nil {
+		n, _ := processing.NormalizeRepairPolicy(*d.Repair)
+		d.Repair = &n
 	}
 	// JSON copy also detaches all pointers, hint/capability arrays and thresholds.
 	raw, e := json.Marshal(d)

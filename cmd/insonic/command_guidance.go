@@ -160,7 +160,7 @@ func writeTaskGuidance(b *strings.Builder, c commandDefinition) {
 	if p == "models train" {
 		b.WriteString("Prerequisites: an elected nonempty speaker dataset and a configured speaker-training pipeline at its current revision; training is optional and its accepted work still requires completion.\n")
 	}
-	if strings.Contains(p, "import") || strings.Contains(p, "models") || strings.HasPrefix(p, "work ") || p == "recordings process" || p == "workers setup" {
+	if strings.Contains(p, "import") || strings.Contains(p, "models") || strings.HasPrefix(p, "work ") || p == "recordings process" || p == "recordings repair" || p == "workers setup" {
 		b.WriteString("Completion: accepted durable work is not completion. Reuse returned work_id with insonic work wait WORK_UUID; inspect work show/results and cancel or retry the same identity as appropriate.\n")
 	}
 	if p == "media tools" || p == "processing tools" {

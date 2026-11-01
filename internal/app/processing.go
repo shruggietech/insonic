@@ -51,19 +51,20 @@ type RecordingOptions struct {
 	Attribution        processing.DiarizationOptions `json:"attribution,omitempty"`
 }
 type recordingPayload struct {
-	WindowPolicyVersion int                 `json:"window_policy_version,omitempty"`
-	Destination         *workspace.Profile  `json:"destination,omitempty"`
-	ModelSelections     []models.Resolution `json:"model_selections,omitempty"`
-	ModelDependencies   []string            `json:"model_dependencies,omitempty"`
-	RequestDigest       string              `json:"request_digest,omitempty"`
-	Tools               *ProcessingTools    `json:"tools,omitempty"`
-	Election            *recordingElection  `json:"election,omitempty"`
-	ModelDigests        map[string]string   `json:"model_digests,omitempty"`
-	MediaID             string              `json:"media_id"`
-	Expected            int64               `json:"expected_revision"`
-	SourceRevision      int64               `json:"source_revision"`
-	Options             RecordingOptions    `json:"options"`
-	AssemblyDigest      string              `json:"assembly_digest,omitempty"`
+	Repair              *recordingRepairElection `json:"repair,omitempty"`
+	WindowPolicyVersion int                      `json:"window_policy_version,omitempty"`
+	Destination         *workspace.Profile       `json:"destination,omitempty"`
+	ModelSelections     []models.Resolution      `json:"model_selections,omitempty"`
+	ModelDependencies   []string                 `json:"model_dependencies,omitempty"`
+	RequestDigest       string                   `json:"request_digest,omitempty"`
+	Tools               *ProcessingTools         `json:"tools,omitempty"`
+	Election            *recordingElection       `json:"election,omitempty"`
+	ModelDigests        map[string]string        `json:"model_digests,omitempty"`
+	MediaID             string                   `json:"media_id"`
+	Expected            int64                    `json:"expected_revision"`
+	SourceRevision      int64                    `json:"source_revision"`
+	Options             RecordingOptions         `json:"options"`
+	AssemblyDigest      string                   `json:"assembly_digest,omitempty"`
 }
 type AssemblyInput struct {
 	SubtitleFormat string            `json:"subtitle_format,omitempty"`
@@ -784,6 +785,10 @@ func (a *App) recordingDispatch(req contracts.Request) (any, error) {
 			a.recoverWork()
 		}
 		return a.modelWorkView(work), e
+	case "recordings.repair":
+		return a.queueRecordingRepair(req)
+	case "recordings.coverage":
+		return a.recordingCoverage(req)
 	case "recordings.show":
 		r, e := a.Catalog.Recording(a.ctx, req.ItemID)
 		if e != nil {
@@ -943,9 +948,9 @@ func recordingRequestValid(req contracts.Request) bool {
 		return len(req.Data) > 0
 	case "recordings.show":
 		return len(req.Data) == 0
-	case "recordings.document", "recordings.mappings":
+	case "recordings.document", "recordings.mappings", "recordings.coverage":
 		return true
-	case "recordings.process", "recordings.assemble", "recordings.map-speaker", "recordings.export", "recordings.resolve-segment":
+	case "recordings.process", "recordings.repair", "recordings.assemble", "recordings.map-speaker", "recordings.export", "recordings.resolve-segment":
 		return len(req.Data) > 0
 	}
 	return false
@@ -958,7 +963,7 @@ func (a *App) recoverDerivedCleanup() {
 		return
 	}
 	for _, w := range work {
-		if w.Kind == "recordings.process" {
+		if w.Kind == "recordings.process" || w.Kind == "recordings.repair" {
 			a.Catalog.RecoverProcessingWindowCleanup(ctx, w.ID)
 		}
 		if w.Kind != "recordings.process" || (w.State != "failed" && w.State != "cancelled" && w.State != "succeeded") {

@@ -80,6 +80,10 @@ type Catalog interface {
 	QueueDerivedCleanup(context.Context, string, string, string) error
 	Recording(context.Context, string) (Recording, error)
 	CommitRecording(context.Context, Work, int64, Recording) (Recording, error)
+	CommitRecordingRepair(context.Context, Work, RecordingRepairFence, *Recording, json.RawMessage) (json.RawMessage, error)
+	RecordingRepairDecision(context.Context, string, string) (json.RawMessage, bool, error)
+	ConsumeRepairWindowAttempt(context.Context, Work, string, string) (int, error)
+	RepairWindowAttempts(context.Context, string) (map[string]int, error)
 	SpeakerMappings(context.Context, string) ([]SpeakerMapping, error)
 	SetSpeakerMapping(context.Context, string, int64, SpeakerMapping) (SpeakerMapping, error)
 	EnqueueWork(context.Context, string, string, json.RawMessage) (Work, error)

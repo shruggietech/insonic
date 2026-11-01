@@ -167,7 +167,9 @@
     "timeline calendar": "Read recording dates grouped by an elected timezone and filter.",
     "timeline recording": "Read the evidence timeline of one recording.",
     "views show": "Read one saved view and revision.",
-    "views save": "Create or update a revision-checked saved view."
+    "views save": "Create or update a revision-checked saved view.",
+    "recordings coverage": "Inspect transcript coverage, acoustic evidence limits and bounded suspicious source regions without running inference.",
+    "recordings repair": "Repair elected transcript regions with finite window attempts; retain the current document unless fixed-evidence coverage strictly improves."
   },
   "groups": {
     "": "Choose a library, admit media, process recordings and inspect retained evidence.",

@@ -159,6 +159,20 @@ func TestWindowProcessingRetryRetainsVerifiedWindows(t *testing.T) {
 	if e != nil || current.State != "ready" || !json.Valid(current.Provenance) || current.MappedAudioPublicationID != nil {
 		t.Fatalf("current: %#v %v", current, e)
 	}
+	before, _ := json.Marshal(current)
+	coverage, err := a.recordingCoverage(contracts.Request{ItemID: id})
+	if err != nil {
+		t.Fatal(err)
+	}
+	report := coverage.(processing.CoverageReport)
+	if len(report.Tracks) != 1 || report.Tracks[0].Metrics.ObservedNoSpeechUS != 3000000 || report.Tracks[0].Metrics.UnknownActivityUS != 0 {
+		t.Fatalf("persisted coverage: %+v", report)
+	}
+	after, err := a.Catalog.Recording(context.Background(), id)
+	afterBytes, _ := json.Marshal(after)
+	if err != nil || string(before) != string(afterBytes) {
+		t.Fatal("inspection mutated current recording")
+	}
 	checkpoints, e = a.Catalog.ProcessingWindowCheckpoints(context.Background(), plans[0].ID)
 	if e != nil {
 		t.Fatal(e)

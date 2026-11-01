@@ -212,3 +212,7 @@ func TestPostgreSQLWindowedSpeakerEvidenceTracks(t *testing.T) {
 func TestPostgreSQLProcessingOrphanCleanup(t *testing.T) {
 	processingOrphanCleanupSuite(t, postgresStore(t, contracts.ID()))
 }
+
+func TestPostgreSQLRecordingRepairFencesAndReplay(t *testing.T) {
+	recordingRepairSuite(t, postgresStore(t, contracts.ID()))
+}

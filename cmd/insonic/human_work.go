@@ -65,6 +65,7 @@ func humanWorkSummary(b *humanBuffer, root map[string]any, errorShown bool) bool
 			humanDeviceAttempt(b, failure)
 		}
 	}
+	humanRepairSummary(b, result)
 	humanWorkerProbe(b, result)
 	return true
 }

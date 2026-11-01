@@ -110,7 +110,8 @@
         "scripts/windows_native_resources.py",
         "scripts/windows_openssl.py",
         "scripts/windows_scheduler_diagnostic.py",
-        "scripts/windows_setup.py"
+        "scripts/windows_setup.py",
+        "scripts/cli_recording_qualification.py"
       ],
       "platform": "Windows and Linux where the owner is supported",
       "callers": "CI/release/local qualification, packaging, diagnostics and source preparation"
@@ -299,7 +300,9 @@
         "tests/windows_openssl_test.py",
         "tests/windows_package_parallel_test.py",
         "tests/windows_scheduler_diagnostic_test.py",
-        "tests/windows_workload_affinity_test.py"
+        "tests/windows_workload_affinity_test.py",
+        "internal/app/recording_repair_test.go",
+        "internal/catalog/recording_repair_test.go"
       ],
       "platform": "Windows and Linux where the owner is supported",
       "callers": "root Go/Node/Python/frontend/site test runners"

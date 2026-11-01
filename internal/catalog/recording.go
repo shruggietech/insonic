@@ -245,11 +245,18 @@ func (s *Store) saveRecording(ctx context.Context, tx *sql.Tx, expected int64, r
 }
 
 func (s *Store) CommitRecording(ctx context.Context, claim Work, expected int64, r Recording) (Recording, error) {
+	return s.commitRecording(ctx, claim, expected, r, nil, nil)
+}
+func (s *Store) commitRecording(ctx context.Context, claim Work, expected int64, r Recording, fence *RecordingRepairFence, decision json.RawMessage) (Recording, error) {
 	if expected < 0 || !validRecording(r) {
 		return r, contracts.Fail("invalid_request")
 	}
 	r.Revision = 0
-	digest, e := intent([]any{"current-recording", expected, r})
+	intentValue := []any{"current-recording", expected, r}
+	if fence != nil {
+		intentValue = append(intentValue, fence, decision)
+	}
+	digest, e := intent(intentValue)
 	if e != nil {
 		return r, e
 	}
@@ -265,6 +272,11 @@ func (s *Store) CommitRecording(ctx context.Context, claim Work, expected int64,
 		if ok {
 			return s.domainTx(ctx, tx, "Recordings", r.ID, &r)
 		}
+		if fence != nil {
+			if e = s.recordingRepairAuthority(ctx, tx, claim, r.ID, *fence); e != nil {
+				return e
+			}
+		}
 		if e = s.saveRecording(ctx, tx, expected, &r, rev); e != nil {
 			return e
 		}
@@ -279,6 +291,9 @@ func (s *Store) CommitRecording(ctx context.Context, claim Work, expected int64,
 		result["mapping_digest"], e = intent(mappings)
 		if e != nil {
 			return e
+		}
+		if fence != nil {
+			result["repair_decision"] = currentRepairDecision(decision, r)
 		}
 		_, e = s.accept(ctx, tx, op, digest, rev, result)
 		return e

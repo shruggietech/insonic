@@ -1,0 +1,462 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.3/schemas/v1.0.3/recording-coverage.schema.json",
+  "title": "Recording transcript coverage",
+  "type": "object",
+  "additionalProperties": false,
+  "description": "Read-only per-track coverage over fixed canonical audio and accepted transcript evidence.",
+  "properties": {
+    "kind": {
+      "const": "recording-coverage",
+      "description": "Contract kind."
+    },
+    "schema_version": {
+      "const": "1.0.3",
+      "description": "Contract version."
+    },
+    "recording_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Recording identity."
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Canonical source digest."
+    },
+    "source_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991,
+      "description": "Accepted source revision."
+    },
+    "source_map_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Accepted source-map digest."
+    },
+    "document_sha256": {
+      "type": "string",
+      "pattern": "^(?:[a-f0-9]{64})?$",
+      "description": "Accepted document digest; empty when no timed document exists."
+    },
+    "document_revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991,
+      "description": "Accepted recording revision."
+    },
+    "evidence_sha256": {
+      "type": "string",
+      "pattern": "^(?:[a-f0-9]{64})?$",
+      "description": "Compatible acoustic evidence digest; empty when unavailable."
+    },
+    "options_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Comparison tolerance digest, excluding pagination."
+    },
+    "options": {
+      "$ref": "pipeline-config.schema.json#/$defs/coverage",
+      "description": "Normalized coverage options."
+    },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/track",
+        "description": "Track coverage."
+      },
+      "maxItems": 64,
+      "description": "Independent per-track denominators."
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/region",
+        "description": "Diagnostic interval."
+      },
+      "maxItems": 1000,
+      "description": "Current bounded diagnostic page."
+    },
+    "total_regions": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65536,
+      "description": "Total diagnostics across all pages."
+    },
+    "next": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 65536,
+      "description": "Next after offset, or null when complete."
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "Evidence limitation."
+      },
+      "maxItems": 64,
+      "description": "Explicit unavailable, stale or disagreeing evidence."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "recording_id",
+    "source_sha256",
+    "source_revision",
+    "source_map_sha256",
+    "document_sha256",
+    "document_revision",
+    "evidence_sha256",
+    "options_sha256",
+    "options",
+    "tracks",
+    "regions",
+    "total_regions",
+    "next",
+    "limitations"
+  ],
+  "$defs": {
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Half-open source-clock interval in microseconds.",
+      "properties": {
+        "start_us": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Inclusive source-clock start."
+        },
+        "end_us": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Exclusive source-clock end."
+        }
+      },
+      "required": [
+        "start_us",
+        "end_us"
+      ]
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Union durations per lane; overlapping cues or observations count once.",
+      "properties": {
+        "selected_audio_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "selected audio us."
+        },
+        "cue_coverage_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "cue coverage us."
+        },
+        "observed_speech_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "observed speech us."
+        },
+        "covered_observed_speech_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "covered observed speech us."
+        },
+        "uncovered_observed_speech_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "uncovered observed speech us."
+        },
+        "observed_no_speech_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "observed no speech us."
+        },
+        "unknown_activity_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "unknown activity us."
+        },
+        "duplicate_overlap_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "duplicate overlap us."
+        },
+        "repeated_text_overlap_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "repeated text overlap us."
+        },
+        "boundary_inconsistencies": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "boundary inconsistencies."
+        }
+      },
+      "required": [
+        "selected_audio_us",
+        "cue_coverage_us",
+        "observed_speech_us",
+        "covered_observed_speech_us",
+        "uncovered_observed_speech_us",
+        "observed_no_speech_us",
+        "unknown_activity_us",
+        "duplicate_overlap_us",
+        "repeated_text_overlap_us",
+        "boundary_inconsistencies"
+      ]
+    },
+    "fraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "An explicit numerator, named denominator and null fraction when the denominator is zero.",
+      "properties": {
+        "numerator_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Covered union duration."
+        },
+        "denominator_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Basis union duration."
+        },
+        "denominator": {
+          "enum": [
+            "selected_audio_us",
+            "observed_speech_us"
+          ],
+          "description": "Named coverage basis."
+        },
+        "fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Numerator divided by denominator, or null for a zero denominator."
+        }
+      },
+      "required": [
+        "numerator_us",
+        "denominator_us",
+        "denominator",
+        "fraction"
+      ]
+    },
+    "track": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One independent canonical track coverage report.",
+      "properties": {
+        "track_ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63,
+          "description": "Selected track index."
+        },
+        "track": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "stream_index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535,
+              "description": "Canonical source stream."
+            },
+            "channel": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 63,
+              "description": "Selected channel; omitted means downmix."
+            },
+            "source_sample_rate": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 768000,
+              "description": "Native sample rate."
+            },
+            "source_sample_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Verified native sample count."
+            },
+            "start_numerator": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Canonical source origin numerator."
+            },
+            "start_denominator": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Canonical source origin denominator."
+            },
+            "start_sample": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Inclusive selected native sample."
+            },
+            "end_sample": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Exclusive selected native sample."
+            }
+          },
+          "required": [
+            "stream_index",
+            "source_sample_rate",
+            "source_sample_count",
+            "start_numerator",
+            "start_denominator",
+            "start_sample",
+            "end_sample"
+          ],
+          "description": "Exact selected canonical native track."
+        },
+        "selected": {
+          "$ref": "#/$defs/span",
+          "description": "Selected source-clock interval."
+        },
+        "evidence_available": {
+          "type": "boolean",
+          "description": "At least one compatible stage observation was executed."
+        },
+        "metrics": {
+          "$ref": "#/$defs/metrics",
+          "description": "Measured union durations and boundary counts."
+        },
+        "audio_coverage": {
+          "$ref": "#/$defs/fraction",
+          "description": "Transcript coverage over selected audio."
+        },
+        "speech_coverage": {
+          "$ref": "#/$defs/fraction",
+          "description": "Transcript coverage over observed speech."
+        }
+      },
+      "required": [
+        "track_ordinal",
+        "track",
+        "selected",
+        "evidence_available",
+        "metrics",
+        "audio_coverage",
+        "speech_coverage"
+      ]
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A bounded diagnosis, not an automatic assertion of transcript correctness.",
+      "properties": {
+        "track_ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63,
+          "description": "Selected track index."
+        },
+        "start_us": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Inclusive source-clock start."
+        },
+        "end_us": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Exclusive source-clock end."
+        },
+        "reason": {
+          "enum": [
+            "uncovered_speech",
+            "repeated_text",
+            "boundary_inconsistency",
+            "missing_audio",
+            "outside_selected_scope"
+          ],
+          "description": "Reason for inspecting the interval."
+        },
+        "cue_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Cue ID."
+          },
+          "maxItems": 65536,
+          "description": "Related current cue IDs."
+        },
+        "window_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Window identity."
+          },
+          "maxItems": 32768,
+          "description": "Related observation window IDs."
+        },
+        "uncertain": {
+          "type": "boolean",
+          "description": "Evidence cannot establish a certain defect."
+        }
+      },
+      "required": [
+        "track_ordinal",
+        "start_us",
+        "end_us",
+        "reason",
+        "cue_ids",
+        "window_ids",
+        "uncertain"
+      ]
+    }
+  },
+  "examples": [
+    {
+      "kind": "recording-coverage",
+      "schema_version": "1.0.3",
+      "recording_id": "11111111-1111-4111-8111-111111111111",
+      "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_revision": 1,
+      "source_map_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "document_sha256": "",
+      "document_revision": 1,
+      "evidence_sha256": "",
+      "options_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "options": {},
+      "tracks": [],
+      "regions": [],
+      "total_regions": 0,
+      "next": null,
+      "limitations": [
+        "acoustic_evidence_unavailable"
+      ]
+    }
+  ]
+}

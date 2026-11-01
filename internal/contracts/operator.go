@@ -87,6 +87,7 @@ var operatorReasons = map[string]string{
 	"credential_capacity":                 "The credential store is full. Remove an unused credential before adding another.",
 	"credential_locked":                   "The saved credential is locked in this manager. Unlock the vault through protected input.",
 	"credential_bootstrap":                "Credential bootstrap failed. Check the selected backend, vault file and protected passphrase input; no value was logged.",
+	"repair_attempts_exhausted":           "The elected repair window execution budget is exhausted. Inspect the unchanged current recording and consumed attempts before electing a new repair request.",
 	"source_map_incompatible":             "The retained source mapping does not match the selected stream, channels, sample window or processing policy. Inspect the recording and elect compatible reuse or new diarization.",
 	"backup_checksum":                     "The backup bytes do not match their recorded checksum. Restore an intact backup or reacquire the damaged object.",
 	"backup_size":                         "The backup object size does not match its recorded size. Select a complete intact backup.",

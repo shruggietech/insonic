@@ -28,7 +28,7 @@ func PortableFileDigest(value string) (string, bool) {
 
 func portableProcessingPayload(w Work) (json.RawMessage, bool, error) {
 	switch w.Kind {
-	case "media.import", "media.refresh", "recordings.process", "models.ensure", "models.train", "recordings.match", "portable.configuration":
+	case "media.import", "media.refresh", "recordings.process", "recordings.repair", "models.ensure", "models.train", "recordings.match", "portable.configuration":
 	default:
 		return w.Payload, false, nil
 	}

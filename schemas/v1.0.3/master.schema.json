@@ -107,6 +107,14 @@
     "processing-window": {
       "$ref": "processing-window.schema.json",
       "description": "Temporary verified per-window recognition and diarization evidence."
+    },
+    "recording-coverage": {
+      "$ref": "recording-coverage.schema.json",
+      "description": "recording coverage."
+    },
+    "recording-repair": {
+      "$ref": "recording-repair.schema.json",
+      "description": "recording repair."
     }
   },
   "oneOf": [
@@ -185,6 +193,12 @@
     },
     {
       "$ref": "#/$defs/processing-window"
+    },
+    {
+      "$ref": "#/$defs/recording-coverage"
+    },
+    {
+      "$ref": "#/$defs/recording-repair"
     }
   ]
 }

@@ -14,7 +14,7 @@ import (
 // transcript replacement. No obsolete window bytes become an alternate store.
 func (s *Store) reconcileProcessingAuthority(ctx context.Context, tx *sql.Tx, op string, revision int64, result map[string]json.RawMessage) error {
 	var mediaID string
-	for _, key := range []string{"recording_id", "media_id"} {
+	for _, key := range []string{"recording_id", "media_id", "repair_recording_id"} {
 		if raw, ok := result[key]; ok {
 			if strict(raw, &mediaID) != nil || !contracts.ValidID(mediaID) {
 				return contracts.Fail("invalid_request")
@@ -43,7 +43,7 @@ func (s *Store) reconcileProcessingAuthority(ctx context.Context, tx *sql.Tx, op
 			return err
 		}
 		state := "invalidated"
-		if op == operationID("recording-current", p.WorkID, mediaID) {
+		if op == operationID("recording-current", p.WorkID, mediaID) || op == operationID("recording-repair", p.WorkID, mediaID) {
 			state = "completed"
 		} else if err = s.processingSourceAuthority(ctx, tx, p); err == nil {
 			continue
