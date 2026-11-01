@@ -43,30 +43,6 @@ Worker and model file errors distinguish missing, unreadable, nonregular, wrong-
 
 Existing explicit processing-tools configurations remain supported under Advanced. Accepted work freezes its interpreter, worker and environment receipt. Package-derived companion defaults are resolved from the current complete installation for future work, preserving relocation; accepted work keeps its original bytes.
 
-## Prepare and elect NVIDIA environments
-
-Use isolated Python 3.12 environments for the two roles. Recognition requires faster-whisper 1.2.1, CTranslate2 4.8.2, cuBLAS 12 and cuDNN 9. A compatible Windows package set is `nvidia-cublas-cu12==12.9.2.10`, `nvidia-cudnn-cu12==9.26.0.51` and `nvidia-cuda-nvrtc-cu12==12.9.86`. Install these inside the elected environment, not into global Python. Diarization requires pyannote.audio 4.0.7 and a CUDA-enabled PyTorch/TorchAudio pair compatible with the host driver; the managed CPU wheels cannot supply that capability. Use the [PyTorch installation instructions](https://pytorch.org/get-started/locally/) to select the CUDA wheel channel. Setup inspection validates the selected engine versions and actual prerequisites before reuse.
-
-1. Install the role's supported dependencies into its isolated environment and retain its exact interpreter path.
-2. Save the following inspection and reuse inputs as `cuda-inspection.json` and `cuda-environment.json`, replacing the example absolute path with that interpreter. On Linux use its absolute `bin/python` path.
-3. Run `insonic --workspace LIBRARY workers inspect --input cuda-inspection.json --json`. Confirm CUDA availability and inspect any generated prerequisite reason.
-4. Run `insonic --workspace LIBRARY workers plan --input cuda-environment.json --json`, copy `result.election` to `environment-setup.json`, then run `insonic --workspace LIBRARY workers setup --input environment-setup.json --json` and wait for the returned work ID as above.
-5. Repeat for `diarization` with its own interpreter. Acquire the exact model bundles below, then inspect `processing readiness` and run the selected pipeline.
-
-<!-- executable-example: cuda-inspection.json -->
-```json
-{"role":"recognition","python_path":"C:/Environments/recognition/Scripts/python.exe"}
-```
-
-<!-- executable-example: cuda-environment.json -->
-```json
-{"role":"recognition","mode":"reuse","python_path":"C:/Environments/recognition/Scripts/python.exe"}
-```
-
-Probe and execution share native-library resolution from the elected environment's verified distribution files. Windows DLL directories remain registered for the child lifetime; no global PATH edit is needed. Changing an accepted environment requires a new setup election and receipt. Readiness is model-free and does not prove acoustic execution; completed work records its actual device.
-
-Linux receipts also bind CUDA loader aliases and their resolved files, including components loaded on demand. Missing or changed bindings and unrecorded companion bytes fail with `checksum_mismatch` before engine import; integrity failures do not trigger CPU fallback. An older receipt whose original loader binding cannot be verified requires a new environment setup election. Use explicit `python_path` inspection to discover the current environment before planning that setup.
-
 ## Diagnose worker inspection
 
 Run `insonic --workspace LIBRARY workers inspect --input inspection.json --json` with `{"role":"recognition"}` or `{"role":"diarization"}`. Omit `python_path` to inspect the configured interpreter. Inspection imports the selected engine and checks CPU/CUDA prerequisites without loading a model. Setup additionally inventories and hashes the environment before publishing its receipt.
@@ -95,18 +71,10 @@ Community-1 segmentation frames with no overlap against decoded audio are discar
 1. Save `model-preview.json` using the input below, selecting `whisper-tiny` or `community-1`.
 2. Run `insonic --workspace LIBRARY models prepare --input model-preview.json --json`. Inspect verified reuse, download bytes, scratch space and the elected storage profile. Filesystem capacity is observed when available. Colocated scratch and artifact storage use a combined peak budget, including download and staging copies; unknown volume relationships are conservatively treated as shared. S3 capacity remains unknown.
 3. Add `"acquire": true` to that input and run the same command. Follow the returned `acquisition_work_id` through normal work commands or Jobs.
-4. Confirm complete availability using `models show MODEL_UUID --json` and `models verify MODEL_UUID --json` before selecting it in a pipeline.
+4. Confirm complete availability using `models inspect MODEL_UUID --json` and `models verify MODEL_UUID --json` before selecting it in a pipeline.
 
 ```json
 {"choice":"whisper-tiny"}
-```
-
-After acquisition, use the model UUID returned by preparation:
-
-<!-- executable-commands: model-readback -->
-```sh
-insonic models show MODEL_UUID --json
-insonic models verify MODEL_UUID --json
 ```
 
 An absolute `local_directory` reuses a complete existing snapshot after checking every declared role, size and SHA-256. It is published through the normal artifact service; source files remain unchanged. Omit `destination_profile_id` to elect the configured storage, or supply a saved storage profile UUID. Filesystem and S3 destinations use the same acquisition contract. A shared acquisition preserves its first destination and local/download route, and subsequent previews expose that frozen route.
@@ -125,9 +93,9 @@ Pinned Hugging Face resolve requests may follow a bounded set of official model 
 
 Readiness verifies tools, environment imports, model bytes, selected storage and the requested device. It establishes prerequisites, rather than successful acoustic inference. Local custom trainer readiness checks the elected executable and support-file hashes without invoking the trainer. `file_verified` proves those prerequisites, without claiming protocol compatibility or model quality. Hosted routes remain `configured_not_probed`; a task with only unprobed prerequisites reports `unknown`, while an observed missing prerequisite reports `needs_attention`. Training additionally requires an elected current nonempty dataset. Pipeline usability combines the elected tasks, so a training-only definition does not require unelected recognition or diarization environments. The pyannote-profile adapter enrolls speaker embeddings; it does not retrain Community-1.
 
-Desktop Settings can save a local pipeline with automatic NVIDIA preference and the exact builtin model IDs. Select it in Library when processing media, or inspect/edit it in Pipelines. Pipeline saving does not download weights or begin inference. Existing CLI [pipeline definitions](pipelines.md) provide the same selection.
+Desktop Settings can save a Local CPU pipeline with the exact builtin model IDs. Select it in Library when processing media, or inspect/edit it in Pipelines. Pipeline saving does not download weights or begin inference. Existing CLI [pipeline definitions](pipelines.md) provide the same selection.
 
-New local requests default to `auto`: try NVIDIA CUDA, then retry once on CPU for a classified CUDA device, library, compute-capability or resource failure. Explicit `cuda` has the same finite recovery; explicit `cpu` never attempts CUDA. Both attempts share the original deadline and keep the same input and model. Cancellation, invalid input, damaged models and unrelated engine failures do not trigger fallback. The result retains `requested_device`, ordered `attempted_devices`, actual `device` and a generated `fallback_reason` when applicable. If execution fails, `error.device_attempt` retains the requested policy, attempts that started and any generated fallback cause, without claiming a successful device. Existing saved CPU choices and older frozen work retain CPU behavior. Managed profiles still provide CPU dependencies; hardware count alone does not establish CUDA readiness.
+CPU and CUDA are explicit device choices. Managed profiles provide CPU dependencies. An existing CUDA environment must pass the selected engine/library probe; recognition also checks required cuBLAS 12 and cuDNN 9 libraries. Hardware count alone never establishes CUDA readiness. A failing CUDA job retains its original device, with a correction to verify compatible dependencies or explicitly elect CPU for future work. There is no automatic device fallback.
 
 Pyannote receives an FFmpeg-decoded waveform tensor through the packaged worker. This path does not require TorchCodec shared-FFmpeg decoding. Recognition/diarization runtime success, CPU qualification, GPU execution and acoustic accuracy remain separate evidence.
 

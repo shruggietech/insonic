@@ -4,6 +4,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-31
+
 ### Fixed
 
 - 2026-10-29: Run mandatory foundation and documentation checks after verified readiness when optional component preparation is unelected. Preserve explicit dependency success and required aggregate acceptance.
@@ -33,6 +35,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-31: Inspect per-track transcript coverage from retained speech evidence and repair bounded diagnosed or explicit ranges through durable window work. Require measurable improvement under a fixed evidence basis, preserve unaffected native subtitle fields and canonical media, fence concurrent source/document/speaker changes, and retain finite attempt decisions while retiring temporary checkpoints. Qualify the admission-to-repair journey with deterministic installed-CLI fixtures.
 
 ### Decisions
+
+- 2026-10-31: Prepare the unpublished v1.1.0 minor candidate from the accepted reliability and long-recording work. Declare coverage and repair in the advanced CLI capability metadata, preserve original v1.0.3 documentation/schema authority after copying current changes forward, and obtain genuine isolated hosted captures. Keep catalog schema 11, mandatory qualification and owner-controlled merge/publication boundaries unchanged.
 
 - 2026-10-31: Retain compact text-free acoustic observations before cue assembly and compare repairs against that fixed basis. Reuse the existing window/checkpoint and atomic recording-commit paths, adding a transactional speaker-mapping digest because mappings may change independently of the document revision. Extend maintained installed-CLI qualification with deterministic recording coverage/repair fixtures; real-model acoustic and GPU checks remain separately elected.
 
@@ -510,7 +514,7 @@ All notable changes to this project will be documented here. The format follows 
 - Preserve closed GitHub Projects when rerunning repository setup.
 - Cover root schema-validation dependencies in grouped Dependabot updates and correct contributor installation guidance.
 
-[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.1.0...HEAD
 
 ## Decisions (2026-10-08)
 
@@ -531,3 +535,5 @@ All notable changes to this project will be documented here. The format follows 
 [1.0.2]: https://github.com/shruggietech/insonic/compare/v1.0.1...v1.0.2
 
 [1.0.3]: https://github.com/shruggietech/insonic/compare/v1.0.2...v1.0.3
+
+[1.1.0]: https://github.com/shruggietech/insonic/compare/v1.0.3...v1.1.0

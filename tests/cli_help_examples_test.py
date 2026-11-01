@@ -58,7 +58,7 @@ class ParallelRegressionTests(unittest.TestCase):
              patch('cli_storage_qualification.qualify', fake), \
              patch('cli_backup_qualification.qualify', fake), \
              patch('cli_help_examples.qualify', fake):
-            with runner.parallel_regressions(invoke, Path('/owned'), '1.0.3', True, {}, '/owned/cli', {}, process_factory=selected_factory) as futures:
+            with runner.parallel_regressions(invoke, Path('/owned'), '1.1.0', True, {}, '/owned/cli', {}, process_factory=selected_factory) as futures:
                 roots = {name: Path(future.result()) for name, future in futures.items()}
         self.assertEqual(len(set(roots.values())), 9)
         self.assertTrue(all(root.parent == Path('/owned') for root in roots.values()))
@@ -87,7 +87,7 @@ class ParallelRegressionTests(unittest.TestCase):
              patch('cli_storage_qualification.qualify', complete), \
              patch('cli_backup_qualification.qualify', complete):
             with self.assertRaisesRegex(ValueError, 'fixture regression'):
-                with runner.parallel_regressions(lambda *a, **k: {}, Path('/owned'), '1.0.3', False, {}, '/owned/cli', {}) as futures:
+                with runner.parallel_regressions(lambda *a, **k: {}, Path('/owned'), '1.1.0', False, {}, '/owned/cli', {}) as futures:
                     futures['operator'].result()
         self.assertEqual(len(finished), 7)
 

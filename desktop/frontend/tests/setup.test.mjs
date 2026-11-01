@@ -15,7 +15,7 @@ const proof = 'a'.repeat(64);
 const initialState = () => ({ status: 'active', current_stage: 'workspace', stages: ids.map(id => ({ id, state: 'pending', proof })), choices: { processing_mode: 'none' } });
 function fixture(selected = false) {
     const b = { calls: [], draft: { revision: 0, path: 'C:/Users/fixture/Voice archive', plan: null, stage: 'workspace', status: 'active', credential_backend:'native' }, journey: { revision: 0, state: initialState() }, selected, lost: false };
-    const current = () => ({ kind: 'first-run-setup', schema_version: '1.0.3', workspace_id: wid, ...b.journey, observations: Object.fromEntries(ids.map(id => [id, proof])), stages: b.journey.state.stages, paths: { control_directory: '.insonic', artifacts: 'artifacts', cache: 'cache', space_available_bytes: null }, actions: ['Open import', 'Open Settings', 'Open Jobs'] });
+    const current = () => ({ kind: 'first-run-setup', schema_version: '1.1.0', workspace_id: wid, ...b.journey, observations: Object.fromEntries(ids.map(id => [id, proof])), stages: b.journey.state.stages, paths: { control_directory: '.insonic', artifacts: 'artifacts', cache: 'cache', space_available_bytes: null }, actions: ['Open import', 'Open Settings', 'Open Jobs'] });
     b.Show = async () => b.selected ? { workspace_id: wid, result: { workspace_id: wid, display_name: 'Voice archive' } } : { error: { code: 'not_found', message: 'No selected library' } };
     b.SetupDraft = async (action, input, id) => { const data = JSON.parse(input); b.calls.push({ operation: 'draft.' + action, data, request_id: id }); if (action === 'save' && b.acceptedDraft?.id === id) {
         assert.deepEqual(b.acceptedDraft.data, data);
@@ -23,7 +23,7 @@ function fixture(selected = false) {
     } if (action === 'location')
         return { result: { path: data.path ?? b.draft.path, writable: true, available_bytes: null, existing_workspace: false, control_directory: '.insonic', artifacts: 'artifacts', cache: 'cache' } }; if (action === 'save') {
         assert.equal(data.expected_revision, b.draft.revision);
-        b.draft = { ...data, revision: b.draft.revision + 1, plan: { kind: 'workspace-config', schema_version: '1.0.3', workspace_id: wid, display_name: data.plan.display_name, profiles: data.plan.profiles ?? { storage: { adapter_id: 'filesystem', configuration: { root: 'artifacts' } }, catalog: { adapter_id: 'sqlite', configuration: { path: 'catalog.sqlite' } }, graph: { adapter_id: 'ladybugdb', configuration: { path: 'graph/library.lbug' } } } } };
+        b.draft = { ...data, revision: b.draft.revision + 1, plan: { kind: 'workspace-config', schema_version: '1.1.0', workspace_id: wid, display_name: data.plan.display_name, profiles: data.plan.profiles ?? { storage: { adapter_id: 'filesystem', configuration: { root: 'artifacts' } }, catalog: { adapter_id: 'sqlite', configuration: { path: 'catalog.sqlite' } }, graph: { adapter_id: 'ladybugdb', configuration: { path: 'graph/library.lbug' } } } } };
         b.acceptedDraft = { id, data: structuredClone(data) };
         if (b.draftLost) {
             b.draftLost = false;

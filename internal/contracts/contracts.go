@@ -13,13 +13,13 @@ import (
 	"unicode/utf8"
 )
 
-const Version = "1.0.3"
+const Version = "1.1.0"
 
 // SupportedDocumentVersion admits retained release documents without changing
 // their bytes, revisions or receipt digests. IPC and installed package identity
 // continue to require the exact Version.
 func SupportedDocumentVersion(version string) bool {
-	return version == Version || version == "1.0.2" || version == "1.0.0" || version == "1.0.1"
+	return version == Version || version == "1.0.3" || version == "1.0.2" || version == "1.0.0" || version == "1.0.1"
 }
 
 // MaxWorkPayload bounds normalized durable input independently of the smaller

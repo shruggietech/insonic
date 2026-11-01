@@ -490,7 +490,7 @@ def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_pac
         queue('documentation', path, None, file_entry(path))
     value = {'kind': 'release-candidate', 'schema_version': version, 'version': version, 'revision': revision,
              'tag': 'v' + version, 'repository': REPOSITORY, 'packages': packages, 'assets': files,
-             'capabilities': {'variants': list(VARIANTS), 'platforms': list(PLATFORMS), 'advanced_cli': ['backup'], 'inference_qualification': 'not-executed'}}
+             'capabilities': {'variants': list(VARIANTS), 'platforms': list(PLATFORMS), 'advanced_cli': ['backup', 'recordings coverage', 'recordings repair'], 'inference_qualification': 'not-executed'}}
     if installers: value['installers'] = installers
     def verify_check(item):
         kind, path, receipt = item

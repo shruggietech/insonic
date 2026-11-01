@@ -86,7 +86,7 @@ func importPresetSuite(t *testing.T, create func(*testing.T, string) *Store) {
 func TestImportPresetIncompatibleRegistry(t *testing.T) {
 	for _, raw := range []string{
 		`{"kind":"import-preset-registry","schema_version":"99.0.0","items":[]}`,
-		`{"kind":"import-preset-registry","schema_version":"1.0.3","items":[{"kind":"import-preset","schema_version":"99.0.0","id":"ed34901a-ed3c-4a60-aef4-aed07a0759f4","revision":1,"name":"Future","state":"active","options":{}}]}`,
+		`{"kind":"import-preset-registry","schema_version":"1.1.0","items":[{"kind":"import-preset","schema_version":"99.0.0","id":"ed34901a-ed3c-4a60-aef4-aed07a0759f4","revision":1,"name":"Future","state":"active","options":{}}]}`,
 	} {
 		_, err := decodeImportPresets([]byte(raw), 1)
 		if err == nil || contracts.SafeError(err).Code != "incompatible_version" {

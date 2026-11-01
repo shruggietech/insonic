@@ -34,8 +34,8 @@ class ParallelPackageFixture:
         self.payload = self.packages / 'desktop'
         self.payload.mkdir()
         self.initial = {
-            'kind': 'native-package-receipt', 'schema_version': '1.0.3',
-            'product_version': '1.0.3', 'documentation_version': '1.0.3',
+            'kind': 'native-package-receipt', 'schema_version': '1.1.0',
+            'product_version': '1.1.0', 'documentation_version': '1.1.0',
             'revision': 'a' * 40, 'source_dirty': False,
             'platform': 'windows_amd64', 'variant': 'desktop', 'dirname': 'desktop',
             'archive': self.archive.name, 'archive_sha256': self.sha(self.archive),

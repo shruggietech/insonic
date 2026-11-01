@@ -1,0 +1,651 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.1.0/schemas/v1.1.0/runtime-response.schema.json",
+  "title": "Runtime response",
+  "description": "A versioned operation result or redacted typed error. Early CLI errors omit unavailable identities; runtime replies include the workspace, request and session correlation.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.1.0",
+      "description": "Shared software and contract version."
+    },
+    "kind": {
+      "const": "runtime-response",
+      "description": "Master-registry document discriminator."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace authority when known."
+    },
+    "request_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Validated request correlation when known."
+    },
+    "runtime_session_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Current runtime owner session when known."
+    },
+    "result": {
+      "type": "object",
+      "description": "Operation-specific workspace, diagnostic or attempt result. Resolved credentials are excluded.",
+      "properties": {
+        "model_selections": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/modelResolution",
+            "description": "Frozen exact model selection."
+          },
+          "maxItems": 128,
+          "description": "Exact selected models retained by a durable work election."
+        },
+        "acquisition_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Shared exact-bundle acquisition work identity."
+          },
+          "maxItems": 128,
+          "description": "Separate prerequisite work IDs; pending acquisition never means inference succeeded."
+        },
+        "model_selection_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total frozen model/acquisition entries; bounded inspection may show only the first hundred."
+        },
+        "acquisition_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total frozen model/acquisition entries; bounded inspection may show only the first hundred."
+        },
+        "local_assets": {
+          "$ref": "worker-resources.schema.json#/$defs/localAssets",
+          "description": "Offline-only declared local prerequisite observations."
+        },
+        "profile_download_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Nominal complete worker profile transfer size, independent of the current election."
+        },
+        "credential_state": {
+          "enum": [
+            "not_required",
+            "available",
+            "missing",
+            "locked",
+            "rejected",
+            "unavailable"
+          ],
+          "description": "Local protected credential resolvability; available does not establish upstream authorization."
+        },
+        "upstream_authorization": {
+          "const": "not_checked",
+          "description": "Preview does not contact upstream services to test authentication or gated access."
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "description": "Fixed redacted error code and message.",
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "checksum_mismatch",
+            "acquisition_timeout",
+            "mixed_item_failure",
+            "timing_unavailable",
+            "invalid_audio",
+            "audio_limit",
+            "unsupported_audio",
+            "model_unavailable",
+            "model_acquisition_failed",
+            "unsupported_capability",
+            "unsupported_retrieval",
+            "empty_dataset",
+            "unsupported_resume",
+            "incompatible_checkpoint",
+            "training_incomplete",
+            "text_unavailable",
+            "input_limit",
+            "invalid_engine_output",
+            "invalid_timing",
+            "engine_ci_forbidden",
+            "engine_unavailable",
+            "unsupported_device",
+            "invalid_embedding",
+            "invalid_request",
+            "incompatible_version",
+            "workspace_mismatch",
+            "not_found",
+            "conflict",
+            "unavailable",
+            "cancelled",
+            "output_limit",
+            "operation_failed",
+            "insufficient_space",
+            "cuda_no_device",
+            "cuda_library_missing",
+            "cuda_library_incompatible",
+            "cuda_compute_unsupported",
+            "cuda_resource_exhausted",
+            "unsupported_language",
+            "engine_failed",
+            "resource_exhausted"
+          ],
+          "description": "Stable machine-readable failure category."
+        },
+        "message": {
+          "type": "string",
+          "description": "Fixed diagnostic text without raw child output or credential values."
+        },
+        "diagnostics": {
+          "description": "Redacted condition groups with complete represented occurrence counts and a first generated cue/media pointer, without raw child text.",
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "count"
+            ],
+            "properties": {
+              "pointer": {
+                "maxLength": 256,
+                "type": "string",
+                "description": "First generated current document occurrence.",
+                "pattern": "^/(media_timing|cues/(0|[1-9][0-9]*)/speaker_attributions/(0|[1-9][0-9]*))$"
+              },
+              "count": {
+                "description": "Number of represented occurrences of this condition.",
+                "minimum": 1,
+                "type": "integer",
+                "maximum": 65536
+              },
+              "message": {
+                "maxLength": 256,
+                "type": "string",
+                "description": "Fixed locally authored explanation, never raw child output."
+              },
+              "code": {
+                "description": "Fixed current subtitle diagnostic vocabulary or redacted generic condition.",
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,127}$"
+              }
+            }
+          },
+          "maxItems": 64
+        },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Generated schema-owned input location and constraints; excludes submitted values and dynamic map keys.",
+          "properties": {
+            "pointer": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "Known contract field path; dynamic map keys and array positions are represented by an asterisk."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 8388609,
+              "description": "One-based JSON byte position where available; no input bytes are included."
+            },
+            "expected": {
+              "enum": [
+                "object",
+                "array",
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "null"
+              ],
+              "description": "Expected JSON type from the packaged contract."
+            },
+            "constraint": {
+              "enum": [
+                "minimum",
+                "maximum",
+                "minLength",
+                "maxLength",
+                "minItems",
+                "maxItems",
+                "minProperties",
+                "maxProperties",
+                "maxBytes",
+                "maxDepth"
+              ],
+              "description": "Packaged constraint keyword; byte ceilings remain distinct from character counts."
+            },
+            "bound": {
+              "type": "integer",
+              "description": "Exact integer bound declared by the packaged contract."
+            }
+          }
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "provider_auth",
+            "provider_missing",
+            "provider_busy",
+            "provider_redirect",
+            "provider_unavailable",
+            "provider_failure",
+            "provider_protocol",
+            "provider_timeout",
+            "provider_response_limit",
+            "native_result_limit",
+            "artifact_materialization_limit",
+            "native_statement",
+            "native_function",
+            "native_syntax",
+            "native_read_only",
+            "backend_pending_plan",
+            "backend_s3_bucket",
+            "backend_plan",
+            "backend_local_transport",
+            "backend_endpoint_tls",
+            "ollama_endpoint",
+            "ollama_unavailable",
+            "ollama_provider",
+            "ollama_auth",
+            "ollama_missing",
+            "ollama_busy",
+            "ollama_redirect",
+            "ollama_protocol",
+            "ollama_capability",
+            "ollama_route",
+            "workspace_missing",
+            "input_missing",
+            "input_invalid",
+            "revision_stale",
+            "credential_duplicate",
+            "credential_capacity",
+            "credential_locked",
+            "credential_bootstrap",
+            "source_map_incompatible",
+            "backup_checksum",
+            "backup_size",
+            "backup_cleanup",
+            "backup_identity",
+            "model_not_acquired",
+            "model_damaged",
+            "model_storage_unavailable",
+            "profile_prerequisite",
+            "runtime_directory",
+            "runtime_owner",
+            "runtime_endpoint",
+            "runtime_catalog",
+            "startup_launch",
+            "startup_exit",
+            "startup_report",
+            "startup_timeout",
+            "wait_timeout",
+            "wait_interrupted",
+            "documentation_open",
+            "json_empty",
+            "json_syntax",
+            "json_encoding",
+            "json_duplicate_key",
+            "json_extra_document",
+            "input_shape",
+            "input_unknown_field",
+            "input_required",
+            "input_type",
+            "input_enum",
+            "input_range",
+            "input_length",
+            "input_version",
+            "input_constraint",
+            "input_bytes",
+            "credential_value_limit",
+            "credential_input_shape",
+            "output_exists",
+            "output_parent_missing",
+            "output_permission",
+            "output_directory",
+            "output_space",
+            "output_write",
+            "asset_missing",
+            "asset_unreadable",
+            "asset_not_regular",
+            "asset_size",
+            "asset_hash",
+            "asset_tool_missing",
+            "artifact_missing",
+            "artifact_identity",
+            "artifact_range",
+            "model_access_required",
+            "worker_probe_interpreter_missing",
+            "worker_probe_interpreter_unreadable",
+            "worker_probe_home_unavailable",
+            "worker_probe_launch_failed",
+            "worker_probe_process_failed",
+            "worker_probe_deadline",
+            "worker_probe_cancelled",
+            "worker_probe_output_invalid",
+            "worker_probe_output_limit",
+            "worker_probe_package_missing",
+            "worker_probe_version_mismatch",
+            "worker_probe_import_failed",
+            "worker_probe_cpu_unavailable",
+            "worker_probe_inventory_limit",
+            "worker_probe_inventory_unreadable",
+            "worker_probe_checkpoint_invalid",
+            "artifact_retained",
+            "artifact_active_lease",
+            "artifact_grace_period",
+            "artifact_retirement_active",
+            "unsupported_language",
+            "repair_attempts_exhausted"
+          ],
+          "description": "Allowlisted locally generated operation condition; never external text."
+        },
+        "asset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "name"
+          ],
+          "description": "Generated logical asset identity, without local paths or external output.",
+          "properties": {
+            "role": {
+              "enum": [
+                "worker_runtime",
+                "worker_installer",
+                "worker_wheel",
+                "model_file",
+                "trainer_executable",
+                "trainer_support",
+                "trainer_output",
+                "artifact"
+              ],
+              "description": "Fixed elected asset role."
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$",
+              "description": "ASCII slash-relative logical name. Absolute, traversal, control and Windows device names are rejected by the shared runtime.",
+              "allOf": [
+                {
+                  "not": {
+                    "pattern": "^/"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "[\\\\:\"<>|?*]"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "(^|/)\\.{1,2}(/|$)"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "//"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "\\.(/|$)"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "(^|/)([Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(\\.|/|$)"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "device_attempt": {
+          "type": "object",
+          "description": "Generated device attempts retained after failure; does not claim successful execution.",
+          "additionalProperties": false,
+          "required": [
+            "requested_device",
+            "attempted_devices"
+          ],
+          "properties": {
+            "requested_device": {
+              "enum": [
+                "cpu",
+                "cuda",
+                "auto"
+              ],
+              "description": "Frozen local device policy."
+            },
+            "attempted_devices": {
+              "type": "array",
+              "description": "Ordered concrete device attempts that actually started.",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": {
+                "enum": [
+                  "cpu",
+                  "cuda"
+                ]
+              }
+            },
+            "fallback_reason": {
+              "enum": [
+                "cuda_no_device",
+                "cuda_library_missing",
+                "cuda_library_incompatible",
+                "cuda_compute_unsupported",
+                "cuda_resource_exhausted"
+              ],
+              "description": "Generated CUDA failure that selected the CPU retry; cancellation may prevent its launch."
+            },
+            "resource_adjustments": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "description": "One host-generated compatible CUDA OOM batch reduction before the second CUDA attempt.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "attempt",
+                  "previous_batch_size",
+                  "batch_size",
+                  "reason"
+                ],
+                "properties": {
+                  "attempt": {
+                    "const": 2,
+                    "description": "One-based attempt index whose reduced batch actually started."
+                  },
+                  "previous_batch_size": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64,
+                    "description": "Frozen batch size used by the first CUDA attempt."
+                  },
+                  "batch_size": {
+                    "const": 1,
+                    "description": "Reduced execution batch; source and model stay unchanged."
+                  },
+                  "reason": {
+                    "const": "cuda_resource_exhausted",
+                    "description": "Classified resource failure authorizing this single adjustment."
+                  }
+                }
+              }
+            }
+          },
+          "oneOf": [
+            {
+              "properties": {
+                "requested_device": {
+                  "const": "cpu",
+                  "description": "Explicit or historical CPU policy."
+                },
+                "attempted_devices": {
+                  "const": [
+                    "cpu"
+                  ],
+                  "description": "Only CPU was attempted."
+                }
+              },
+              "not": {
+                "required": [
+                  "fallback_reason"
+                ]
+              },
+              "allOf": [
+                {
+                  "not": {
+                    "required": [
+                      "resource_adjustments"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "properties": {
+                "requested_device": {
+                  "enum": [
+                    "auto",
+                    "cuda"
+                  ],
+                  "description": "NVIDIA-preferred policy."
+                },
+                "attempted_devices": {
+                  "const": [
+                    "cuda"
+                  ],
+                  "description": "CUDA was attempted; CPU did not start."
+                }
+              },
+              "allOf": [
+                {
+                  "not": {
+                    "required": [
+                      "resource_adjustments"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "required": [
+                "fallback_reason"
+              ],
+              "properties": {
+                "requested_device": {
+                  "enum": [
+                    "auto",
+                    "cuda"
+                  ],
+                  "description": "NVIDIA-preferred policy."
+                },
+                "attempted_devices": {
+                  "const": [
+                    "cuda",
+                    "cpu"
+                  ],
+                  "description": "CUDA failed and CPU was attempted."
+                }
+              },
+              "allOf": [
+                {
+                  "not": {
+                    "required": [
+                      "resource_adjustments"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "required": [
+                "resource_adjustments"
+              ],
+              "properties": {
+                "requested_device": {
+                  "enum": [
+                    "auto",
+                    "cuda"
+                  ],
+                  "description": "Frozen NVIDIA-preferred policy."
+                },
+                "attempted_devices": {
+                  "const": [
+                    "cuda",
+                    "cuda"
+                  ],
+                  "description": "One initial attempt and one reduced-batch CUDA attempt."
+                }
+              }
+            },
+            {
+              "required": [
+                "resource_adjustments",
+                "fallback_reason"
+              ],
+              "properties": {
+                "requested_device": {
+                  "enum": [
+                    "auto",
+                    "cuda"
+                  ],
+                  "description": "Frozen NVIDIA-preferred policy."
+                },
+                "attempted_devices": {
+                  "const": [
+                    "cuda",
+                    "cuda",
+                    "cpu"
+                  ],
+                  "description": "Initial CUDA, reduced-batch CUDA, then CPU fallback."
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "1.1.0",
+      "kind": "runtime-response",
+      "error": {
+        "code": "unavailable",
+        "message": "The selected dependency is unavailable."
+      }
+    }
+  ],
+  "anyOf": [
+    {
+      "required": [
+        "result"
+      ]
+    },
+    {
+      "required": [
+        "error"
+      ]
+    }
+  ]
+}

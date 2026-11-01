@@ -1,0 +1,869 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.1.0/schemas/v1.1.0/worker-resources.schema.json",
+  "title": "Local worker resources",
+  "description": "Optional managed engine profiles and verified environment receipts, separate from model execution evidence.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/catalog"
+    },
+    {
+      "$ref": "#/$defs/environment"
+    }
+  ],
+  "$defs": {
+    "pin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "description": "Exact absolute local file path.",
+          "type": "string",
+          "maxLength": 4096
+        },
+        "sha256": {
+          "description": "Calculated lowercase content SHA-256.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ]
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Immutable archive or wheel filename.",
+          "type": "string",
+          "maxLength": 256
+        },
+        "url": {
+          "description": "Pinned HTTPS acquisition locator.",
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "sha256": {
+          "description": "Immutable asset SHA-256.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "size_bytes": {
+          "description": "Exact compressed/download bytes.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "package": {
+          "description": "Selected distribution name.",
+          "type": "string",
+          "maxLength": 256
+        },
+        "version": {
+          "description": "Exact distribution version.",
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "sha256",
+        "size_bytes"
+      ]
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "description": "Observed native dependency/device availability, without model execution.",
+          "type": "boolean"
+        },
+        "hardware_count": {
+          "description": "Observed device count, separate from dependency availability.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "dependency_state": {
+          "description": "Observed dependency state.",
+          "type": "string",
+          "maxLength": 128
+        },
+        "correction": {
+          "description": "Explicit corrective action for a missing device/dependency.",
+          "type": "string",
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "available",
+        "hardware_count",
+        "dependency_state"
+      ]
+    },
+    "inspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "description": "Elected operation role.",
+          "enum": [
+            "recognition",
+            "diarization"
+          ]
+        },
+        "python": {
+          "description": "Automatically calculated interpreter file pin.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "description": "Exact absolute local file path.",
+              "type": "string",
+              "maxLength": 4096
+            },
+            "sha256": {
+              "description": "Calculated lowercase content SHA-256.",
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ]
+        },
+        "python_version": {
+          "description": "Observed interpreter version.",
+          "type": "string",
+          "maxLength": 128
+        },
+        "packages": {
+          "description": "Observed selected library versions.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "devices": {
+          "description": "CPU/CUDA prerequisite facts.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "available": {
+                "description": "Observed native dependency/device availability, without model execution.",
+                "type": "boolean"
+              },
+              "hardware_count": {
+                "description": "Observed device count, separate from dependency availability.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "dependency_state": {
+                "description": "Observed dependency state.",
+                "type": "string",
+                "maxLength": 128
+              },
+              "correction": {
+                "description": "Explicit corrective action for a missing device/dependency.",
+                "type": "string",
+                "maxLength": 4096
+              }
+            },
+            "required": [
+              "available",
+              "hardware_count",
+              "dependency_state"
+            ]
+          }
+        },
+        "cpus": {
+          "description": "Observed available CPU count.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "engine_available": {
+          "description": "The elected library route imports and initializes native prerequisites without weights.",
+          "type": "boolean"
+        },
+        "compatible": {
+          "description": "Observed selected versions match the supported worker.",
+          "type": "boolean"
+        },
+        "error": {
+          "description": "Fixed redacted prerequisite failure category.",
+          "type": "string",
+          "maxLength": 128
+        },
+        "correction": {
+          "description": "Specific corrective action.",
+          "type": "string",
+          "maxLength": 4096
+        },
+        "files": {
+          "description": "Frozen dependency file byte identities.",
+          "type": "array",
+          "maxItems": 30000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "description": "Exact absolute local file path.",
+                "type": "string",
+                "maxLength": 4096
+              },
+              "sha256": {
+                "description": "Calculated lowercase content SHA-256.",
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "path",
+              "sha256"
+            ]
+          }
+        },
+        "probe": {
+          "$ref": "#/$defs/probe",
+          "description": "Optional bounded generated verification facts; absence in a legacy receipt does not alter its original integrity checks."
+        }
+      },
+      "required": [
+        "role",
+        "python",
+        "python_version",
+        "packages",
+        "devices",
+        "cpus",
+        "engine_available",
+        "compatible"
+      ]
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Operation role.",
+          "enum": [
+            "recognition",
+            "diarization"
+          ]
+        },
+        "platform": {
+          "description": "Qualified host architecture.",
+          "enum": [
+            "windows_amd64",
+            "linux_amd64"
+          ]
+        },
+        "python": {
+          "description": "Pinned managed interpreter version.",
+          "type": "string",
+          "maxLength": 128
+        },
+        "device": {
+          "description": "Default managed device.",
+          "const": "cpu"
+        },
+        "engines": {
+          "description": "Exact required engine versions.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "runtime": {
+          "description": "Checksum-pinned standalone Python archive.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "description": "Immutable archive or wheel filename.",
+              "type": "string",
+              "maxLength": 256
+            },
+            "url": {
+              "description": "Pinned HTTPS acquisition locator.",
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://"
+            },
+            "sha256": {
+              "description": "Immutable asset SHA-256.",
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "size_bytes": {
+              "description": "Exact compressed/download bytes.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "package": {
+              "description": "Selected distribution name.",
+              "type": "string",
+              "maxLength": 256
+            },
+            "version": {
+              "description": "Exact distribution version.",
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "name",
+            "url",
+            "sha256",
+            "size_bytes"
+          ]
+        },
+        "installer": {
+          "description": "Checksum-pinned isolated environment installer archive.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "description": "Immutable archive or wheel filename.",
+              "type": "string",
+              "maxLength": 256
+            },
+            "url": {
+              "description": "Pinned HTTPS acquisition locator.",
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://"
+            },
+            "sha256": {
+              "description": "Immutable asset SHA-256.",
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "size_bytes": {
+              "description": "Exact compressed/download bytes.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "package": {
+              "description": "Selected distribution name.",
+              "type": "string",
+              "maxLength": 256
+            },
+            "version": {
+              "description": "Exact distribution version.",
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "name",
+            "url",
+            "sha256",
+            "size_bytes"
+          ]
+        },
+        "wheels": {
+          "description": "Complete selected wheel identities.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "description": "Immutable archive or wheel filename.",
+                "type": "string",
+                "maxLength": 256
+              },
+              "url": {
+                "description": "Pinned HTTPS acquisition locator.",
+                "type": "string",
+                "format": "uri",
+                "pattern": "^https://"
+              },
+              "sha256": {
+                "description": "Immutable asset SHA-256.",
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "size_bytes": {
+                "description": "Exact compressed/download bytes.",
+                "type": "integer",
+                "minimum": 1
+              },
+              "package": {
+                "description": "Selected distribution name.",
+                "type": "string",
+                "maxLength": 256
+              },
+              "version": {
+                "description": "Exact distribution version.",
+                "type": "string",
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "name",
+              "url",
+              "sha256",
+              "size_bytes"
+            ]
+          }
+        },
+        "lock": {
+          "description": "Bundled platform-specific full requirements-lock filename.",
+          "type": "string",
+          "maxLength": 256
+        },
+        "lock_sha256": {
+          "description": "Exact requirements-lock content identity.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "download_bytes": {
+          "description": "Sum of exact managed runtime, installer and wheel download bytes.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_space_bytes": {
+          "description": "Conservative required local scratch/environment capacity.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "linux_minimum_glibc": {
+          "description": "Managed CPU dependency minimum glibc version on Linux.",
+          "type": "string",
+          "maxLength": 32
+        }
+      },
+      "required": [
+        "id",
+        "platform",
+        "python",
+        "device",
+        "engines",
+        "runtime",
+        "installer",
+        "wheels",
+        "lock",
+        "lock_sha256",
+        "download_bytes",
+        "min_space_bytes"
+      ]
+    },
+    "election": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "description": "Selected environment operation role.",
+          "enum": [
+            "recognition",
+            "diarization"
+          ]
+        },
+        "mode": {
+          "description": "Acquire isolated managed CPU dependencies or verify an existing interpreter.",
+          "enum": [
+            "managed",
+            "reuse"
+          ]
+        },
+        "python_path": {
+          "description": "Absolute existing interpreter path for reuse.",
+          "type": "string",
+          "maxLength": 4096
+        },
+        "offline_assets": {
+          "description": "Absolute directory containing exact runtime/installer archives and wheel filenames; no network acquisition.",
+          "type": "string",
+          "maxLength": 4096
+        },
+        "expected_revision": {
+          "description": "Observed processing-tools revision required for setup publication.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "profile_digest": {
+          "description": "Optional exact catalog profile identity; stale profiles are rejected.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "role",
+        "mode"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "description": "Reuse discriminator.",
+                "const": "reuse"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "python_path"
+            ],
+            "not": {
+              "required": [
+                "offline_assets"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "description": "Managed discriminator.",
+                "const": "managed"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "python_path"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "Worker catalog discriminator.",
+          "const": "worker-catalog"
+        },
+        "schema_version": {
+          "description": "Synchronized system release version.",
+          "const": "1.1.0"
+        },
+        "profiles": {
+          "description": "Supported complete managed CPU profile identities.",
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/profile"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "schema_version",
+        "profiles"
+      ]
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "Verified environment receipt discriminator.",
+          "const": "worker-environment"
+        },
+        "schema_version": {
+          "description": "Synchronized system release version.",
+          "const": "1.1.0"
+        },
+        "profile_digest": {
+          "description": "Exact supported role/profile identity.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "inspection": {
+          "description": "Weight-free verified dependency snapshot.",
+          "$ref": "#/$defs/inspection"
+        },
+        "mode": {
+          "enum": [
+            "managed",
+            "reuse"
+          ],
+          "description": "Whether this receipt was acquired into an owned managed environment or verified from an elected existing environment."
+        }
+      },
+      "required": [
+        "kind",
+        "schema_version",
+        "profile_digest",
+        "inspection"
+      ]
+    },
+    "localAssets": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Read-only observations of the elected offline profile files; no directory scan or network acquisition.",
+      "required": [
+        "required_bytes",
+        "verified_bytes",
+        "missing_bytes",
+        "failures"
+      ],
+      "properties": {
+        "required_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total expected byte sizes of declared local assets."
+        },
+        "verified_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Expected bytes whose exact size and SHA-256 were verified."
+        },
+        "missing_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Expected bytes of missing or unusable assets; required minus verified bytes."
+        },
+        "failures": {
+          "type": "array",
+          "maxItems": 258,
+          "description": "One generated observation per missing or unusable declared asset.",
+          "items": {
+            "$ref": "runtime-response.schema.json#/properties/error"
+          }
+        }
+      }
+    },
+    "probeCheckpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "elapsed_ms",
+        "files",
+        "hashed_files",
+        "hashed_bytes"
+      ],
+      "properties": {
+        "stage": {
+          "enum": [
+            "package_versions",
+            "library_import",
+            "cpu_prerequisites",
+            "cuda_prerequisites",
+            "dependency_inventory",
+            "dependency_hashing",
+            "complete"
+          ],
+          "description": "Allowlisted most recently observed verification stage."
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000,
+          "description": "Elapsed milliseconds from this observation clock origin."
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000,
+          "description": "Number of unique dependency files observed for the snapshot."
+        },
+        "hashed_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000,
+          "description": "Number of dependency files completely hashed so far."
+        },
+        "hashed_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Number of dependency bytes completely hashed so far."
+        }
+      }
+    },
+    "probeProgress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "stage",
+        "reason",
+        "elapsed_ms",
+        "files",
+        "hashed_files",
+        "hashed_bytes",
+        "checkpoints"
+      ],
+      "properties": {
+        "stage": {
+          "enum": [
+            "package_versions",
+            "library_import",
+            "cpu_prerequisites",
+            "cuda_prerequisites",
+            "dependency_inventory",
+            "dependency_hashing",
+            "complete"
+          ],
+          "description": "Allowlisted most recently observed verification stage."
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000,
+          "description": "Child elapsed milliseconds from entry to the Python probe; independent of native elapsed time."
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000,
+          "description": "Number of unique dependency files observed for the snapshot."
+        },
+        "hashed_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000,
+          "description": "Number of dependency files completely hashed so far."
+        },
+        "hashed_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Number of dependency bytes completely hashed so far."
+        },
+        "mode": {
+          "enum": [
+            "inspect",
+            "snapshot"
+          ],
+          "description": "Inspection workload: imports only, or imports plus a frozen dependency snapshot."
+        },
+        "reason": {
+          "enum": [
+            "running",
+            "success",
+            "interpreter_missing",
+            "interpreter_unreadable",
+            "home_unavailable",
+            "launch_failed",
+            "process_failed",
+            "deadline",
+            "cancelled",
+            "output_invalid",
+            "output_limit",
+            "package_missing",
+            "version_mismatch",
+            "import_failed",
+            "cpu_unavailable",
+            "inventory_limit",
+            "inventory_unreadable",
+            "checkpoint_invalid"
+          ],
+          "description": "Allowlisted generated outcome category, excluding raw exceptions and tool output."
+        },
+        "checkpoints": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/probeCheckpoint"
+          },
+          "description": "Bounded ordered stage observations sharing the child monotonic clock origin."
+        }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "stage",
+        "reason",
+        "elapsed_ms",
+        "budget_ms"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "inspect",
+            "snapshot"
+          ],
+          "description": "Inspection workload: imports only, or imports plus a frozen dependency snapshot."
+        },
+        "stage": {
+          "enum": [
+            "interpreter_hash",
+            "private_home",
+            "process_start",
+            "output_validation",
+            "receipt_verification",
+            "not_started",
+            "package_versions",
+            "library_import",
+            "cpu_prerequisites",
+            "cuda_prerequisites",
+            "dependency_inventory",
+            "dependency_hashing",
+            "complete"
+          ],
+          "description": "Allowlisted most recently observed verification stage."
+        },
+        "reason": {
+          "enum": [
+            "success",
+            "interpreter_missing",
+            "interpreter_unreadable",
+            "home_unavailable",
+            "launch_failed",
+            "process_failed",
+            "deadline",
+            "cancelled",
+            "output_invalid",
+            "output_limit",
+            "package_missing",
+            "version_mismatch",
+            "import_failed",
+            "cpu_unavailable",
+            "inventory_limit",
+            "inventory_unreadable",
+            "checkpoint_invalid"
+          ],
+          "description": "Allowlisted generated outcome category, excluding raw exceptions and tool output."
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000,
+          "description": "Native elapsed milliseconds from entry to worker inspection, including prerequisite verification and owned-child cleanup."
+        },
+        "budget_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "Effective original enclosing inspection allowance in milliseconds; zero means already expired."
+        },
+        "child": {
+          "$ref": "#/$defs/probeProgress",
+          "description": "Validated Python probe observations with a clock origin independent of native elapsed time."
+        }
+      },
+      "description": "Optional bounded generated worker observation. Native elapsed_ms and child elapsed_ms have independent monotonic origins; diagnostics do not establish environment integrity."
+    }
+  },
+  "examples": [
+    {
+      "kind": "worker-catalog",
+      "schema_version": "1.1.0",
+      "profiles": []
+    }
+  ]
+}

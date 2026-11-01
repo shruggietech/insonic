@@ -1,6 +1,6 @@
 # Pipelines and adapters
 
-[Local processing setup](processing-setup.md) prepares optional engines and models and reports prerequisites for a selected pipeline. Settings can save a pipeline with exact builtin models and automatic NVIDIA preference; saving it does not begin inference. New local requests default to `auto`, while explicit `cpu` stays CPU. `auto` and `cuda` can retry once on CPU for classified CUDA failures, with visible device provenance.
+[Local processing setup](processing-setup.md) prepares optional engines and models and reports prerequisites for a selected pipeline. Settings can save an exact builtin Local CPU pipeline; saving it does not begin inference. CPU and CUDA are explicit elections without automatic fallback.
 
 ## Configured work and current results
 
@@ -30,22 +30,6 @@ Supplied subtitles bypass recognition. Reusing current subtitles supports diariz
 The pinned local Whisper adapter intersects a final predicted endpoint with decoded media only when its overrun is at most 250 milliseconds, and records the exact change in `whisper_end_intersected_decoded_media`. Community-1 frame intersections use the same maximum with their separate diagnostic. Larger excursions, reversed intervals and generic adapter results remain invalid. These adapter policies preserve the decoded source boundary; they do not establish prediction accuracy or add audio beyond that boundary.
 
 
-## Resumable source-clock windows
-
-New processing requests for sources longer than 30 seconds automatically use bounded windows. An explicit `windows` object also enables them for short sources. Existing admitted work retains its frozen election. The same policy applies to newly configured import processing, CLI requests and desktop requests through the shared runtime.
-
-`windows.core_us` defaults to 30000000 (30 seconds) and accepts 1000000 through 300000000. `context_us` defaults to the smaller of 2000000 and half the core; explicit zero disables overlap. `concurrency` defaults to 1 and accepts a cap up to 4; the current executor runs one window at a time within that cap. Zero core or concurrency selects its default. At most 16384 windows and 64 selected track/channel lanes fit one plan. Larger jobs require a larger core or a narrower elected source range.
-
-Optional `tracks` entries contain `stream_index`, optional `channel`, inclusive `start_sample` and exclusive `end_sample`. Sample indices use the original track's native sample rate, not microseconds or the 16 kHz inference rate. Omitted bounds cover the track. Omitted channel means downmix; distinct channels and streams remain independent lanes. Without `tracks` the existing selected audio stream/channel is used. Do not combine explicit tracks with `audio.stream_index` or `audio.channel`. A direct per-run `windows` object takes precedence over the saved pipeline and its window override. Advanced window/range controls are available through CLI JSON and saved definitions; the desktop uses their effective settings without dedicated range controls.
-
-The versioned window-plan contract binds canonical source bytes/revision, current document, exact model and adapter identity, language/context, device policy and resource limits. Native sample counts and rational source origins determine contiguous cores and bounded overlap. Verified source chunks feed one continuous resampler per selected lane. Only the active window is materialized as mapped WAV; the runtime does not create a whole-recording PCM derivative or download the full source for each window. Planning verifies source bytes and counts samples before inference; this preparation still reads the source even when all inference checkpoints can be reused. See the generated [contract reference](schema.md).
-
-Each completed window publishes verified output bytes and commits their digest, size, plan/window identity and owner generation to the catalog. Work inspection reports completed and total windows. Cancel or interruption preserves completed checkpoints; explicit retry verifies and reuses compatible outputs, then resumes incomplete windows. Source, range, model or semantic-setting changes require a new compatible plan. Corrupt or partial output cannot become a checkpoint. Publication and current-document acceptance use the existing fenced work and artifact journals. Portable backup includes active checkpoint bytes; accepted current results retire checkpoint transcript bytes through normal deferred cleanup. Hashes and compact stage/device observations remain provenance, while the catalog still owns one current Cueson document.
-
-Recognition responses may supply `words` with integer `start_us`, `end_us` and `text` inside each segment. These are mapped-window-relative observations. Missing or unusable word timing retains segment evidence and an explicit boundary uncertainty diagnostic. Reconciliation uses both time and text to remove corroborated overlap observations, preserves genuine repetitions and conflicting alternatives, and records which windows produced each current cue. Source tracks are stitched separately. Diarizer labels remain window-local unless the existing speaker association workflow establishes a known identity; coincident labels do not prove the same voice. Cue/voice source provenance also governs downstream speaker selection, matching and training.
-
-Local pyannote `batch_size` accepts 1 through 64 and defaults to 1 (omission or zero). A CUDA out-of-memory result with a larger elected batch permits one fresh attempt at batch 1. If that fails with a classified CUDA condition, the existing elected policy may try CPU once, under the original execution deadline. Model, route, source window and semantic settings remain fixed. Requested, attempted and actual devices plus the resource adjustment are recorded per window. CPU memory exhaustion returns an actionable `resource_exhausted` result; it does not loop or switch providers.
-
 ## Saved definitions and command inputs
 
 ```sh
@@ -56,7 +40,7 @@ insonic pipelines inspect PIPELINE_ID --input inspection.json --json
 insonic recordings process MEDIA_ID --input processing.json --json
 ```
 
-A pipeline mutation carries `expected_revision` and `pipeline`, whose fields are `id`, `name`, `preset` and `configuration`. Zero expected revision creates a new ID; a positive expected revision must match the saved record. The returned revision is authoritative. Configuration contains `recognition`, `diarization`, optional `quality` and optional `windows`. Each supplied per-run override replaces that complete stage, quality policy or window election; it does not merge arbitrary option keys. Inspection input is optional and accepts `revision`, `overrides` and `context`.
+A pipeline mutation carries `expected_revision` and `pipeline`, whose fields are `id`, `name`, `preset` and `configuration`. Zero expected revision creates a new ID; a positive expected revision must match the saved record. The returned revision is authoritative. Configuration contains `recognition`, `diarization` and optional `quality`. Each supplied per-run override replaces that complete stage or quality policy; it does not merge arbitrary option keys. Inspection input is optional and accepts `revision`, `overrides` and `context`.
 
 Save this as `pipeline-update.json`, replacing the local model UUIDs with compatible registrations from `models list`. The pipeline UUID is a valid creation example:
 
@@ -98,11 +82,11 @@ The `insonic-http` adapter uses contract version `1`. An operator configures the
 
 An arbitrary provider API is not automatically compatible with this worker protocol. Provider-specific services can implement it through an adapter. Endpoint inspection validates configuration but reports reachability as not probed. Execution resolves only the elected credential and sends it as a Bearer authorization header. Redirects are refused; endpoint user information, query strings and fragments are rejected. Credentials require HTTPS, with an explicit loopback HTTP exception for locally hosted services. Errors return fixed categories without provider response bodies, credential values or endpoint details.
 
-Local and hosted stages both use bounded audio, response and timeout settings. Omitted limits normalize to 128 MiB audio, 16 MiB response and 600000 milliseconds; explicit limits are validated before submission. A route or capability failure never chooses another provider or model. Only classified local CUDA failures permit the elected policy's bounded CPU recovery within the same deadline.
+Local and hosted stages both use bounded audio, response and timeout settings. Omitted limits normalize to 128 MiB audio, 16 MiB response and 600000 milliseconds; explicit limits are validated before submission. A route or capability failure does not choose another provider, model or device.
 
 ## Local processing and quality diagnostics
 
-Mapped audio records original source digest, selected stream/channels, sample format, tool identity and exact source-time mapping. The selected local recognizer and diarizer receive verified managed model files, not an ambient latest model name. Missing or invalid models, incompatible capabilities and unsupported device selection produce actionable failure. A local failure never chooses hosted routing. CPU recovery under the local device policy records its attempted devices and generated reason.
+Mapped audio records original source digest, selected stream/channels, sample format, tool identity and exact source-time mapping. The selected local recognizer and diarizer receive verified managed model files, not an ambient latest model name. Missing or invalid models, incompatible capabilities and unsupported device selection produce actionable failure. A local failure never chooses hosted routing or another device silently.
 
 Local workers import engine packages lazily only for elected product processing or explicit maintainer qualification. Offline execution prevents ambient model retrieval. Literal argv, protected bounded input, separate bounded output, hidden Windows creation and supervised cancellation apply to every worker. Model files are materialized under confined relative names; temporary stage output is cleaned after success, failure and cancellation.
 
@@ -233,96 +217,3 @@ Save `pipeline-connected.json` for a worker that implements the contract below. 
 ```sh
 insonic pipelines set 66666666-6666-4666-8666-666666666666 --input pipeline-connected.json --json
 ```
-## Local signal and failure outcomes
-
-Verified exact zero-signal audio yields an explicit no-speech result without invented recognition cues. Quiet nonzero audio is not discarded by an arbitrary amplitude threshold. Recognition text paired with a diarizer no-speech observation remains intact and carries a disagreement diagnostic. These observations do not claim general acoustic accuracy.
-
-Unsupported local recognition language codes are rejected before work is queued, with a correction for `recognition.language`; `auto` elects language detection. Generated worker failures distinguish unavailable CUDA devices/libraries, incompatible libraries/compute capability, CUDA resource exhaustion and unrelated engine failure. Human, verbose, debug and JSON work inspection retain these causes without raw engine output. Failed attempts preserve the previous accepted document.
-
-## Transcript coverage and bounded repair
-
-Coverage inspection reads the current accepted recording and retained activity observations without invoking a model or changing the library. Inspect the exact source and document identities before electing repair:
-
-```sh
-insonic recordings show MEDIA_UUID --json
-insonic recordings coverage MEDIA_UUID --input coverage.json --json
-```
-
-<!-- executable-example: coverage.json -->
-```json
-{
-  "gap_tolerance_us": 0,
-  "minimum_gap_us": 250000,
-  "boundary_tolerance_us": 1000,
-  "duplicate_overlap_fraction": 0.5,
-  "limit": 100
-}
-```
-
-Each selected stream/channel has its own audio denominator. `cue_coverage_us` is the union of accepted timed text over selected audio. `observed_speech_us` is the union of compatible executed recognition and diarization observations; `uncovered_observed_speech_us` measures its uncovered portion. Explicit no-speech evidence and unknown activity are separate. A zero speech denominator produces a null speech fraction. Quiet passages and music are not inferred to contain speech from duration alone. Older or incompatible observations remain unknown. Inspection does not rehash canonical audio bytes.
-
-Overlapping normalized text is reported for inspection. `duplicate_overlap_us` additionally requires distinct corroborated window observations; different or unresolved voices keep the diagnosis uncertain. `repeated_text_overlap_us` includes uncertain matching intervals and prevents a new candidate from hiding repetition by changing provenance identifiers. Legitimate repetition at different times is not an overlap defect. Supplied multitrack cues without a unique lane remain unresolved. Use the returned `next` as `after` to page diagnostics without changing the comparison basis.
-
-Save optional `coverage` and `repair` objects alongside a pipeline's recognition, diarization, quality and window configuration. Complete per-run `overrides.coverage` and `overrides.repair` replace those saved policies. Saving a policy does not launch repair. An explicit repair request runs unattended under the existing configured routes.
-
-<!-- executable-example: repair-policy.json -->
-```json
-{
-  "max_attempts": 2,
-  "max_windows": 64,
-  "max_duration_us": 300000000
-}
-```
-
-`max_attempts` bounds execution attempts per selected window across retries and restarts (default1, maximum3). A consumed interrupted attempt remains consumed; a verified checkpoint is reused without another attempt. `max_windows` defaults to64 and `max_duration_us` to five minutes of total declared replacement scope. Context is separately disclosed in the selected windows. Targets expand to elected window cores and complete intersecting cues; any extra boundary windows do not recursively expand the scope through the entire recording.
-
-Use current values from `recordings show` for `expected_revision`, `source_revision` and `document_digest`. Automatic selection includes certain speech gaps, corroborated repeated text and timing inconsistencies; unknown activity and ambiguous repetition remain visible for explicit selection.
-
-<!-- executable-example: repair-automatic.json -->
-```json
-{
-  "expected_revision": 1,
-  "source_revision": 1,
-  "document_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "automatic": true,
-  "processing": {
-    "pipeline_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
-  }
-}
-```
-
-```sh
-insonic recordings repair MEDIA_UUID --input repair-automatic.json --json
-insonic work wait WORK_UUID --json
-insonic recordings coverage MEDIA_UUID --json
-```
-
-For explicit repair, replace `automatic` with one or more native canonical sample ranges. Repeated lanes are allowed for disjoint ranges. Stream/channel identity must match the accepted source map; these are native sample indices, not milliseconds in the mapped worker audio.
-
-<!-- executable-example: repair-ranges.json -->
-```json
-{
-  "expected_revision": 1,
-  "source_revision": 1,
-  "document_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "ranges": [
-    {
-      "stream_index": 0,
-      "start_sample": 480000,
-      "end_sample": 960000
-    }
-  ],
-  "policy": {
-    "max_attempts": 2,
-    "max_windows": 4,
-    "max_duration_us": 60000000
-  },
-  "processing": {
-    "pipeline_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
-  }
-}
-```
-
-Repair freezes the source/document revisions and digests, speaker mappings, exact processing election, coverage basis, normalized scopes and window budgets. It never silently chooses a different provider or model. Only selected windows execute. A candidate must preserve unrelated cue semantics, pass native Cueson validation and strictly improve a measured defect without losing covered text or worsening another protected metric. A valid non-improving candidate returns `unchanged`. Source changes, speaker corrections, cancellation, invalid output and exhausted budgets leave the accepted transcript authoritative. A candidate crossing a declared scope boundary is retained as an unchanged decision rather than clipped without adequate timing evidence.
-
-Acceptance replaces the current Cueson document in one catalog transaction and applies the ordinary speaker-mapping, evidence, dataset and graph invalidation rules. The receipt records scopes, consumed attempts and before/after metrics. Verified temporary checkpoints are retired after accepted or unchanged decisions; failed work retains compatible checkpoints for bounded retry. Replay uses the accepted receipt without rerunning inference. The CLI and shared runtime expose these advanced operations; the GUI currently has no dedicated coverage or repair controls.

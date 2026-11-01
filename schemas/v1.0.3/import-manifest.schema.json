@@ -285,14 +285,6 @@
                 "$ref": "common.schema.json#/$defs/uuid"
               }
             ]
-          },
-          "diarization_device": {
-            "enum": [
-              "auto",
-              "cpu",
-              "cuda"
-            ],
-            "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
           }
         },
         "required": [],
@@ -717,14 +709,6 @@
               "$ref": "common.schema.json#/$defs/uuid"
             }
           ]
-        },
-        "diarization_device": {
-          "enum": [
-            "auto",
-            "cpu",
-            "cuda"
-          ],
-          "description": "Local device policy. New omission prefers NVIDIA with one bounded CPU fallback; explicit CPU stays CPU. Existing frozen omissions retain legacy CPU behavior."
         }
       },
       "not": {

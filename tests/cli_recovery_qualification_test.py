@@ -69,7 +69,7 @@ class RecoveryReceiptTests(unittest.TestCase):
             tools = Path(root) / 'fixture-tools.json'
             tools.write_text(json.dumps({}), encoding='utf-8')
             with self.assertRaisesRegex(RuntimeError, 'original fixture refusal'):
-                qualify(invoke, root, '1.0.3', executable=sys.executable, environment={}, source_tools=tools)
+                qualify(invoke, root, '1.1.0', executable=sys.executable, environment={}, source_tools=tools)
             self.assertEqual(list(Path(root).iterdir()), [tools])
         self.assertFalse(Path(observed[0]).exists())
 
@@ -81,7 +81,7 @@ class RecoveryReceiptTests(unittest.TestCase):
             sentinel = owned / 'owner.txt'
             sentinel.write_text('unchanged', encoding='utf-8')
             with self.assertRaises(FileExistsError):
-                qualify(lambda *_a, **_k: {}, root, '1.0.3', executable=sys.executable, environment={})
+                qualify(lambda *_a, **_k: {}, root, '1.1.0', executable=sys.executable, environment={})
             self.assertEqual(sentinel.read_text(encoding='utf-8'), 'unchanged')
 
     def test_complete_matrix_for_both_platforms(self):
