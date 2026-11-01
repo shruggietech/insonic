@@ -1,0 +1,313 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" as="image"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" as="image"/><link rel="stylesheet" href="../../../_next/static/chunks/2uagwtcyuh2xm.css" data-precedence="next"/><link rel="preload" href="../../../brand/theme.css" as="style"/><link rel="preload" href="../../../brand/fonts/fonts.css" as="style"/><title>Pipelines and adapters (v1.1.0) | insonic</title><meta name="description" content="Voice archives, speaker models, and connected knowledge."/><meta name="color-scheme" content="light dark"/><link rel="icon" href="../../../brand/icons/web/favicon.ico"/><link rel="apple-touch-icon" href="../../../brand/icons/web/favicon-180x180.png"/><script src="../../../theme-init.js"></script><link rel="stylesheet" href="../../../brand/theme.css"/><link rel="stylesheet" href="../../../brand/fonts/fonts.css"/></head><body><div hidden=""><!--$--><!--/$--></div><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><a class="brand-link" href="../../../index.html" aria-label="insonic home"><img class="theme-logo-light" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" alt="insonic" width="240" height="64"/><img class="theme-logo-dark" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" alt="insonic" width="240" height="64"/></a><nav aria-label="Main navigation"><a href="../../latest/index.html">Documentation</a><a href="https://github.com/shruggietech/insonic">Repository</a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-label="Dark mode" aria-checked="false" title="Switch to dark theme" hidden=""><svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"></path></svg><svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"></path></svg></button></nav></header><div class="docs-layout"><aside class="docs-sidebar"><details class="navigation-disclosure" data-responsive-disclosure="960"><summary>Documentation</summary><nav aria-label="Documentation topics v1.1.0"><p class="version-label">v<!-- -->1.1.0<!-- --> · <!-- -->released</p><ul><li><a href="../index/index.html">Start here</a></li><li><a href="../cli/index.html">CLI invocation and results</a></li><li><a href="../setup/index.html">Optional first-run setup</a></li><li><a href="../product/index.html">Product and requirements</a></li><li><a href="../architecture/index.html">System architecture</a></li><li><a href="../technology/index.html">Technology decisions</a></li><li><a href="../ingestion/index.html">Import, metadata and dates</a></li><li><a href="../media/index.html">Media and provenance</a></li><li><a href="../processing-setup/index.html">Local processing setup</a></li><li><a href="index.html" aria-current="page">Pipelines and adapters</a></li><li><a href="../subtitles/index.html">Cueson and subtitles</a></li><li><a href="../speakers/index.html">Speakers and terminology</a></li><li><a href="../voice-models/index.html">Speaker audio and voice models</a></li><li><a href="../graph/index.html">Queries, timeline and graph</a></li><li><a href="../storage/index.html">Installation and storage</a></li><li><a href="../schema/index.html">Storage and catalog schema</a></li><li><a href="../contracts/index.html">JSON contracts</a></li><li><a href="../security/index.html">Credentials and data access</a></li><li><a href="../secrets/index.html">Credential commands</a></li><li><a href="../models/index.html">Downloaded models</a></li><li><a href="../desktop/index.html">CLI and desktop experience</a></li><li><a href="../windows-installation/index.html">Windows installation, updates and removal</a></li><li><a href="../development/index.html">Development workflow</a></li><li><a href="../releases/index.html">Brand, docs and releases</a></li><li><a href="../roadmap/index.html">Delivery outcomes</a></li><li><a href="../glossary/index.html">Glossary</a></li><li><a href="../changelog/index.html">Changelog</a></li></ul></nav></details></aside><aside class="table-of-contents"><details class="navigation-disclosure" data-responsive-disclosure="1200"><summary>On this page</summary><nav aria-label="On this page"><ul><li><a href="#configured-work-and-current-results">Configured work and current results</a></li><li><a href="#resumable-source-clock-windows">Resumable source-clock windows</a></li><li><a href="#saved-definitions-and-command-inputs">Saved definitions and command inputs</a></li><li><a href="#hosted-worker-contract">Hosted worker contract</a></li><li><a href="#local-processing-and-quality-diagnostics">Local processing and quality diagnostics</a></li><li><a href="#capability-contracts">Capability contracts</a></li><li><a href="#durable-work-and-recovery">Durable work and recovery</a></li><li><a href="#required-checks-and-maintainer-evidence">Required checks and maintainer evidence</a></li><li><a href="#current-evidence-extraction">Current evidence extraction</a></li><li><a href="#complete-per-run-inputs">Complete per-run inputs</a></li><li><a href="#connected-definition-example">Connected definition example</a></li><li><a href="#local-signal-and-failure-outcomes">Local signal and failure outcomes</a></li><li><a href="#transcript-coverage-and-bounded-repair">Transcript coverage and bounded repair</a></li></ul></nav></details></aside><main id="main" class="docs-main" tabindex="-1"><div class="docs-version-context"><p>insonic<!-- --> · v<!-- -->1.1.0<!-- --> · <!-- -->released<!-- --> · Current documentation</p><a href="../../versions/index.html">All versions</a></div><article class="prose"><h1 id="pipelines-and-adapters">Pipelines and adapters</h1>
+<p><a href="../processing-setup/index.html">Local processing setup</a> prepares optional engines and models and reports prerequisites for a selected pipeline. Settings can save a pipeline with exact builtin models and automatic NVIDIA preference; saving it does not begin inference. New local requests default to <code>auto</code>, while explicit <code>cpu</code> stays CPU. <code>auto</code> and <code>cuda</code> can retry once on CPU for classified CUDA failures, with visible device provenance.</p>
+<h2 id="configured-work-and-current-results">Configured work and current results</h2>
+<p>A pipeline declares elected models, adapters, device/resource settings and routing. Saved definitions advance revisions and accepted work retains its elected configuration; processing does not retain alternative transcripts or assignment stores. Changing defaults affects future work. Rerunning a stage replaces the current result after validation and fenced acceptance. Once routing is configured, normal work proceeds without per-item approval or silent provider fallback.</p>
+<p>Saved Local, Connected and Custom pipelines use stable IDs and expected-revision updates. Local selects both local workers, Connected selects both hosted workers, and Custom supports an explicit mix. The stored values are <code>local</code>, <code>connected</code> and <code>custom</code>. Each stage declares its adapter contract, exact managed local model or remote model, options and resource limits. Inspection reports effective settings and capabilities without contacting endpoints or running models. The desktop Pipelines screen saves and inspects the same definitions; Library processing selects their IDs.</p>
+<figure class="diagram" role="group" tabindex="0" aria-label="System diagram and source"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Input[Verified current canonical audio and supplied subtitles] --&gt; Audio[Extract selected mapped audio]
+  Audio --&gt; Recognition[Generate timed text when elected]
+  Input --&gt; Supplied[Use supplied or current subtitles]
+  Recognition --&gt; Normalize[Pinned Cueson normalization]
+  Supplied --&gt; Normalize
+  Audio --&gt; Voices[Run elected diarization]
+  Normalize --&gt; Assemble[Current cues and recording-local speaker tokens]
+  Voices --&gt; Assemble
+  Assemble --&gt; Validate[Document validity and separate quality diagnostics]
+  Validate --&gt; Current[Atomic current result and reference reconciliation]
+  Current --&gt; Export[Diagnosed subtitle export]
+  Current --&gt; Corpus[Reference-only current speaker corpus]
+  Corpus --&gt; Training[Optional separate training job]
+</div><details><summary>Diagram source</summary><pre tabindex="0" aria-label="Diagram source"><code>flowchart TB
+  Input[Verified current canonical audio and supplied subtitles] --&gt; Audio[Extract selected mapped audio]
+  Audio --&gt; Recognition[Generate timed text when elected]
+  Input --&gt; Supplied[Use supplied or current subtitles]
+  Recognition --&gt; Normalize[Pinned Cueson normalization]
+  Supplied --&gt; Normalize
+  Audio --&gt; Voices[Run elected diarization]
+  Normalize --&gt; Assemble[Current cues and recording-local speaker tokens]
+  Voices --&gt; Assemble
+  Assemble --&gt; Validate[Document validity and separate quality diagnostics]
+  Validate --&gt; Current[Atomic current result and reference reconciliation]
+  Current --&gt; Export[Diagnosed subtitle export]
+  Current --&gt; Corpus[Reference-only current speaker corpus]
+  Corpus --&gt; Training[Optional separate training job]
+</code></pre></details></figure><p>Supplied subtitles bypass recognition. Reusing current subtitles supports diarization-only reruns; reusing current assignments requires compatibility with the new cue evidence. A supplied or generated text-only result without usable timing cannot be silently assigned invented intervals. Metadata capture precedes transforms under <a href="../ingestion/index.html">ingestion</a>.</p>
+<p>The pinned local Whisper adapter intersects a final predicted endpoint with decoded media only when its overrun is at most 250 milliseconds, and records the exact change in <code>whisper_end_intersected_decoded_media</code>. Community-1 frame intersections use the same maximum with their separate diagnostic. Larger excursions, reversed intervals and generic adapter results remain invalid. These adapter policies preserve the decoded source boundary; they do not establish prediction accuracy or add audio beyond that boundary.</p>
+<h2 id="resumable-source-clock-windows">Resumable source-clock windows</h2>
+<p>New processing requests for sources longer than 30 seconds automatically use bounded windows. An explicit <code>windows</code> object also enables them for short sources. Existing admitted work retains its frozen election. The same policy applies to newly configured import processing, CLI requests and desktop requests through the shared runtime.</p>
+<p><code>windows.core_us</code> defaults to 30000000 (30 seconds) and accepts 1000000 through 300000000. <code>context_us</code> defaults to the smaller of 2000000 and half the core; explicit zero disables overlap. <code>concurrency</code> defaults to 1 and accepts a cap up to 4; the current executor runs one window at a time within that cap. Zero core or concurrency selects its default. At most 16384 windows and 64 selected track/channel lanes fit one plan. Larger jobs require a larger core or a narrower elected source range.</p>
+<p>Optional <code>tracks</code> entries contain <code>stream_index</code>, optional <code>channel</code>, inclusive <code>start_sample</code> and exclusive <code>end_sample</code>. Sample indices use the original track's native sample rate, not microseconds or the 16 kHz inference rate. Omitted bounds cover the track. Omitted channel means downmix; distinct channels and streams remain independent lanes. Without <code>tracks</code> the existing selected audio stream/channel is used. Do not combine explicit tracks with <code>audio.stream_index</code> or <code>audio.channel</code>. A direct per-run <code>windows</code> object takes precedence over the saved pipeline and its window override. Advanced window/range controls are available through CLI JSON and saved definitions; the desktop uses their effective settings without dedicated range controls.</p>
+<p>The versioned window-plan contract binds canonical source bytes/revision, current document, exact model and adapter identity, language/context, device policy and resource limits. Native sample counts and rational source origins determine contiguous cores and bounded overlap. Verified source chunks feed one continuous resampler per selected lane. Only the active window is materialized as mapped WAV; the runtime does not create a whole-recording PCM derivative or download the full source for each window. Planning verifies source bytes and counts samples before inference; this preparation still reads the source even when all inference checkpoints can be reused. See the generated <a href="../schema/index.html">contract reference</a>.</p>
+<p>Each completed window publishes verified output bytes and commits their digest, size, plan/window identity and owner generation to the catalog. Work inspection reports completed and total windows. Cancel or interruption preserves completed checkpoints; explicit retry verifies and reuses compatible outputs, then resumes incomplete windows. Source, range, model or semantic-setting changes require a new compatible plan. Corrupt or partial output cannot become a checkpoint. Publication and current-document acceptance use the existing fenced work and artifact journals. Portable backup includes active checkpoint bytes; accepted current results retire checkpoint transcript bytes through normal deferred cleanup. Hashes and compact stage/device observations remain provenance, while the catalog still owns one current Cueson document.</p>
+<p>Recognition responses may supply <code>words</code> with integer <code>start_us</code>, <code>end_us</code> and <code>text</code> inside each segment. These are mapped-window-relative observations. Missing or unusable word timing retains segment evidence and an explicit boundary uncertainty diagnostic. Reconciliation uses both time and text to remove corroborated overlap observations, preserves genuine repetitions and conflicting alternatives, and records which windows produced each current cue. Source tracks are stitched separately. Diarizer labels remain window-local unless the existing speaker association workflow establishes a known identity; coincident labels do not prove the same voice. Cue/voice source provenance also governs downstream speaker selection, matching and training.</p>
+<p>Local pyannote <code>batch_size</code> accepts 1 through 64 and defaults to 1 (omission or zero). A CUDA out-of-memory result with a larger elected batch permits one fresh attempt at batch 1. If that fails with a classified CUDA condition, the existing elected policy may try CPU once, under the original execution deadline. Model, route, source window and semantic settings remain fixed. Requested, attempted and actual devices plus the resource adjustment are recorded per window. CPU memory exhaustion returns an actionable <code>resource_exhausted</code> result; it does not loop or switch providers.</p>
+<h2 id="saved-definitions-and-command-inputs">Saved definitions and command inputs</h2>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> pipelines list <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> pipelines show <span class="hljs-variable">PIPELINE_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> pipelines <span class="hljs-built_in">set</span> <span class="hljs-variable">PIPELINE_ID</span> <span class="hljs-attr">--input</span> pipeline-update.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> pipelines inspect <span class="hljs-variable">PIPELINE_ID</span> <span class="hljs-attr">--input</span> inspection.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> recordings process <span class="hljs-variable">MEDIA_ID</span> <span class="hljs-attr">--input</span> processing.json <span class="hljs-attr">--json</span>
+</code></pre>
+<p>A pipeline mutation carries <code>expected_revision</code> and <code>pipeline</code>, whose fields are <code>id</code>, <code>name</code>, <code>preset</code> and <code>configuration</code>. Zero expected revision creates a new ID; a positive expected revision must match the saved record. The returned revision is authoritative. Configuration contains <code>recognition</code>, <code>diarization</code>, optional <code>quality</code> and optional <code>windows</code>. Each supplied per-run override replaces that complete stage, quality policy or window election; it does not merge arbitrary option keys. Inspection input is optional and accepts <code>revision</code>, <code>overrides</code> and <code>context</code>.</p>
+<p>Save this as <code>pipeline-update.json</code>, replacing the local model UUIDs with compatible registrations from <code>models list</code>. The pipeline UUID is a valid creation example:</p>
+<p>&lt;!-- executable-example: pipeline-update.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;expected_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;pipeline&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;66666666-6666-4666-8666-666666666666&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Local speech&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;preset&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;local&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;configuration&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;recognition&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;adapter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;faster-whisper&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;local&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;model_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span>
+      <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;diarization&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;adapter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;pyannote&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;local&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;model_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;22222222-2222-4222-8222-222222222222&quot;</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Local <code>model_id</code> fields accept exact base installation UUIDs, <code>base:UUID</code>, short workspace aliases and <code>source:NAME/SELECTOR</code> references. Saving or inspecting a definition performs no model acquisition or inference. Processing resolves the references once, validates the selected adapter contract and complete file layout, and freezes exact model identities before acquisition. Registered compatible models can be selected before their bytes are available.</p>
+<p>Recording processing can elect <code>pipeline_id</code>, optional <code>pipeline_revision</code>, <code>overrides</code> and speaker/language/context filters. Submission freezes the saved revision, normalized effective configuration, selected nonsecret tool identities, local model manifest digests and compiled recognition hints. Missing elected bundles acquire through shared durable work; dependent processing waits without occupying an inference worker slot. Work inspection identifies acquisition dependencies separately from processing. Execution revalidates each elected local manifest digest and verified bytes. Alias, source and pipeline edits affect future submissions; retry retains the original election. Recognition and diarization reuse still follow current-document compatibility rules. Omitting a pipeline retains direct <code>recognition_model_id</code> and <code>diarization_model_id</code> inputs with the same reference syntax. Import's explicitly elected diarization also freezes its model identity. See <a href="../models/index.html">model selection and acquisition</a>.</p>
+<p>Entity lists accept optional JSON input with <code>after_id</code> and <code>limit</code> (1 through 100), and return <code>items</code> and <code>next_id</code>. Every command accepts the normal workspace, request-ID and JSON-output options. <a href="../contracts/index.html">JSON contracts</a> describe exact worker and configuration fields.</p>
+<h2 id="hosted-worker-contract">Hosted worker contract</h2>
+<p>The <code>insonic-http</code> adapter uses contract version <code>1</code>. An operator configures the endpoint, remote model, declared transcription/diarization capabilities, supported hint budget and optional opaque credential ID. It sends one multipart POST containing a <code>request</code> JSON field and an <code>audio</code> field with the selected mapped WAV. The request identifies contract version, operation, model and effective options. The recognition response contains timed text segments; the diarization response contains voice turns. Both use integer mapped-audio-relative microseconds and an explicit <code>no_speech</code> result. The runtime validates bounds and projects results onto the original source clock before assembly.</p>
+<p>An arbitrary provider API is not automatically compatible with this worker protocol. Provider-specific services can implement it through an adapter. Endpoint inspection validates configuration but reports reachability as not probed. Execution resolves only the elected credential and sends it as a Bearer authorization header. Redirects are refused; endpoint user information, query strings and fragments are rejected. Credentials require HTTPS, with an explicit loopback HTTP exception for locally hosted services. Errors return fixed categories without provider response bodies, credential values or endpoint details.</p>
+<p>Local and hosted stages both use bounded audio, response and timeout settings. Omitted limits normalize to 128 MiB audio, 16 MiB response and 600000 milliseconds; explicit limits are validated before submission. A route or capability failure never chooses another provider or model. Only classified local CUDA failures permit the elected policy's bounded CPU recovery within the same deadline.</p>
+<h2 id="local-processing-and-quality-diagnostics">Local processing and quality diagnostics</h2>
+<p>Mapped audio records original source digest, selected stream/channels, sample format, tool identity and exact source-time mapping. The selected local recognizer and diarizer receive verified managed model files, not an ambient latest model name. Missing or invalid models, incompatible capabilities and unsupported device selection produce actionable failure. A local failure never chooses hosted routing. CPU recovery under the local device policy records its attempted devices and generated reason.</p>
+<p>Local workers import engine packages lazily only for elected product processing or explicit maintainer qualification. Offline execution prevents ambient model retrieval. Literal argv, protected bounded input, separate bounded output, hidden Windows creation and supervised cancellation apply to every worker. Model files are materialized under confined relative names; temporary stage output is cleaned after success, failure and cancellation.</p>
+<p>Automatic diarization diagnostics are enabled by default and describe speech coverage, overlap, short turns, boundary/timing consistency and empty output. The quality policy can set minimum speech coverage, maximum overlap fraction and a short-turn threshold, or disable these optional checks. They are separate from Cueson schema validity. A valid assignment document does not prove voice accuracy. Reused diarization quality is recomputed from current embedded millisecond assignments and the current source map; its provenance names that quantized current-document basis rather than implying a fresh acoustic engine run. No-speech and unusable timing remain explicit outcomes, and diagnostics do not create a manual review queue. Maintainer qualification records exact model/settings, resource use, recognized text and speaker/timing diagnostic method; it never injects reference subtitles as generated recognition output.</p>
+<h2 id="capability-contracts">Capability contracts</h2>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Capability</th>
+<th scope="col">Inputs</th>
+<th scope="col">Required result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Acquisition</td>
+<td>Source locator and selected credential reference</td>
+<td>Original bytes and sanitized provenance</td>
+</tr>
+<tr>
+<td>Probe/derive</td>
+<td>Exact source and transform</td>
+<td>Stream facts or mapped audio</td>
+</tr>
+<tr>
+<td>Transcription</td>
+<td>Mapped audio, model and effective options</td>
+<td>Actual text and timed segments, with declared diagnostics</td>
+</tr>
+<tr>
+<td>Diarization</td>
+<td>Mapped audio, model and effective options</td>
+<td>Temporary recording-local voice turns and automatic diagnostics</td>
+</tr>
+<tr>
+<td>Subtitle normalization</td>
+<td>Supplied or generated native bytes</td>
+<td>Current valid upstream Cue JSON</td>
+</tr>
+<tr>
+<td>Speaker mapping</td>
+<td>Recording/local speaker token and known catalog speaker</td>
+<td>External mapping without rewriting subtitle text</td>
+</tr>
+<tr>
+<td>Alignment</td>
+<td>Current text and mapped audio</td>
+<td>Timed evidence or explicit unavailable outcome</td>
+</tr>
+<tr>
+<td>Assertion extraction</td>
+<td>Current cue references</td>
+<td>Structured assertions citing current evidence</td>
+</tr>
+<tr>
+<td>Dataset preparation</td>
+<td>Current speaker/cue references and recipe</td>
+<td>Mapped inputs and reference/digest provenance</td>
+</tr>
+<tr>
+<td>Voice training</td>
+<td>Valid current dataset and elected adapter</td>
+<td>Durable model outputs and noncontent lineage</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Adapters advertise actual capabilities and protocol versions. A text-only endpoint is not an audio recognizer. Worker requests/results bind source/model/tool identities and effective settings, using managed references for large input and never credential values in argv or durable receipts.</p>
+<h2 id="durable-work-and-recovery">Durable work and recovery</h2>
+<figure class="diagram" role="group" tabindex="0" aria-label="System diagram and source"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Ready[Durable configured work] --&gt; Claim[Live owner, generation and lease]
+  Claim --&gt; Compute[Mapped audio and elected stages]
+  Compute --&gt; Validate[Validate candidate result]
+  Validate --&gt; Commit[Atomic current replacement and cleanup obligations]
+  Compute --&gt; Interrupted[Failed, cancelled or interrupted]
+  Interrupted --&gt; Retry[Fresh fenced attempt]
+  Retry --&gt; Claim
+  Commit --&gt; Reconcile[Accepted receipt and physical retirement]
+  Reconcile --&gt; RetryCleanup[Retry uncertain cleanup]
+  RetryCleanup --&gt; Reconcile
+</div><details><summary>Diagram source</summary><pre tabindex="0" aria-label="Diagram source"><code>flowchart TB
+  Ready[Durable configured work] --&gt; Claim[Live owner, generation and lease]
+  Claim --&gt; Compute[Mapped audio and elected stages]
+  Compute --&gt; Validate[Validate candidate result]
+  Validate --&gt; Commit[Atomic current replacement and cleanup obligations]
+  Compute --&gt; Interrupted[Failed, cancelled or interrupted]
+  Interrupted --&gt; Retry[Fresh fenced attempt]
+  Retry --&gt; Claim
+  Commit --&gt; Reconcile[Accepted receipt and physical retirement]
+  Reconcile --&gt; RetryCleanup[Retry uncertain cleanup]
+  RetryCleanup --&gt; Reconcile
+</code></pre></details></figure><p>Pause prevents new claims, Cancel revokes current authority and terminates supervised children, and Retry obtains a fresh fenced attempt. Acceptance checks expected current/source revisions as well as the work fence. Late results cannot replace newer accepted data. Accepted receipts carry identities/digests/diagnostics, not duplicate documents or turns.</p>
+<p>Before acceptance, configured processing can recompute stages after interruption. Explicit assembly input is ephemeral and must be resubmitted. After acceptance, recovery reconciles the receipt and cleanup without rerunning engines. Physical retirement waits for active leases/references and retries uncertain removal without resurrecting obsolete output.</p>
+<p>Current replacement invalidates stale segment/evidence references, dataset membership and prepared inputs rather than retaining frozen copies of old assignments. Completed model outputs and their source IDs/digests remain provenance. Graph assertion extraction and optional query assistance use elected versioned HTTP adapters. Speaker training uses an explicitly selected local or hosted adapter, or local embedding-profile enrollment; see <a href="../voice-models/index.html">speaker-model workflows</a>.</p>
+<p>A saved configuration can contain <code>speaker_training</code> with <code>adapter</code>, <code>output_kind</code>, optional <code>base_model_id</code> and <code>parameters</code>. Training accepts the exact <code>pipeline_id</code> and <code>pipeline_revision</code>. A training-only definition can omit recognition and diarization; ordinary recording processing requires both stages. A mixed definition can serve either workflow. Inspection reports capabilities without loading a model or contacting the selected provider.</p>
+<h2 id="required-checks-and-maintainer-evidence">Required checks and maintainer evidence</h2>
+<p>No CI suite, native/backend qualification or required status check invokes transcription/diarization, initializes or loads their models, downloads model weights or requires engine results. The rule applies even to small or cached models. Deterministic tests supply stage results at the adapter boundary and may probe/extract committed real media and execute Cueson. Actual recognition/diarization quality testing requires the explicit opt-in maintainer path outside CI and merge requirements.</p>
+<h2 id="current-evidence-extraction">Current evidence extraction</h2>
+<p>Evidence extraction operates on accepted current Cue JSON through the shared durable-work runtime. The builtin cue-statement adapter preserves literal source ownership; an explicitly configured HTTP adapter can supply propositions with cue citations, polarity, modality and conditions. Acceptance validates current recording revision, document digest and cited local voices. Replacement invalidates that extraction. <a href="../graph/index.html">Graph operations</a> document executable inputs, bounds and provenance. Required CI exercises deterministic supplied replies and never initializes models.</p>
+<h2 id="complete-per-run-inputs">Complete per-run inputs</h2>
+<p>Save this as <code>processing.json</code> after creating the example pipeline above. Replace its ID/revision with the values from <code>pipelines show</code>; <code>pipeline_revision</code> fences the definition observed by this invocation. Replace <code>MEDIA_ID</code> with <code>result.items[].media_id</code> from completed import.</p>
+<p>&lt;!-- executable-example: processing.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;pipeline_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;66666666-6666-4666-8666-666666666666&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;pipeline_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;transcription&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;generate&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;diarization&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;run&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> recordings process <span class="hljs-variable">MEDIA_ID</span> <span class="hljs-attr">--input</span> processing.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> work <span class="hljs-built_in">wait</span> <span class="hljs-variable">WORK_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> recordings show <span class="hljs-variable">MEDIA_ID</span> <span class="hljs-attr">--json</span>
+</code></pre>
+<p>Submission returns a <code>work_id</code>; success returns the current recording revision and document digest. Actual processing requires configured compatible tools, model bundles and elected workers. Saving a pipeline alone supplies no inference environment. For an existing supplied transcript, change <code>transcription</code> to <code>supplied</code> to bypass recognition; <code>reuse</code> reuses the current document.</p>
+<p>Save <code>inspection.json</code> below for a configuration-only inspection. It requires no model execution. Read readiness and capability diagnostics before electing the pipeline.</p>
+<p>&lt;!-- executable-example: inspection.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span><span class="hljs-punctuation">}</span>
+</code></pre>
+<h2 id="connected-definition-example">Connected definition example</h2>
+<p>Save <code>pipeline-connected.json</code> for a worker that implements the contract below. Replace the endpoint and remote model with the selected service; the loopback address is an example, not a bundled server. Both stages must be available. Use a fresh pipeline UUID if this example ID already exists.</p>
+<p>&lt;!-- executable-example: pipeline-connected.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;expected_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;pipeline&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;66666666-6666-4666-8666-666666666666&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Connected speech&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;preset&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;connected&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;configuration&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;recognition&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;adapter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic-http&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;hosted&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;endpoint&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://127.0.0.1:8001/process&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;remote_model&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;configured-model&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;capabilities&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+          <span class="hljs-string">&quot;transcription&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-string">&quot;diarization&quot;</span>
+        <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;supports_hints&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;max_hint_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">200</span>
+      <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;diarization&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;adapter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic-http&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;hosted&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;endpoint&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://127.0.0.1:8001/process&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;remote_model&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;configured-model&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;capabilities&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+          <span class="hljs-string">&quot;transcription&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-string">&quot;diarization&quot;</span>
+        <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;supports_hints&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;max_hint_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">200</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> pipelines <span class="hljs-built_in">set</span> 66666666-6666-4666-8666-666666666666 <span class="hljs-attr">--input</span> pipeline-connected.json <span class="hljs-attr">--json</span>
+</code></pre>
+<h2 id="local-signal-and-failure-outcomes">Local signal and failure outcomes</h2>
+<p>Verified exact zero-signal audio yields an explicit no-speech result without invented recognition cues. Quiet nonzero audio is not discarded by an arbitrary amplitude threshold. Recognition text paired with a diarizer no-speech observation remains intact and carries a disagreement diagnostic. These observations do not claim general acoustic accuracy.</p>
+<p>Unsupported local recognition language codes are rejected before work is queued, with a correction for <code>recognition.language</code>; <code>auto</code> elects language detection. Generated worker failures distinguish unavailable CUDA devices/libraries, incompatible libraries/compute capability, CUDA resource exhaustion and unrelated engine failure. Human, verbose, debug and JSON work inspection retain these causes without raw engine output. Failed attempts preserve the previous accepted document.</p>
+<h2 id="transcript-coverage-and-bounded-repair">Transcript coverage and bounded repair</h2>
+<p>Coverage inspection reads the current accepted recording and retained activity observations without invoking a model or changing the library. Inspect the exact source and document identities before electing repair:</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> recordings show <span class="hljs-variable">MEDIA_UUID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> recordings coverage <span class="hljs-variable">MEDIA_UUID</span> <span class="hljs-attr">--input</span> coverage.json <span class="hljs-attr">--json</span>
+</code></pre>
+<p>&lt;!-- executable-example: coverage.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;gap_tolerance_us&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;minimum_gap_us&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">250000</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;boundary_tolerance_us&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1000</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;duplicate_overlap_fraction&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0.5</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;limit&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Each selected stream/channel has its own audio denominator. <code>cue_coverage_us</code> is the union of accepted timed text over selected audio. <code>observed_speech_us</code> is the union of compatible executed recognition and diarization observations; <code>uncovered_observed_speech_us</code> measures its uncovered portion. Explicit no-speech evidence and unknown activity are separate. A zero speech denominator produces a null speech fraction. Quiet passages and music are not inferred to contain speech from duration alone. Older or incompatible observations remain unknown. Inspection does not rehash canonical audio bytes.</p>
+<p>Overlapping normalized text is reported for inspection. <code>duplicate_overlap_us</code> additionally requires distinct corroborated window observations; different or unresolved voices keep the diagnosis uncertain. <code>repeated_text_overlap_us</code> includes uncertain matching intervals and prevents a new candidate from hiding repetition by changing provenance identifiers. Legitimate repetition at different times is not an overlap defect. Supplied multitrack cues without a unique lane remain unresolved. Use the returned <code>next</code> as <code>after</code> to page diagnostics without changing the comparison basis.</p>
+<p>Save optional <code>coverage</code> and <code>repair</code> objects alongside a pipeline's recognition, diarization, quality and window configuration. Complete per-run <code>overrides.coverage</code> and <code>overrides.repair</code> replace those saved policies. Saving a policy does not launch repair. An explicit repair request runs unattended under the existing configured routes.</p>
+<p>&lt;!-- executable-example: repair-policy.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;max_attempts&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;max_windows&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">64</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;max_duration_us&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">300000000</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p><code>max_attempts</code> bounds execution attempts per selected window across retries and restarts (default1, maximum3). A consumed interrupted attempt remains consumed; a verified checkpoint is reused without another attempt. <code>max_windows</code> defaults to64 and <code>max_duration_us</code> to five minutes of total declared replacement scope. Context is separately disclosed in the selected windows. Targets expand to elected window cores and complete intersecting cues; any extra boundary windows do not recursively expand the scope through the entire recording.</p>
+<p>Use current values from <code>recordings show</code> for <code>expected_revision</code>, <code>source_revision</code> and <code>document_digest</code>. Automatic selection includes certain speech gaps, corroborated repeated text and timing inconsistencies; unknown activity and ambiguous repetition remain visible for explicit selection.</p>
+<p>&lt;!-- executable-example: repair-automatic.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;expected_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;source_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;document_digest&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;automatic&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;processing&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;pipeline_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&quot;</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> recordings repair <span class="hljs-variable">MEDIA_UUID</span> <span class="hljs-attr">--input</span> repair-automatic.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> work <span class="hljs-built_in">wait</span> <span class="hljs-variable">WORK_UUID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> recordings coverage <span class="hljs-variable">MEDIA_UUID</span> <span class="hljs-attr">--json</span>
+</code></pre>
+<p>For explicit repair, replace <code>automatic</code> with one or more native canonical sample ranges. Repeated lanes are allowed for disjoint ranges. Stream/channel identity must match the accepted source map; these are native sample indices, not milliseconds in the mapped worker audio.</p>
+<p>&lt;!-- executable-example: repair-ranges.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;expected_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;source_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;document_digest&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;ranges&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;stream_index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;start_sample&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">480000</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;end_sample&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">960000</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;policy&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;max_attempts&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;max_windows&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;max_duration_us&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">60000000</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;processing&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;pipeline_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&quot;</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Repair freezes the source/document revisions and digests, speaker mappings, exact processing election, coverage basis, normalized scopes and window budgets. It never silently chooses a different provider or model. Only selected windows execute. A candidate must preserve unrelated cue semantics, pass native Cueson validation and strictly improve a measured defect without losing covered text or worsening another protected metric. A valid non-improving candidate returns <code>unchanged</code>. Source changes, speaker corrections, cancellation, invalid output and exhausted budgets leave the accepted transcript authoritative. A candidate crossing a declared scope boundary is retained as an unchanged decision rather than clipped without adequate timing evidence.</p>
+<p>Acceptance replaces the current Cueson document in one catalog transaction and applies the ordinary speaker-mapping, evidence, dataset and graph invalidation rules. The receipt records scopes, consumed attempts and before/after metrics. Verified temporary checkpoints are retired after accepted or unchanged decisions; failed work retains compatible checkpoints for bounded retry. Replay uses the accepted receipt without rerunning inference. The CLI and shared runtime expose these advanced operations; the GUI currently has no dedicated coverage or repair controls.</p>
+</article><nav class="page-navigation" aria-label="Previous and next page"><a href="../processing-setup/index.html" rel="prev"><span>Previous</span>Local processing setup</a><a href="../subtitles/index.html" rel="next"><span>Next</span>Cueson and subtitles</a></nav></main></div><!--$--><!--/$--><script src="../../../docs-runtime.js" defer=""></script><footer class="site-footer"><p>A <a href="https://shruggie.tech/">ShruggieTech</a> project.</p><p>Apache 2.0. Documentation versions are published with their corresponding releases.</p></footer><script src="../../../site-runtime.js" defer=""></script></body></html>

@@ -1,0 +1,354 @@
+{
+  "artifact_sha256": "a4fa53431896f01778f1f1148eedeb371407565a95862d361749777ee06fcea8",
+  "fixture": {
+    "conditional_finish_binding": "actual elected Desktop feature action state, no Finish click or launch",
+    "control_election_method": "MsiSetProperty/MsiSetInstallLevel/MsiSetFeatureState, native controls read back before capture",
+    "defaults_proven": false,
+    "executable_custom_actions_permitted": false,
+    "isolated": true,
+    "kind": "authored MSI restricted-session fixture",
+    "machine_state_changes_permitted": false,
+    "private_inputs": false,
+    "selection": "both",
+    "transaction_proven": false,
+    "user": "InstallerExample"
+  },
+  "images": [
+    {
+      "caption": "Native Windows Installer authored welcome page in an elected restricted-session fixture.",
+      "height": 425,
+      "landmark": "Install insonic",
+      "native_control_elections": [],
+      "native_session": {
+        "executable_custom_actions_permitted": false,
+        "features": {
+          "CLI": {
+            "action": 3,
+            "installed": 2
+          },
+          "Core": {
+            "action": 3,
+            "installed": 2
+          },
+          "Desktop": {
+            "action": 3,
+            "installed": 2
+          }
+        },
+        "license_accepted": false,
+        "machine_state_changes_permitted": false,
+        "open_package_flags": "IGNOREMACHINESTATE",
+        "properties": {
+          "CLIENT_CLI": "1",
+          "CLIENT_DESKTOP": "1",
+          "DESKTOP_SHORTCUT": "1",
+          "INSTALLDIR": "C:\\Users\\InstallerExample\\AppData\\Local\\Programs\\insonic\\",
+          "LAUNCH": "1",
+          "START_MENU": "1"
+        }
+      },
+      "path": "installer-01-welcome.png",
+      "sha256": "b66cf4fc949b264e51451a3eb78d4958ad94c65ec984967921f24a9d4f7ec6d6",
+      "width": 576
+    },
+    {
+      "caption": "Native Windows Installer authored license page in an elected restricted-session fixture.",
+      "height": 425,
+      "landmark": "Apache License 2.0",
+      "native_control_elections": [
+        {
+          "checked": false,
+          "control_label": "I accept the Apache License 2.0",
+          "method": "verified session property/BM_GETCHECK"
+        }
+      ],
+      "native_session": {
+        "executable_custom_actions_permitted": false,
+        "features": {
+          "CLI": {
+            "action": 3,
+            "installed": 2
+          },
+          "Core": {
+            "action": 3,
+            "installed": 2
+          },
+          "Desktop": {
+            "action": 3,
+            "installed": 2
+          }
+        },
+        "license_accepted": false,
+        "machine_state_changes_permitted": false,
+        "open_package_flags": "IGNOREMACHINESTATE",
+        "properties": {
+          "CLIENT_CLI": "1",
+          "CLIENT_DESKTOP": "1",
+          "DESKTOP_SHORTCUT": "1",
+          "INSTALLDIR": "C:\\Users\\InstallerExample\\AppData\\Local\\Programs\\insonic\\",
+          "LAUNCH": "1",
+          "START_MENU": "1"
+        }
+      },
+      "path": "installer-02-license.png",
+      "sha256": "6d971cf2de2572fade11a8a3408914006f1b5cc6a37e41c1665a26a694027307",
+      "width": 576
+    },
+    {
+      "caption": "Native Windows Installer authored choices page in an elected restricted-session fixture.",
+      "height": 425,
+      "landmark": "Select clients and shortcuts",
+      "native_control_elections": [
+        {
+          "checked": true,
+          "control_label": "Desktop application",
+          "method": "verified session property/BM_GETCHECK"
+        },
+        {
+          "checked": true,
+          "control_label": "CLI integrations (persistent help/setup session)",
+          "method": "verified session property/BM_GETCHECK"
+        },
+        {
+          "checked": true,
+          "control_label": "Create Start menu shortcuts",
+          "method": "verified session property/BM_GETCHECK"
+        },
+        {
+          "checked": true,
+          "control_label": "Create Desktop shortcut for the desktop application",
+          "method": "verified session property/BM_GETCHECK"
+        }
+      ],
+      "native_session": {
+        "executable_custom_actions_permitted": false,
+        "features": {
+          "CLI": {
+            "action": 3,
+            "installed": 2
+          },
+          "Core": {
+            "action": 3,
+            "installed": 2
+          },
+          "Desktop": {
+            "action": 3,
+            "installed": 2
+          }
+        },
+        "license_accepted": false,
+        "machine_state_changes_permitted": false,
+        "open_package_flags": "IGNOREMACHINESTATE",
+        "properties": {
+          "CLIENT_CLI": "1",
+          "CLIENT_DESKTOP": "1",
+          "DESKTOP_SHORTCUT": "1",
+          "INSTALLDIR": "C:\\Users\\InstallerExample\\AppData\\Local\\Programs\\insonic\\",
+          "LAUNCH": "1",
+          "START_MENU": "1"
+        }
+      },
+      "path": "installer-03-choices.png",
+      "sha256": "9666082c4e2febe490f685e6d6f53df1d63b566a538695737d1d199967f9650a",
+      "width": 576
+    },
+    {
+      "caption": "Native Windows Installer authored location page in an elected restricted-session fixture.",
+      "height": 425,
+      "landmark": "Choose program directory",
+      "native_control_elections": [
+        {
+          "control_label": "Program directory",
+          "method": "verified session property/GetWindowText",
+          "value": "C:\\Users\\InstallerExample\\AppData\\Local\\Programs\\insonic\\"
+        }
+      ],
+      "native_session": {
+        "executable_custom_actions_permitted": false,
+        "features": {
+          "CLI": {
+            "action": 3,
+            "installed": 2
+          },
+          "Core": {
+            "action": 3,
+            "installed": 2
+          },
+          "Desktop": {
+            "action": 3,
+            "installed": 2
+          }
+        },
+        "license_accepted": false,
+        "machine_state_changes_permitted": false,
+        "open_package_flags": "IGNOREMACHINESTATE",
+        "properties": {
+          "CLIENT_CLI": "1",
+          "CLIENT_DESKTOP": "1",
+          "DESKTOP_SHORTCUT": "1",
+          "INSTALLDIR": "C:\\Users\\InstallerExample\\AppData\\Local\\Programs\\insonic\\",
+          "LAUNCH": "1",
+          "START_MENU": "1"
+        }
+      },
+      "path": "installer-04-location.png",
+      "sha256": "0029e6d1bbfb08c1f9975f7d4ad7394777cc61165c147773689015d6ca97e160",
+      "width": 576
+    },
+    {
+      "caption": "Native Windows Installer authored ready page in an elected restricted-session fixture.",
+      "height": 425,
+      "landmark": "Ready to install",
+      "native_control_elections": [],
+      "native_session": {
+        "executable_custom_actions_permitted": false,
+        "features": {
+          "CLI": {
+            "action": 3,
+            "installed": 2
+          },
+          "Core": {
+            "action": 3,
+            "installed": 2
+          },
+          "Desktop": {
+            "action": 3,
+            "installed": 2
+          }
+        },
+        "license_accepted": false,
+        "machine_state_changes_permitted": false,
+        "open_package_flags": "IGNOREMACHINESTATE",
+        "properties": {
+          "CLIENT_CLI": "1",
+          "CLIENT_DESKTOP": "1",
+          "DESKTOP_SHORTCUT": "1",
+          "INSTALLDIR": "C:\\Users\\InstallerExample\\AppData\\Local\\Programs\\insonic\\",
+          "LAUNCH": "1",
+          "START_MENU": "1"
+        }
+      },
+      "path": "installer-05-ready.png",
+      "sha256": "37a8343aaee224de690697340b14f37ba2f8d3478ce94e3d3519f6d0ffacbed2",
+      "width": 576
+    },
+    {
+      "caption": "Native Windows Installer authored maintenance page in an elected restricted-session fixture.",
+      "height": 425,
+      "landmark": "Change, repair or remove",
+      "native_control_elections": [],
+      "native_session": {
+        "executable_custom_actions_permitted": false,
+        "features": {
+          "CLI": {
+            "action": 3,
+            "installed": 2
+          },
+          "Core": {
+            "action": 3,
+            "installed": 2
+          },
+          "Desktop": {
+            "action": 3,
+            "installed": 2
+          }
+        },
+        "license_accepted": false,
+        "machine_state_changes_permitted": false,
+        "open_package_flags": "IGNOREMACHINESTATE",
+        "properties": {
+          "CLIENT_CLI": "1",
+          "CLIENT_DESKTOP": "1",
+          "DESKTOP_SHORTCUT": "1",
+          "INSTALLDIR": "C:\\Users\\InstallerExample\\AppData\\Local\\Programs\\insonic\\",
+          "LAUNCH": "1",
+          "START_MENU": "1"
+        }
+      },
+      "path": "installer-06-maintenance.png",
+      "sha256": "3894d1ce1ddc165cea2a91cae957ea88d32e88e06cd4eca542757cf820fffd4c",
+      "width": 576
+    },
+    {
+      "caption": "Native Windows Installer authored finish page in an elected restricted-session fixture.",
+      "height": 425,
+      "landmark": "insonic installed",
+      "native_control_elections": [
+        {
+          "checked": true,
+          "control_label": "Launch insonic",
+          "method": "verified session property/BM_GETCHECK"
+        },
+        {
+          "checked": false,
+          "control_label": "Open documentation",
+          "method": "verified session property/BM_GETCHECK"
+        }
+      ],
+      "native_session": {
+        "executable_custom_actions_permitted": false,
+        "features": {
+          "CLI": {
+            "action": 3,
+            "installed": 2
+          },
+          "Core": {
+            "action": 3,
+            "installed": 2
+          },
+          "Desktop": {
+            "action": 3,
+            "installed": 2
+          }
+        },
+        "license_accepted": false,
+        "machine_state_changes_permitted": false,
+        "open_package_flags": "IGNOREMACHINESTATE",
+        "properties": {
+          "CLIENT_CLI": "1",
+          "CLIENT_DESKTOP": "1",
+          "DESKTOP_SHORTCUT": "1",
+          "INSTALLDIR": "C:\\Users\\InstallerExample\\AppData\\Local\\Programs\\insonic\\",
+          "LAUNCH": "1",
+          "START_MENU": "1"
+        }
+      },
+      "path": "installer-07-finish.png",
+      "sha256": "22f7d26974fbe5d444eea06459dc9abf7ccfdbb75ee4ba2ed6da09db680e4e8c",
+      "width": 576
+    }
+  ],
+  "kind": "installer-ui-capture",
+  "locale": "en-US",
+  "policy_prompts": "not-observed",
+  "renderer": {
+    "kind": "windows-installer-restricted-session",
+    "msi": "native msi.dll restricted MsiOpenPackageEx session and authored Dialog/Control tables",
+    "native_webview": false,
+    "windows_build": "20348"
+  },
+  "schema_version": "1.1.0",
+  "signing": "unsigned",
+  "source": {
+    "dirty": false,
+    "files": [
+      {
+        "path": "scripts/windows_msi.py",
+        "sha256": "f12430a35f6c29b8d9a54ac7effed9c5d0d443de41264f065e80cee05fe025c0"
+      },
+      {
+        "path": "scripts/capture-installer-ui.py",
+        "sha256": "70b92d29b52353f22bffd8cefb35229644fd184d0aca37867532ab74fc1586f6"
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      {
+        "path": "brand/kit/icons/windows/classic/app.ico",
+        "sha256": "d4b871a2e1c60680d6a999a73b140ad8371e7ecdadae0dcc50cb6bd6d922f78c"
+      }
+    ],
+    "revision": "58acb9740f39b99e1b66e676b1debddf87da0de4"
+  }
+}

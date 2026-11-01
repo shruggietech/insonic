@@ -1,0 +1,251 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "processing-window",
+      "description": "Verified checkpoint output kind."
+    },
+    "schema_version": {
+      "const": "1.1.0",
+      "description": "System contract version."
+    },
+    "version": {
+      "const": 1,
+      "description": "Window output format version."
+    },
+    "plan_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Frozen plan digest."
+    },
+    "window_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Deterministic source window identity."
+    },
+    "recognition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "segments": {
+          "type": "array",
+          "maxItems": 65536,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "start_us": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Mapped-window relative start in microseconds."
+              },
+              "end_us": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Mapped-window relative end in microseconds."
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000000,
+                "description": "Original segment text."
+              },
+              "words": {
+                "type": "array",
+                "maxItems": 65536,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "start_us": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Observed mapped-window word start."
+                    },
+                    "end_us": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Observed mapped-window word end."
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000000,
+                      "description": "Observed word text."
+                    }
+                  },
+                  "required": [
+                    "start_us",
+                    "end_us",
+                    "text"
+                  ]
+                },
+                "description": "Optional native word observations; absent timing is never invented."
+              }
+            },
+            "required": [
+              "start_us",
+              "end_us",
+              "text"
+            ]
+          },
+          "description": "Validated mapped-window text observations."
+        },
+        "no_speech": {
+          "type": "boolean",
+          "description": "Explicit recognizer no-speech observation."
+        },
+        "provenance": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "Adapter and actual device observations."
+        },
+        "diagnostics": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object"
+          },
+          "description": "Bounded generated recognition diagnostics."
+        }
+      },
+      "required": [
+        "no_speech",
+        "provenance",
+        "diagnostics"
+      ],
+      "description": "Recognizer output before reconciliation."
+    },
+    "diarization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "turns": {
+          "type": "array",
+          "maxItems": 65536,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Window-local voice token."
+              },
+              "start_us": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Absolute source-clock start in microseconds."
+              },
+              "end_us": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Absolute source-clock end in microseconds."
+              }
+            },
+            "required": [
+              "label",
+              "start_us",
+              "end_us"
+            ]
+          },
+          "description": "Validated source-projected voice observations."
+        },
+        "no_speech": {
+          "type": "boolean",
+          "description": "Explicit diarizer no-speech observation."
+        },
+        "provenance": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "Adapter and actual device observations."
+        },
+        "diagnostics": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object"
+          },
+          "description": "Bounded generated diarization diagnostics."
+        }
+      },
+      "required": [
+        "no_speech",
+        "provenance",
+        "diagnostics"
+      ],
+      "description": "Diarizer output before core clipping and local voice naming."
+    },
+    "audio_provenance": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "description": "Verified extraction and source-clock provenance."
+    },
+    "audio_diagnostics": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object"
+      },
+      "description": "Bounded extraction diagnostics."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "version",
+    "plan_digest",
+    "window_id",
+    "recognition",
+    "diarization",
+    "audio_provenance",
+    "audio_diagnostics"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.1.0/schemas/v1.1.0/processing-window.schema.json",
+  "title": "insonic completed processing window",
+  "description": "Temporary verified window evidence. Only a fenced catalog checkpoint makes these bytes reusable. Current Cueson acceptance retires transcript-bearing checkpoint artifacts.",
+  "examples": [
+    {
+      "kind": "processing-window",
+      "schema_version": "1.1.0",
+      "version": 1,
+      "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "window_id": "11111111-1111-4111-8111-111111111111",
+      "recognition": {
+        "no_speech": true,
+        "provenance": {},
+        "diagnostics": []
+      },
+      "diarization": {
+        "no_speech": true,
+        "provenance": {},
+        "diagnostics": []
+      },
+      "audio_provenance": {},
+      "audio_diagnostics": []
+    }
+  ]
+}
