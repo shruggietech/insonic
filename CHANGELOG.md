@@ -4,6 +4,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Changed
+
+- 2026-11-01: Publish v1.1.0 for Windows/Linux with all ten qualified original assets and matching documentation. Independently download and compare every official asset, verify the exact deployed documentation and six product links, and qualify eight fresh light/dark landing layouts.
+
 ## [1.1.0] - 2026-10-31
 
 ### Fixed
