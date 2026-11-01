@@ -215,14 +215,27 @@ class PagesTransportTests(unittest.TestCase):
             pages.prepare_tree(self.archive, pages.preflight(self.api, REPO), '1.1.0', REVISION)
         self.api = PagesFixture()
         self.files = {name: data for name, data in self.files.items() if '__next.' not in name.lower()}
-        self.files['docs/v0.0.0/__next.docs.a.b.c.__PAGE__.txt'] = b'x' * (13 << 20)
+        self.files['docs/v0.0.0/__next.docs.a.b.c.__PAGE__.txt'] = b'x' * (16 << 20)
         for suffix in ['__next.docs/a/b/c', '__next.docs/a.b/c', '__next.docs/a/b.c',
-                       '__next.docs.a/b/c', '__next.docs.a.b/c']:
+                       '__next.docs.a/b/c', '__next.docs.a.b/c', '__next.docs.a/b.c', '__next.docs/a.b.c']:
             self.api.entries.append({'path': 'docs/v0.0.0/' + suffix + '/__PAGE__.txt',
                                      'mode': '100644', 'type': 'blob', 'sha': '6' * 40})
         self.archive_files()
         with self.assertRaisesRegex(ValueError, 'bounded'):
             pages.prepare_tree(self.archive, pages.preflight(self.api, REPO), '1.1.0', REVISION)
+
+    def test_versioned_export_growth_is_accepted_with_a_finite_total_bound(self):
+        payload = b'x' * (8 << 20)
+        files = {f'assets/version-{i}.bin': payload for i in range(9)}
+        self.archive_files(files)
+        restored = pages.archive_files(self.archive)
+        self.assertEqual(set(restored), set(files))
+        self.assertEqual(sum(map(len, restored.values())), 72 << 20)
+        self.assertTrue(all(value == payload for value in restored.values()))
+        del restored
+        self.archive_files({f'assets/version-{i}.bin': payload for i in range(17)})
+        with self.assertRaisesRegex(ValueError, 'bounded static payload'):
+            pages.archive_files(self.archive)
 
     def test_archive_alias_git_link_and_traversal_fail_before_writes(self):
         destination = pages.preflight(self.api, REPO)

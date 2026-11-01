@@ -28,7 +28,7 @@ Independent test: original historical docs/contracts retain tag identity; publis
 - [x] T008 [US2] After copy-forward, restore docs/v1.0.3/ and schemas/v1.0.3/ from exact published tag authority, remove only unpublished additions through that restoration, and mark 1.0.3 released in docs/versions.json while 1.1.0 remains candidate (FR-003, FR-004; SC-001, SC-002).
 - [x] T009 [US2] Run historical/preparation/schema/site-release regressions and verify tag-tree equivalence, frozen fixtures and upstream resource pins using tests/release_test.py, tests/site-release.test.mjs and site/tests/release-status.test.mjs (FR-003, FR-004, FR-008; SC-001, SC-002).
 - [x] T010 [US2] Save and temporarily omit only new-version screenshot walkthrough blocks in docs/v1.1.0/desktop.md and windows-installation.md; complete clean-bootstrap local checks under .local/s065/ (FR-005, FR-006; SC-002, SC-003).
-- [ ] T011 [US2] Commit/push the clean bootstrap and dispatch .github/workflows/ci.yml for its exact branch SHA without opening the official PR; retain its identity in specs/065-v110-release/verification.md (FR-005, FR-006, FR-009; SC-002).
+- [x] T011 [US2] Commit/push the clean bootstrap and dispatch .github/workflows/ci.yml for its exact branch SHA without opening the official PR; retain its identity in specs/065-v110-release/verification.md (FR-005, FR-006, FR-009; SC-002).
 - [ ] T012 [US2] Retain/audit bootstrap terminal acceptance and digest-verify original capture archives; import only the 25 receipt-enumerated PNGs and four unchanged original receipts into docs/screenshots/v1.1.0/ (FR-005, FR-007; SC-002, SC-003).
 - [ ] T013 [US2] Restore new-version image embeds in docs/v1.1.0/desktop.md and windows-installation.md, validate original source/version/hash/dimensions and visually inspect all captures with maintained site screenshot checks (FR-005; SC-002).
 
@@ -37,7 +37,7 @@ Independent test: original historical docs/contracts retain tag identity; publis
 Independent test: complete final-source candidate/platform acceptance and individually resolved reviews support a clean unmerged PR with a reproducible continuation.
 
 - [ ] T014 [US3] Complete foreground root check/test, full Python and Go tests/vet, frontend check/test/build and site test/public/offline build with logs under .local/s065/; preserve all mandatory substantive and security/integrity assertions (FR-006, FR-008; SC-003).
-- [ ] T015 [US3] Finalize executable accepted-main release-workflow, separately elected real-engine and exact-retained-byte publication/public-verification commands in specs/065-v110-release/quickstart.md (FR-010, FR-011; SC-005).
+- [x] T015 [US3] Finalize executable accepted-main release-workflow, separately elected real-engine and exact-retained-byte publication/public-verification commands in specs/065-v110-release/quickstart.md (FR-010, FR-011; SC-005).
 - [ ] T016 [US3] Converge actual implementation against every requirement, acceptance scenario, decision and constitution principle using specs/065-v110-release/tasks.md, adding any genuine gap before delivery (FR-001 through FR-011; SC-001 through SC-005).
 - [ ] T017 [US3] Commit/push complete source and genuine captures, open the official non-draft PR and update issue #237/Project tracking, recording the first review trigger in .local/s065/reviews.json (FR-009; SC-004).
 - [ ] T018 [US3] Monitor/fix final PR and direct-head CI, retain digest-verified acceptance archives and original run/job/artifact metadata, terminal-audit them sequentially, and retain/load-validate the complete final direct-head candidate archive using scripts/release.py against exact source (FR-006, FR-007, FR-008; SC-003).
@@ -58,3 +58,8 @@ Read-only research agents cover independent release/history, capture and accepta
 ## Implementation strategy
 
 First establish coherent current candidate metadata, then historical/visual evidence, then full final acceptance. The bootstrap is an evidence producer, not a published release. Existing owner autopilot/push authority permits all routine stages without another permission request. Reviewer-owned custom checklist markers are not rewritten; built-in quality and mandatory analyze/converge gates remain required.
+
+## Phase 7: Demonstrated release blocker
+
+- [x] T021 Fix the 64 MiB static-export limit exposed by bootstrap CI with one shared 128 MiB bound across scripts/pages.py, scripts/site-transfer.py and scripts/website.py; reproduce the failure, preserve finite over-limit and historical-alias rejection, update current docs and pass affected tests (FR-006, FR-008; SC-003).
+- [ ] T022 Retain the rejected bootstrap terminal receipt, commit the bounded correction and repeat clean capture qualification before resuming T012 (FR-005, FR-007; SC-002, SC-003).

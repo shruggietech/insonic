@@ -128,7 +128,7 @@ resolved local render resources. It is not a
 repeat download of every public product binary or a visual/accessibility audit.
 The public content phase allows 120 seconds total, at most three attempts and
 five same-origin HTTPS redirects per request, and at most 16 MiB per response.
-The original archive is bounded to 10,000 regular files and 64 MiB; the resolved
+The original archive is bounded to 10,000 regular files and 128 MiB; the resolved
 request inventory is also bounded. Public requests share one disposable worker
 with four concurrent requests. Its parent enforces the complete network-phase
 deadline, including DNS, connection and TLS setup, and kills/reaps only that
@@ -198,7 +198,7 @@ Website publication is independent of product release publication. It publishes 
 
 The privileged job executes trusted main tooling and independently validates the downloaded same-run export. It preserves the configured domain, HTTPS, historical version routes and schema bytes. It advances gh-pages with an isolated non-force Git push, rejects a changed parent and reconciles a lost response only when the remote branch identifies the exact staged commit. Product release promotion shares destination serialization.
 
-Each network/transport command has a 540-second owned-process aggregate deadline; an individual Git command has 90 seconds. Static archives allow at most 10,000 regular paths, 16 MiB per file and 64 MiB total. Live byte verification retains its 120-second budget. Package checks use six official HTTPS HEAD responses with expected sizes and API/manifest digests, without redownloading product binaries. Signed CDN redirect URLs and credentials are omitted from diagnostics.
+Each network/transport command has a 540-second owned-process aggregate deadline; an individual Git command has 90 seconds. Static archives allow at most 10,000 regular paths, 16 MiB per file and 128 MiB total. Live byte verification retains its 120-second budget. Package checks use six official HTTPS HEAD responses with expected sizes and API/manifest digests, without redownloading product binaries. Signed CDN redirect URLs and credentials are omitted from diagnostics.
 
 The live browser phase freshly fetches approved production resources, verifies their SHA256 against the qualified export and renders those bounded response bytes in an isolated headless Chromium profile. This is recorded as bounded live-response rendering. It captures 320, 390, 768 and 1440 CSS pixels in light/dark themes, measuring overflow, target size, clipping, overlap, download spacing and sampled text contrast. It has a 180-second budget, at most 200 resources and 64 MiB. It does not use personal browser profiles or launch owner-desktop windows. These checks do not certify every browser engine, assistive technology or complete accessibility conformance.
 

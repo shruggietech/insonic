@@ -41,7 +41,7 @@ def write(path, value):
 
 
 def file_entry(path):
-    if path.is_symlink() or not path.is_file() or path.stat().st_size > 64 << 20:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > pages.STATIC_PAYLOAD_BYTES:
         raise ValueError('website archive is missing or excessive')
     data = path.read_bytes()
     return {'name': path.name, 'size_bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
@@ -317,7 +317,7 @@ def archive_tree(directory, output):
         if path.is_symlink(): raise ValueError('deployed tree has a link')
         if not path.is_file(): continue
         size = path.stat().st_size; total += size
-        if size > 16 << 20 or total > 64 << 20 or len(files) >= 10000: raise ValueError('deployed tree exceeds bounds')
+        if size > 16 << 20 or total > pages.STATIC_PAYLOAD_BYTES or len(files) >= 10000: raise ValueError('deployed tree exceeds bounds')
         files.append((path, name))
     with tarfile.open(output, 'w:gz') as archive:
         for path, name in files: archive.add(path, arcname=name, recursive=False)

@@ -19,6 +19,7 @@ BRANCH = 'gh-pages'
 SHA = re.compile(r'[0-9a-f]{40}')
 TREE_REQUEST_BYTES = 1 << 20
 BLOB_REQUEST_BYTES = 24 << 20
+STATIC_PAYLOAD_BYTES = 128 << 20
 
 
 def commit_sha(value):
@@ -87,7 +88,7 @@ def archive_files(archive_path):
                     or member.size > 16 << 20 or len(files) >= 10000):
                 raise ValueError('Pages archive contains unsupported or excessive members')
             total += member.size
-            if total > 64 << 20: raise ValueError('Pages archive exceeds its bounded static payload')
+            if total > STATIC_PAYLOAD_BYTES: raise ValueError('Pages archive exceeds its bounded static payload')
             aliases.add(name.casefold())
             data = archive.extractfile(member).read(member.size + 1)
             if len(data) != member.size: raise ValueError('Pages archive member size differs')
@@ -136,7 +137,7 @@ def prepare_tree(archive_path, destination, version, revision):
         if name.casefold() in aliases:
             raise ValueError('Pages historical compatibility alias is ambiguous')
         total += len(files[replacement])
-        if total > 64 << 20 or len(files) >= 10000:
+        if total > STATIC_PAYLOAD_BYTES or len(files) >= 10000:
             raise ValueError('Pages historical aliases exceed the bounded static payload')
         files[name] = files[replacement]
         aliases.add(name.casefold())

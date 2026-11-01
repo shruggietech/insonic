@@ -23,3 +23,7 @@ Decision: Keep local checks headless in foreground and use isolated CI for packa
 ## D6: Publication boundary
 
 Decision: Push and official PR are already authorized; exactly two external review rounds maximum. Owner merge and later publication remain separate. Real-model CPU/NVIDIA qualification is not newly elected by this preparation request. Retain an executable continuation for an exact accepted-main candidate and publication of those unchanged bytes. Alternatives: publish this pre-merge candidate or claim prior/model fixtures qualify current source, neither supported by authorization or evidence.
+
+## Qualification discovery: static export growth
+
+Bootstrap CI demonstrated a release-blocking aggregate limit at 69,268,976 expanded bytes. Retaining all published versions plus 1.1.0 legitimately exceeds 64 MiB. Use a shared 128 MiB total bound in existing Pages/archive consumers, keeping per-file, member-count, path, source, digest and historical expansion checks intact. This is a proportional FR-008 correction; no platform, workflow, product deadline or unrelated browser-response bound changes.

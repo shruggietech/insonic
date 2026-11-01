@@ -20,6 +20,8 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-31: Keep normal durable-work output concise and actionable, remove wait/cancel suggestions for terminal work, and explain artifact grace, active-lease and retained-reference refusals without weakening retirement rules.
 
+- 2026-10-31: Admit the expanded versioned documentation export with a shared 128 MiB static payload bound across Pages, same-run transfer and deployed-site verification. Preserve 16 MiB per-file and 10,000-file limits, confined paths, exact digests and finite historical-alias expansion.
+
 ### Changed
 
 - 2026-10-31: Qualify bounded native backup/restore I/O failures and actual confined source/package filesystem obstructions separately. Require complete recovery receipts bound to exact platform/image/package authority; keep only the four digest-pinned original v1.0.3 package receipts exempt from the new field. Existing qualification timing, product deadlines, release assets and owner-controlled merge remain unchanged.
@@ -36,9 +38,9 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Decisions
 
-- 2026-10-31: Prepare the unpublished v1.1.0 minor candidate from the accepted reliability and long-recording work. Declare coverage and repair in the advanced CLI capability metadata, preserve original v1.0.3 documentation/schema authority after copying current changes forward, and obtain genuine isolated hosted captures. Keep catalog schema 11, mandatory qualification and owner-controlled merge/publication boundaries unchanged.
-
 - 2026-10-31: Retain compact text-free acoustic observations before cue assembly and compare repairs against that fixed basis. Reuse the existing window/checkpoint and atomic recording-commit paths, adding a transactional speaker-mapping digest because mappings may change independently of the document revision. Extend maintained installed-CLI qualification with deterministic recording coverage/repair fixtures; real-model acoustic and GPU checks remain separately elected.
+
+- 2026-10-31: Prepare the unpublished v1.1.0 minor candidate from the accepted reliability and long-recording work. Declare coverage and repair in the advanced CLI capability metadata, preserve original v1.0.3 documentation/schema authority after copying current changes forward, and obtain genuine isolated hosted captures. Keep catalog schema 11, mandatory qualification and owner-controlled merge/publication boundaries unchanged.
 
 ## [1.0.3] - 2026-10-29
 

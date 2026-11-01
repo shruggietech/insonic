@@ -29,7 +29,7 @@ def identity(revision, version, run_id, run_attempt):
 
 
 def entry(path):
-    if path.is_symlink() or not path.is_file() or path.stat().st_size > 64 << 20:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > pages.STATIC_PAYLOAD_BYTES:
         raise ValueError('documentation transfer archive is missing or excessive')
     data = path.read_bytes()
     return {'size_bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
