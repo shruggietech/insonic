@@ -2,7 +2,7 @@
 
 **Date**: 2026-11-01.
 **Product status**: Published and independently verified.
-**Delivery boundary**: Evidence PR publication, external reviews and final CI are pending. Owner final review and squash merge remain required.
+**Delivery boundary**: [PR #242](https://github.com/shruggietech/insonic/pull/242) is open and unmerged. Its final administrative-head CI, permitted second review and external terminal receipt govern owner handoff. Owner final review and squash merge remain required.
 
 ## Published authority
 
@@ -49,7 +49,7 @@ The official release also retains its original manifest and complete asset diges
 
 Specify, clarify, checklist, researched plan, tasks and blocking analysis completed. Analysis found zero ambiguities, conflicting duplicates, constitution conflicts or unmapped tasks; all ten functional requirements and four success criteria have task coverage. The built-in requirements checklist is 16/16 satisfied. The 12 custom publication checklist markers remain reviewer-owned and unchecked; explicit owner autopilot authorizes routine progress without changing them.
 
-No product, schema, release tooling or dependency bytes are changed by S066. Existing meaningful publication/integrity regressions remain intact. Implementation convergence and remaining delivery evidence are recorded before owner handoff.
+No product, schema, release tooling or dependency bytes are changed by S066. Existing meaningful publication/integrity regressions remain intact. Operational convergence checked 23 requirement/success/acceptance items, ten plan decisions and five constitution principles with zero missing, partial, contradictory or unrequested implementation findings. No convergence tasks were appended.
 
 ## Follow-ups and evidence limits
 
@@ -57,10 +57,18 @@ No product, schema, release tooling or dependency bytes are changed by S066. Exi
 - [#241](https://github.com/shruggietech/insonic/issues/241) tracks durable Pages attempt identity and investigation of the disagreeing post-update ref read. Exact deployed bytes and completed build are independently established despite the initial command failure.
 - Real-model CPU/NVIDIA inference, acoustic accuracy, owner-installed behavior and broader browser/assistive-technology conformance were not elected or established. Native/deterministic package qualification is distinct. The original manifest correctly retains `inference_qualification=not-executed`.
 - Windows assets remain unsigned with no verified publisher signature, as stated in the official release notes.
-- External Codex/security review status and final evidence-head CI are pending. At most two review rounds are authorized; owner merge is outside this slice's autonomous boundary.
+- Automatic Codex round one completed at 66e76287 with no findings and a thumbs-up; no review threads or separate security-review receipt. At most one manual second round remains permitted. Final administrative-head review/CI evidence is retained externally on the PR before owner handoff; owner merge remains outside this slice's autonomous boundary.
 
 ## Pre-PR verification
 
 The evidence changes pass repository/schema checks, all 222 Node tests, all 18 site tests and the public/offline documentation build (198 checked pages each). Local builds are validation outputs only and do not replace any accepted release or deployed bytes.
 
 Spec Kit convergence inventoried 23 requirement/success/acceptance items, ten plan decisions and five constitution principles. Publication and independent verification have no unplanned implementation gaps. Existing delivery tasks T018–T021 remain open for PR publication, reviews, terminal CI and final handoff; final convergence is deferred until those actual outcomes exist. No duplicate convergence tasks were appended and no product implementation was changed.
+
+## Accepted delivery baseline and final-head authority
+
+At head `66e76287abe49e6a559e8c7d209fb71903b21ae7`, [PR CI 41318203966](https://github.com/shruggietech/insonic/actions/runs/41318203966) and [full direct-head CI 41318254076](https://github.com/shruggietech/insonic/actions/runs/41318254076) passed their retained terminal audits. PR timing is 31s preparation, 284s qualification, 315s combined; full direct-head timing is 241s preparation, 739s qualification, 980s combined. The PR tested temporary merge revision `0cb6ba0fe41585a08277712aaa19ebf24ae58179`; the direct-head run tested the actual branch head.
+
+[Original PR CI and round-one review receipts](https://github.com/shruggietech/insonic/pull/242#issuecomment-6559617532) and [original full direct-head terminal receipts](https://github.com/shruggietech/insonic/pull/242#issuecomment-6559758639) were decoded from GitHub and reconstructed byte for byte against every original size/SHA256. Their complete archives and metadata are also retained locally.
+
+The final source update changes only these internal closeout records. Its applicable PR CI and exact-head maintained read-only site campaign must be green, and the second Codex review must be resolved, before handoff. Final source SHA, terminal audits, complete review readback and publication identity checks are recorded in an external PR receipt after those outcomes exist. This preserves final-head authority without embedding a commit's own hash inside itself.

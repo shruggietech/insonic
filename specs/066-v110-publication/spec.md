@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-01
 
-**Status**: Specified
+**Status**: Implemented and published; final administrative-head handoff governed by PR #242
 
 **Input**: Owner-authorized S066 using Spec Kit/autopilot: publish and verify v1.1.0 and its docs, push/open the official PR, resolve every actionable review within two rounds, and stop for owner final review and merge after green CI.
 

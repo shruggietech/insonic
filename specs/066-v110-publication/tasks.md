@@ -39,14 +39,14 @@ Independent test: exact Pages commit and live bytes match original accepted docu
 Independent test: source records, retained/public evidence, final CI and every review support one complete open PR for owner merge.
 
 - [X] T016 [US3] Return to codex/066-v110-publication; record actual version/source/release/Pages IDs, phase timing, original artifact hashes, independent readback/render evidence and explicit limits in specs/066-v110-publication/verification.md, compact receipts and CHANGELOG.md (FR-003, FR-005, FR-010; SC-003).
-- [ ] T017 [US3] Converge actual results against all requirements, acceptance scenarios, plan decisions and constitution principles using specs/066-v110-publication/tasks.md; append genuine gaps before delivery (FR-001 through FR-010; SC-001 through SC-004).
-- [ ] T018 [US3] Complete affected foreground local checks, commit/push evidence, open and attach the official non-draft PR, link issue #239 and update Project tracking; record the automatic first review in .local/s066/reviews.json (FR-009; SC-004).
-- [ ] T019 [US3] Resolve every actionable comment and individual thread using at most two triggers, preserving actual review receipts and absent security evidence in .local/s066/reviews.json; no third trigger is permitted (FR-009, FR-010; SC-004).
-- [ ] T020 [US3] Require final applicable PR CI on the actual final evidence head, retain/audit its terminal receipt and original metadata under .local/s066/, and requalify after any subsequent source change (FR-003, FR-009; SC-003, SC-004).
+- [X] T017 [US3] Converge actual results against all requirements, acceptance scenarios, plan decisions and constitution principles using specs/066-v110-publication/tasks.md; append genuine gaps before delivery (FR-001 through FR-010; SC-001 through SC-004).
+- [X] T018 [US3] Complete affected foreground local checks, commit/push evidence, open and attach the official non-draft PR, link issue #239 and update Project tracking; record the automatic first review in .local/s066/reviews.json (FR-009; SC-004).
+- [X] T019 [US3] Resolve every actionable comment and individual thread using at most two triggers, preserving actual review receipts and absent security evidence in .local/s066/reviews.json; no third trigger is permitted (FR-009, FR-010; SC-004).
+- [X] T020 [US3] Require final applicable PR CI on the actual final evidence head, retain/audit its terminal receipt and original metadata under .local/s066/, and requalify after any subsequent source change (FR-003, FR-009; SC-003, SC-004).
 
 ## Phase 6: Closeout
 
-- [ ] T021 Finalize task/verification state, read back retained compact receipts, verify final source/tracking/reviews/publication identities and publish the exact-source receipt in the PR before owner final-review/merge handoff; keep any final self-referential evidence external to source (FR-003, FR-009, FR-010; SC-001 through SC-004).
+- [X] T021 Finalize task/verification state, read back retained compact receipts, verify final source/tracking/reviews/publication identities and publish the exact-source receipt in the PR before owner final-review/merge handoff; keep any final self-referential evidence external to source (FR-003, FR-009, FR-010; SC-001 through SC-004).
 
 ## Dependencies and execution
 
@@ -59,3 +59,7 @@ Planning research is read-only across publication, workflow retention and public
 ## Implementation strategy
 
 US1 delivers verified official bytes, US2 verifies their matching public documentation, and US3 completes durable evidence and bounded review. Complete all three under the owner's explicit authorization. No new local runtime feature or unattended real-engine campaign is inferred.
+
+## Final administrative-head control
+
+All tasks completed against the published-release evidence and accepted review/CI baseline at 66e76287. The task/verification closeout commit changes only internal records. Repeat T020 for that commit and retain the final exact-head review/CI receipt externally on PR #242 before owner handoff; that terminal external receipt governs final delivery and avoids a self-referential source commit. No further review trigger beyond round two is permitted.
