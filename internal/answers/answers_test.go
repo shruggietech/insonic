@@ -74,7 +74,7 @@ func TestRequestLimitsAndStrictDecoding(t *testing.T) {
 		}
 	}
 	var r Request
-	if contracts.DecodeExplore([]byte(`{"version":"1.1.0","question":"q","credential":"secret"}`), &r) == nil {
+	if contracts.DecodeExplore([]byte(`{"version":"1.2.0","question":"q","credential":"secret"}`), &r) == nil {
 		t.Fatal("unknown credential field")
 	}
 }

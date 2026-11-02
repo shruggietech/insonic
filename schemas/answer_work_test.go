@@ -8,12 +8,12 @@ import (
 )
 
 func TestAnswerWorkflowRequestSchema(t *testing.T) {
-	request := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: "answers.request", Data: json.RawMessage(`{"request":{"version":"1.1.0","question":"What was agreed?"}}`)}
+	request := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: "answers.request", Data: json.RawMessage(`{"request":{"version":"1.2.0","question":"What was agreed?"}}`)}
 	raw, _ := json.Marshal(request)
 	if err := ValidateRequest(raw); err != nil {
 		t.Fatal(err)
 	}
-	request.Data = json.RawMessage(`{"request":{"version":"1.1.0","question":"q"},"configuration":{"provider":{"enabled":true,"route":"local","adapter":"insonic-http","endpoint":"http://127.0.0.1:1","model":"fixture"},"max_repairs":2}}`)
+	request.Data = json.RawMessage(`{"request":{"version":"1.2.0","question":"q"},"configuration":{"provider":{"enabled":true,"route":"local","adapter":"insonic-http","endpoint":"http://127.0.0.1:1","model":"fixture"},"max_repairs":2}}`)
 	raw, _ = json.Marshal(request)
 	if ValidateRequest(raw) == nil {
 		t.Fatal("unbounded repairs")

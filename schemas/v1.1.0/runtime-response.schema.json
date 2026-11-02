@@ -349,16 +349,7 @@
             "artifact_grace_period",
             "artifact_retirement_active",
             "unsupported_language",
-            "repair_attempts_exhausted",
-            "ambiguous_cue_identity",
-            "source_authority_changed",
-            "graph_checkpoint_changed",
-            "answer_package_integrity",
-            "citation_authority",
-            "context_envelope_budget",
-            "context_integrity",
-            "summary_source_mismatch",
-            "context_hierarchy_integrity"
+            "repair_attempts_exhausted"
           ],
           "description": "Allowlisted locally generated operation condition; never external text."
         },

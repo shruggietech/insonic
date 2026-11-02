@@ -115,14 +115,6 @@
     "recording-repair": {
       "$ref": "recording-repair.schema.json",
       "description": "recording repair."
-    },
-    "answer-evidence-context": {
-      "$ref": "answer-evidence.schema.json",
-      "description": "Current source authority, bounded retrieval, provenance ranking, context and citation contracts."
-    },
-    "grounded-answer": {
-      "$ref": "grounded-answer.schema.json",
-      "description": "Immutable grounded answer result."
     }
   },
   "oneOf": [
@@ -207,12 +199,6 @@
     },
     {
       "$ref": "#/$defs/recording-repair"
-    },
-    {
-      "$ref": "#/$defs/answer-evidence-context"
-    },
-    {
-      "$ref": "#/$defs/grounded-answer"
     }
   ]
 }

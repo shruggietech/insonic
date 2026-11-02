@@ -2,7 +2,7 @@
 
 insonic accepts audio and video inputs, retains canonical audio, correlates subtitles, tracks speakers and explores what was said and when through a CLI and desktop wrapper. Replaceable local and hosted tools operate through explicit adapters while the user controls the library, configuration and processing history. Source-linked speaker audio can optionally feed trained models associated with those speakers.
 
-v1.1.0 documents this release. This maintained reference also describes capabilities awaiting a subsequent package release, as identified in the changelog.
+v1.1.0 documents the prepared release candidate. Official product downloads have not been published; package availability and executed qualification are recorded in its candidate manifest.
 
 ## Read in this order
 
@@ -17,7 +17,7 @@ v1.1.0 documents this release. This maintained reference also describes capabili
 
 [CLI invocation and results](cli.md) covers contextual help, argument parsing, JSON files, output streams and durable failure inspection.
 
-Focused contracts cover [import dates and metadata](ingestion.md), [media](media.md), [pipelines](pipelines.md), [subtitles](subtitles.md), [speakers](speakers.md), [speaker audio and models](voice-models.md), [queries](graph.md), [answer evidence and context](answers.md), [storage](storage.md), [catalog structure](schema.md), [JSON contracts](contracts.md), [credentials](security.md), [credential commands](secrets.md) and [downloaded models](models.md), [desktop behavior](desktop.md) and [development](development.md). The [glossary](glossary.md) defines technical vocabulary with learning and local usage links. The [changelog](changelog.md) records changes.
+Focused contracts cover [import dates and metadata](ingestion.md), [media](media.md), [pipelines](pipelines.md), [subtitles](subtitles.md), [speakers](speakers.md), [speaker audio and models](voice-models.md), [queries](graph.md), [storage](storage.md), [catalog structure](schema.md), [JSON contracts](contracts.md), [credentials](security.md), [credential commands](secrets.md) and [downloaded models](models.md), [desktop behavior](desktop.md) and [development](development.md). The [glossary](glossary.md) defines technical vocabulary with learning and local usage links. The [changelog](changelog.md) records changes.
 
 ## The guiding outcome
 

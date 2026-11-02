@@ -260,7 +260,3 @@ Select `adapter: "ollama"`, `contract_version: "1"`, the service root endpoint, 
 Metadata-only discovery uses a default five-second aggregate deadline, at most 16 endpoint candidates, 128 model summaries and eight detail probes per candidate (plus an explicitly selected model), with 1 MiB response caps. Unprobed details remain untested and truncated inventories are identified. Configured and synthetically tested states are independent from installed, running, reachable and advertised task compatibility. Cancellation stops the underlying operation.
 
 Local models receive a non-streaming native chat request with JSON output. Hosted models omit upstream's currently unsupported structured-output format; the returned proposal still undergoes identical strict parsing and validation. Redirects, oversized or malformed responses, missing models, authentication failures and busy providers return fixed redacted corrections without silent fallback. This adapter supports query assistance; discovery of text capability establishes no transcription, diarization or training readiness.
-
-## Question evidence and context
-
-[Answer evidence preparation](answers.md) uses bounded catalog cue projection and checkpoint-pinned graph neighborhoods across recordings. It preserves selection paths, current citation authority, provenance-based source families and conflicting evidence, then assembles budgeted extractive context. This path does not implicitly publish the graph or invoke answer synthesis. Direct normalized and native queries remain independent.

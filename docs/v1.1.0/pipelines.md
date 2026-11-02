@@ -4,8 +4,6 @@
 
 ## Configured work and current results
 
-Optional `answer_synthesis` stores a provider election and a zero-or-one repair allowance. An answer-only definition needs no speech stages. Local and Connected presets require local and hosted answer routes respectively; Custom permits either explicit election. `pipelines inspect` reports answer synthesis as a capability without probing the model. `answers request` freezes the selected pipeline revision and runs the [grounded answer workflow](answers.md); saving a definition does not start inference. Advanced answer configuration currently uses the CLI and shared runtime.
-
 A pipeline declares elected models, adapters, device/resource settings and routing. Saved definitions advance revisions and accepted work retains its elected configuration; processing does not retain alternative transcripts or assignment stores. Changing defaults affects future work. Rerunning a stage replaces the current result after validation and fenced acceptance. Once routing is configured, normal work proceeds without per-item approval or silent provider fallback.
 
 Saved Local, Connected and Custom pipelines use stable IDs and expected-revision updates. Local selects both local workers, Connected selects both hosted workers, and Custom supports an explicit mix. The stored values are `local`, `connected` and `custom`. Each stage declares its adapter contract, exact managed local model or remote model, options and resource limits. Inspection reports effective settings and capabilities without contacting endpoints or running models. The desktop Pipelines screen saves and inspects the same definitions; Library processing selects their IDs.
