@@ -110,3 +110,7 @@ Work-result paging uses `--after-ordinal` with the returned numeric ordinal. Med
 ## Inspect coverage and repair a transcript
 
 `recordings coverage MEDIA_UUID [--input FILE]` reports per-track selected audio, observed speech, explicit no-speech, unknown activity and bounded suspicious regions. It performs no inference or writes. `recordings repair MEDIA_UUID --input FILE` creates durable bounded repair work; follow its returned work ID with `work wait` or `work show`. Automatic selection and explicit native sample ranges share the same frozen evidence and acceptance rules. See [coverage and repair elections](pipelines.md#transcript-coverage-and-bounded-repair) for executable input examples, denominators and retry budgets. The GUI does not yet provide dedicated controls for these operations.
+
+## Evidence/context preparation and citation validation
+
+`answers prepare --input question.json` collects bounded source-linked evidence and extractive context. `answers show PACKAGE_UUID` inspects a retained package; `answers export PACKAGE_UUID --json` returns its complete versioned response for redirection. `answers validate --input answer.json` checks current-source citation authority without synthesizing an answer. Human output puts partial/insufficient state, freshness, graph lag, context omissions and continuation before detail. Cancellation returns a non-success error with the available observation. See [complete contracts, limits and examples](answers.md).

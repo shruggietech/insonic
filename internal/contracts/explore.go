@@ -196,14 +196,14 @@ func (q QueryInput) Validate() error {
 	return nil
 }
 func ExploreOperation(op string) bool {
-	return strings.Contains("|query.services|query.assistance-test|query.assist|query.assistance-show|query.assistance-set|graph.capabilities|graph.status|graph.publish|graph.rebuild|evidence.extract|evidence.show|query.run|query.explain|query.list|query.show|query.save|query.validate|timeline.calendar|timeline.recording|views.show|views.save|", "|"+op+"|")
+	return strings.Contains("|answers.prepare|answers.show|answers.export|answers.validate|query.services|query.assistance-test|query.assist|query.assistance-show|query.assistance-set|graph.capabilities|graph.status|graph.publish|graph.rebuild|evidence.extract|evidence.show|query.run|query.explain|query.list|query.show|query.save|query.validate|timeline.calendar|timeline.recording|views.show|views.save|", "|"+op+"|")
 }
 func ExploreRequestValid(r Request) bool {
 	if !ExploreOperation(r.Operation) || r.JobID != "" || r.DurationMS != 0 || r.AfterGeneration != 0 || r.PublicationID != "" || r.SourcePath != "" || r.ArtifactKind != "" || r.LeaseID != "" || r.ReferenceID != "" || r.MaxBytes != 0 || len(r.Data) > 1<<20 {
 		return false
 	}
 	switch r.Operation {
-	case "evidence.extract", "evidence.show", "timeline.recording", "query.show", "query.save", "views.show", "views.save":
+	case "answers.show", "answers.export", "evidence.extract", "evidence.show", "timeline.recording", "query.show", "query.save", "views.show", "views.save":
 		return ValidID(r.ItemID)
 	default:
 		return r.ItemID == ""

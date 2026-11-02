@@ -376,7 +376,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         if documentation:
             from cli_query_qualification import qualify as qualify_queries
             phase('query-contracts')
-            query_contracts = qualify_queries(invoke, supplied, workspace)
+            query_contracts = qualify_queries(invoke, supplied, workspace, version)
         provider_contracts = {'state': 'not-included', 'reason': 'required in extracted packages'}
         documented = {'state': 'not-included', 'reason': 'source CLI lane; required in extracted packages'}
         examples = {'state': 'not-included', 'reason': 'requires exact installed companions'}

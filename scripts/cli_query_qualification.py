@@ -7,7 +7,7 @@ import uuid
 from cli_media_qualification import pcm_fixture
 
 
-def qualify(invoke, supplied, workspace):
+def qualify(invoke, supplied, workspace, version):
     started = time.monotonic()
     directory = workspace / 'query contract fixtures'
     directory.mkdir()
@@ -81,6 +81,8 @@ def qualify(invoke, supplied, workspace):
     parameters.write_text('{"value":{"type":"integer","value":1},"value":{"type":"integer","value":2}}', encoding='utf-8')
     if invoke(native, expected=2)['error']['code'] != 'invalid_request':
         raise ValueError('Duplicate native parameter reached execution')
-    return {'state': 'passed', 'issues': [122, 123, 124, 125, 128, 129], 'rows': len(rows),
+    from cli_answer_qualification import qualify as qualify_answers
+    answers = qualify_answers(invoke, supplied, workspace, version)
+    return {'state': 'passed', 'answer_evidence': answers, 'issues': [122, 123, 124, 125, 128, 129], 'rows': len(rows),
             'edges': len(edges), 'search_matches': len(seen), 'timezone_forms': 3,
             'elapsed_seconds': round(time.monotonic() - started, 3)}

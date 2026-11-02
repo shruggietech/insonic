@@ -52,6 +52,34 @@ func qualifyAdapter(t *testing.T, a Adapter) {
 	if e != nil || len(refs.Nodes) != 2 || len(refs.Edges) != 1 {
 		t.Fatal(refs, e)
 	}
+	for _, direction := range []string{"out", "both", "in"} {
+		page, err := a.Neighborhood(ctx, NeighborhoodRequest{Workspace: w, Target: target, Checkpoint: cp, Node: "media:one", Direction: direction, Limit: 1, MaxBytes: 65536})
+		want := 1
+		if direction == "in" {
+			want = 0
+		}
+		if err != nil || len(page.Edges) != want || page.Bytes > 65536 {
+			t.Fatal("bounded neighborhood", direction, page, err)
+		}
+		if page.Next != "" {
+			next, err := a.Neighborhood(ctx, NeighborhoodRequest{Workspace: w, Target: target, Checkpoint: cp, Node: "media:one", Direction: direction, After: page.Next, Limit: 1, MaxBytes: 65536})
+			if err != nil || len(next.Edges) != 0 || next.Next != "" {
+				t.Fatal("edge continuation", next, err)
+			}
+		}
+	}
+	filtered, err := a.Neighborhood(ctx, NeighborhoodRequest{Workspace: w, Target: target, Checkpoint: cp, Node: "media:one", Direction: "out", Kinds: []string{"unrelated"}, Limit: 1, MaxBytes: 65536})
+	if err != nil || len(filtered.Edges) != 0 {
+		t.Fatal(filtered, err)
+	}
+	wrong := cp
+	wrong.Sequence++
+	if _, err = a.Neighborhood(ctx, NeighborhoodRequest{Workspace: w, Target: target, Checkpoint: wrong, Node: "media:one", Direction: "out", Limit: 1, MaxBytes: 65536}); err == nil {
+		t.Fatal("stale checkpoint accepted")
+	}
+	if _, err = a.Neighborhood(ctx, NeighborhoodRequest{Workspace: contracts.ID(), Target: target, Checkpoint: cp, Node: "media:one", Direction: "out", Limit: 1, MaxBytes: 65536}); err == nil {
+		t.Fatal("foreign workspace checkpoint accepted")
+	}
 	if e = a.FenceGeneration(ctx, w, target, 2); e != nil {
 		t.Fatal(e)
 	}

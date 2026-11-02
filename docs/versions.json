@@ -600,6 +600,10 @@
           "title": "Queries, timeline and graph"
         },
         {
+          "slug": "answers",
+          "title": "Answer evidence and context"
+        },
+        {
           "slug": "storage",
           "title": "Installation and storage"
         },

@@ -2,6 +2,7 @@
 package app
 
 import (
+	"context"
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
@@ -9,10 +10,13 @@ import (
 )
 
 func (a *App) artifactService() (*artifact.Service, error) {
+	return a.artifactServiceContext(a.ctx)
+}
+func (a *App) artifactServiceContext(ctx context.Context) (*artifact.Service, error) {
 	a.artifactMu.Lock()
 	defer a.artifactMu.Unlock()
 	if a.Artifacts == nil {
-		service, e := artifact.NewService(a.ctx, a.Workspace, a.Catalog, a.secrets, a.Session)
+		service, e := artifact.NewService(ctx, a.Workspace, a.Catalog, a.secrets, a.Session)
 		if e != nil {
 			return nil, e
 		}

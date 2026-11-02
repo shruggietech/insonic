@@ -134,6 +134,10 @@
         {
           "path": "scripts/cli_query_qualification.py",
           "symbol": "qualify"
+        },
+        {
+          "path": "scripts/cli_answer_qualification.py",
+          "symbol": "qualify"
         }
       ],
       "license": "Apache-2.0",

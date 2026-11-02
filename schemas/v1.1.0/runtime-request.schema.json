@@ -167,7 +167,11 @@
         "setup.save",
         "setup.readiness",
         "recordings.coverage",
-        "recordings.repair"
+        "recordings.repair",
+        "answers.prepare",
+        "answers.show",
+        "answers.export",
+        "answers.validate"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -3856,7 +3860,7 @@
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 512,
-                        "pattern": "[^\t-\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]",
+                        "pattern": "[^\t-\r    -     　]",
                         "description": "Required title with at least one non-whitespace character."
                       }
                     }
@@ -6331,6 +6335,179 @@
                 }
               }
             ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "answers.prepare",
+              "answers.show",
+              "answers.export",
+              "answers.validate"
+            ],
+            "description": "Shared evidence/context operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "answers.prepare",
+            "description": "Evidence/context operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "$ref": "answer-evidence.schema.json#/$defs/request",
+            "description": "Versioned question preparation request."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "answers.show",
+            "description": "Evidence/context operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "answers.export",
+            "description": "Evidence/context operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "answers.validate",
+            "description": "Evidence/context operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "$ref": "answer-evidence.schema.json#/$defs/envelope",
+            "description": "Versioned answer envelope to validate against current source authority."
           }
         }
       }

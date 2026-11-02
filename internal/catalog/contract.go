@@ -4,6 +4,7 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/answers"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"time"
 )
@@ -11,6 +12,9 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	AnswerEpoch(context.Context, []string, int, int) (AnswerEpoch, error)
+	AnswerCandidates(context.Context, AnswerPageRequest) (AnswerPage, error)
+	ResolveAnswerEvidence(context.Context, answers.Reference, int) (answers.Item, error)
 	ProcessingPlan(context.Context, string) (ProcessingPlan, error)
 	ProcessingPlans(context.Context, string) ([]ProcessingPlan, error)
 	CommitProcessingPlan(context.Context, Work, ProcessingPlan) (ProcessingPlan, error)

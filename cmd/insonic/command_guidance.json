@@ -169,7 +169,11 @@
     "views show": "Read one saved view and revision.",
     "views save": "Create or update a revision-checked saved view.",
     "recordings coverage": "Inspect transcript coverage, acoustic evidence limits and bounded suspicious source regions without running inference.",
-    "recordings repair": "Repair elected transcript regions with finite window attempts; retain the current document unless fixed-evidence coverage strictly improves."
+    "recordings repair": "Repair elected transcript regions with finite window attempts; retain the current document unless fixed-evidence coverage strictly improves.",
+    "answers prepare": "Prepare bounded current-source evidence and extractive context for a question, preserving provenance, omissions and graph freshness. No answer synthesis or graph publication runs.",
+    "answers show": "Inspect a retained evidence/context package and its current source freshness.",
+    "answers export": "Return the retained package with current freshness; use --json for complete export and redirection.",
+    "answers validate": "Validate answer claims and quotes against a retained package and current source authority; this does not evaluate semantic entailment."
   },
   "groups": {
     "": "Choose a library, admit media, process recordings and inspect retained evidence.",
@@ -205,7 +209,8 @@
     "evidence": "Extract and inspect retained recording evidence.",
     "query": "Validate, save, explain and execute read-only queries.",
     "timeline": "Explore retained recording dates and timed evidence.",
-    "views": "Read and save revision-checked query views."
+    "views": "Read and save revision-checked query views.",
+    "answers": "Prepare and inspect source-grounded evidence/context and validate citations."
   },
   "options": {
     "--workspace": {

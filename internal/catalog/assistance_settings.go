@@ -5,8 +5,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/answers"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"math"
+	"strings"
 )
 
 func (s *Store) NamedSetting(ctx context.Context, name string) (json.RawMessage, int64, error) {
@@ -53,7 +55,11 @@ func (s *Store) PutNamedSetting(ctx context.Context, op, name string, expected i
 		if _, e = s.exec(ctx, tx, "INSERT INTO setting_revision(workspace_id,name,revision,value) VALUES(?,?,?,?)", s.workspace, name, revision+1, string(canonicalValue)); e != nil {
 			return e
 		}
-		out, e = s.accept(ctx, tx, op, digest, revision, map[string]any{"accepted": true, "setting": name})
+		result := map[string]any{"accepted": true, "setting": name}
+		if strings.HasPrefix(name, "answer-context:") && answers.ValidDigest(strings.TrimPrefix(name, "answer-context:")) {
+			result = map[string]any{"answer_context_indexed": true, "setting": name}
+		}
+		out, e = s.accept(ctx, tx, op, digest, revision, result)
 		return e
 	})
 	return out, e

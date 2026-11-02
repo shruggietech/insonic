@@ -4,6 +4,15 @@ package contracts
 import "errors"
 
 var operatorReasons = map[string]string{
+	"ambiguous_cue_identity":              "The current document repeats a cue identifier. Correct the source document and reimport it before preparing evidence.",
+	"source_authority_changed":            "Source evidence changed or could not be verified. Prepare a fresh evidence package before validating citations.",
+	"graph_checkpoint_changed":            "The graph projection changed during retrieval. Retry preparation against its current checkpoint.",
+	"answer_package_integrity":            "The saved evidence package failed integrity or identity validation. Prepare a new package from current sources.",
+	"citation_authority":                  "A citation does not match its exact current source identity or quotation. Resolve the current cue and correct the citation.",
+	"context_envelope_budget":             "The elected context budget cannot hold its metadata envelope. Increase context_bytes and context_tokens or shorten the question.",
+	"context_integrity":                   "The context bytes, counters or budget do not match the saved contract. Prepare a fresh package.",
+	"summary_source_mismatch":             "Condensed text does not match its underlying source cue. Prepare a fresh source-linked context.",
+	"context_hierarchy_integrity":         "The context hierarchy does not match its recording and cue sources. Prepare a fresh package.",
 	"unsupported_language":                "recognition.language must be auto or a supported faster-whisper language code, such as en, es or fr. See local processing setup for the supported choices.",
 	"artifact_retained":                   "The artifact is retained by a current reference. Inspect its references and release only those no longer needed before retrying retirement.",
 	"artifact_active_lease":               "The artifact has an active materialization lease. Release the owned lease or wait for its expiry, then retry retirement.",

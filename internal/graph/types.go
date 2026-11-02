@@ -48,6 +48,7 @@ type Adapter interface {
 	ApplyRevision(context.Context, catalog.OutboxClaim) error
 	ReadCheckpoint(context.Context, string, string) (Checkpoint, error)
 	ReadRefs(context.Context, string) (References, error)
+	Neighborhood(context.Context, NeighborhoodRequest) (NeighborhoodPage, error)
 	Query(context.Context, string, string, map[string]contracts.QueryParameter) (Rows, error)
 	Explain(context.Context, string, string, map[string]contracts.QueryParameter) (Rows, error)
 	ExportSnapshot(context.Context, string) (References, error)

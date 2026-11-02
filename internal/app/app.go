@@ -420,6 +420,8 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 			if err == nil {
 				result, err = a.runQuery(ctx, q, req.Operation)
 			}
+		} else if strings.HasPrefix(req.Operation, "answers.") {
+			result, err = a.answersDispatch(ctx, req)
 		} else if contracts.ExploreOperation(req.Operation) {
 			result, err = a.exploreDispatch(req)
 		} else if contracts.DesktopOperation(req.Operation) {

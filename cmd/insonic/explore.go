@@ -21,7 +21,7 @@ func parseExplore(args []string) (string, string, json.RawMessage, error) {
 	index := 2
 	item := ""
 	switch op {
-	case "evidence.extract", "evidence.show", "timeline.recording", "query.show", "query.save", "views.show", "views.save":
+	case "answers.show", "answers.export", "evidence.extract", "evidence.show", "timeline.recording", "query.show", "query.save", "views.show", "views.save":
 		if len(args) < 3 || !contracts.ValidID(args[2]) {
 			return fail()
 		}

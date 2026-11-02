@@ -4,6 +4,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Added
+
+- 2026-11-01: Prepare question evidence across recordings with bounded catalog/graph reads, exact current-source citations, provenance-based source grouping, visible contradictions and budgeted hierarchical extracts. Retain verified immutable context packages with revision-bound cache reuse, freshness inspection/export and shared answer-envelope validation through the CLI/runtime.
+
 ### Changed
 
 - 2026-11-01: Publish v1.1.0 for Windows/Linux with all ten qualified original assets and matching documentation. Independently download and compare every official asset, verify the exact deployed documentation and six product links, and qualify eight fresh light/dark landing layouts.
