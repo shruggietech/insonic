@@ -204,7 +204,7 @@ func humanActions(b *humanBuffer, root map[string]any) {
 	if id == "not set" {
 		id = humanValue(root["work_id"])
 	}
-	if root["kind"] != nil && strings.HasSuffix(humanValue(root["kind"]), "import") || strings.HasPrefix(op, "work ") || op == "workers setup" {
+	if root["kind"] != nil && strings.HasSuffix(humanValue(root["kind"]), "import") || strings.HasPrefix(op, "work ") || op == "workers setup" || root["kind"] == "answers.request" {
 		if contracts.ValidID(id) {
 			if root["state"] == nil || root["state"] == "pending" || root["state"] == "running" {
 				b.line("Next: %s", commandFor("work show "+id))

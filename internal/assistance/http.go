@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"io"
 	"net/http"
@@ -25,11 +26,11 @@ func InCI() bool {
 	}
 	return false
 }
-func (a HTTPAdapter) Propose(ctx context.Context, input Request, c Config) (Proposal, error) {
+func (a HTTPAdapter) Generate(ctx context.Context, input Request, c Config, instruction string) (Generated, error) {
 	if c.Adapter == "ollama" {
-		return (Ollama{Secrets: a.Secrets, Client: a.Client}).Propose(ctx, input, c)
+		return (Ollama{Secrets: a.Secrets, Client: a.Client}).Generate(ctx, input, c, instruction)
 	}
-	var empty Proposal
+	var empty Generated
 	if a.Client == nil && InCI() {
 		return empty, contracts.Fail("engine_ci_forbidden")
 	}
@@ -101,7 +102,26 @@ func (a HTTPAdapter) Propose(ctx context.Context, input Request, c Config) (Prop
 		return empty, contracts.Condition("output_limit", "provider_response_limit")
 	}
 	if e != nil {
+		return empty, contracts.Condition("unavailable", "provider_unavailable")
+	}
+	if catalog.ValidateJSON(raw) != nil {
 		return empty, contracts.Condition("operation_failed", "provider_protocol")
 	}
-	return ParseProvider(raw, c.Adapter)
+	return Generated{Raw: raw, ObservedRoute: c.Route}, nil
+}
+
+// Generated contains bounded structured bytes, not a domain-specific acceptance.
+type Generated struct {
+	Raw           json.RawMessage
+	ObservedRoute string
+}
+
+func (a HTTPAdapter) Propose(ctx context.Context, input Request, c Config) (Proposal, error) {
+	out, err := a.Generate(ctx, input, c, queryInstruction)
+	if err != nil {
+		return Proposal{}, err
+	}
+	p, err := ParseProvider(out.Raw, c.Adapter)
+	p.ObservedRoute = out.ObservedRoute
+	return p, err
 }

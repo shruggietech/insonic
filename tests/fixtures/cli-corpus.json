@@ -223,6 +223,24 @@
       "expectations": [
         "Incomplete authority is refused; exact retries verify unchanged bundle and restored bytes, retain identities and clean owned fixtures without a physical exhaustion claim."
       ]
+    },
+    {
+      "id": "grounded-answers",
+      "owners": [
+        {
+          "path": "tests/fixtures/answers/manifest.json",
+          "sha256": "cd67720f9e86081016e9de8a2aded255f7ae86941e92c98f5c818e0cd292ae1c"
+        },
+        {
+          "path": "scripts/cli_answer_synthesis_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Synthetic PCM, cues, deterministic transport and frozen proposition labels; no private recordings.",
+      "expectations": [
+        "Installed answer lifecycle and seven explicit rubric metrics; fixture success is not model quality."
+      ]
     }
   ],
   "scenarios": [
@@ -374,6 +392,17 @@
       },
       "fixtures": [
         "backup-recovery"
+      ]
+    },
+    {
+      "id": "answer",
+      "owner": {
+        "path": "scripts/cli_answer_synthesis_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "grounded-answers",
+        "pcm-subtitles"
       ]
     }
   ]

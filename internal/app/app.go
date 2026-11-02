@@ -25,7 +25,8 @@ type worker struct {
 	cancel  context.CancelFunc
 }
 type App struct {
-	AssistanceFixture    assistance.Fixture // Non-nil only in explicit deterministic test/qualification construction.
+	AnswerFixture        func(context.Context, assistance.Request, assistance.Config) (assistance.Generated, error) // Explicit deterministic fixture construction only.
+	AssistanceFixture    assistance.Fixture                                                                         // Non-nil only in explicit deterministic test/qualification construction.
 	graphMu              sync.Mutex
 	Graph                graph.Adapter
 	recordingFactory     func() (*recordingExecution, error)

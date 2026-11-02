@@ -64,4 +64,5 @@ func TestAnswerGenericS3CacheAndExport(t *testing.T) {
 	if err != nil || shown.Freshness != "current" || shown.Package.ID != first.Package.ID {
 		t.Fatal("S3 export", shown, err)
 	}
+	answerGeneratedBackendSuite(t, a, r)
 }

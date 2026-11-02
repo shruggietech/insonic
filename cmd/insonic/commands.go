@@ -290,6 +290,8 @@ var commandDefinitions = func() []commandDefinition {
 	add("models train", "", 0, 0, "--input", "--input")
 	add("models speaker fetch", "VERSION_UUID", 1, 1, "--destination", "--destination")
 	add("models profile set", "SPEAKER_UUID", 1, 1, "--input", "--input")
+	add("answers request", "", 0, 0, "--input", "--input")
+	add("answers retry", "WORK_UUID", 1, 1, "", "")
 	add("answers prepare", "", 0, 0, "--input", "--input")
 	add("answers validate", "", 0, 0, "--input", "--input")
 	add("answers show", "PACKAGE_UUID", 1, 1, "", "")

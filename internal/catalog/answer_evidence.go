@@ -115,14 +115,21 @@ func answerScope(ids []string) error {
 // artifact and cache-index writes. It also detects restored equal revisions
 // with different identities. An incomplete scan cannot authorize cache reuse.
 func (s *Store) AnswerEpoch(ctx context.Context, mediaIDs []string, maxRows, maxBytes int) (out AnswerEpoch, err error) {
-	if answerScope(mediaIDs) != nil || maxRows < 1 || maxRows > 100000 || maxBytes < 1 || maxBytes > 8<<20 {
-		return out, contracts.Fail("invalid_request")
-	}
 	tx, err := s.identityRead(ctx)
 	if err != nil {
 		return out, sanitize(err)
 	}
 	defer tx.Rollback()
+	out, err = s.answerEpochTx(ctx, tx, mediaIDs, maxRows, maxBytes)
+	if err != nil {
+		return out, err
+	}
+	return out, sanitize(tx.Commit())
+}
+func (s *Store) answerEpochTx(ctx context.Context, tx *sql.Tx, mediaIDs []string, maxRows, maxBytes int) (out AnswerEpoch, err error) {
+	if answerScope(mediaIDs) != nil || maxRows < 1 || maxRows > 100000 || maxBytes < 1 || maxBytes > 8<<20 {
+		return out, contracts.Fail("invalid_request")
+	}
 	if err = s.row(ctx, tx, "SELECT revision FROM workspace WHERE id=?", s.workspace).Scan(&out.Revision); err != nil {
 		return out, sanitize(err)
 	}
@@ -177,7 +184,7 @@ func (s *Store) AnswerEpoch(ctx context.Context, mediaIDs []string, maxRows, max
 		}
 		out.Digest = hex.EncodeToString(h.Sum(nil))
 	}
-	return out, sanitize(tx.Commit())
+	return out, nil
 }
 
 func (s *Store) AnswerCandidates(ctx context.Context, request AnswerPageRequest) (out AnswerPage, err error) {

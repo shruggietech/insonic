@@ -320,7 +320,7 @@
         },
         "model": {
           "type": "string",
-          "maxLength": 256,
+          "maxLength": 512,
           "description": "Exact elected model identity."
         },
         "configuration_digest": {
@@ -1100,6 +1100,13 @@
           "type": "string",
           "maxLength": 4096,
           "description": "Reason support is unresolved."
+        },
+        "kind": {
+          "enum": [
+            "quote",
+            "paraphrase"
+          ],
+          "description": "Explicit exact quotation or paraphrase; required for generated synthesis."
         }
       },
       "required": [
@@ -1150,7 +1157,7 @@
     "envelope": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Shared future answer contract; this release validates citations without synthesizing answers.",
+      "description": "Source-bound answer claims; generated answers additionally validate the actual provider-visible extracts.",
       "properties": {
         "version": {
           "const": "1.1.0",

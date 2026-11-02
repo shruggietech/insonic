@@ -221,3 +221,7 @@ func TestPostgreSQLProcessingOrphanCleanup(t *testing.T) {
 func TestPostgreSQLRecordingRepairFencesAndReplay(t *testing.T) {
 	recordingRepairSuite(t, postgresStore(t, contracts.ID()))
 }
+
+func TestPostgreSQLAnswerWorkFence(t *testing.T) {
+	answerWorkSuite(t, postgresStore(t, contracts.ID()))
+}

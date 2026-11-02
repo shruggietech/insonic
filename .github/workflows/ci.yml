@@ -500,6 +500,17 @@ jobs:
           python scripts/media-transfer.py restore --stage complete --revision '${{ github.sha }}' build/transfer/media-source.tar.gz
           python scripts/media-tools.py --prepare-only
           go test -v -p 1 -tags integration ./internal/qualification ./internal/backendsetup ./internal/catalog ./internal/artifact ./internal/models ./internal/library ./internal/graph ./internal/app ./internal/backup
+          python scripts/qualify.py prepare
+          go build -o build/answer-backend-cli ./cmd/insonic
+          python scripts/qualify-answer-backends.py --executable build/answer-backend-cli --output build/answer-backends.json
+      - name: Retain alternative-backend answer evaluation
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          archive: true
+          name: answer-backends-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/answer-backends.json
+          if-no-files-found: error
   live-site:
     needs: readiness
     if: always() && needs.readiness.result == 'success' && needs.readiness.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.site_smoke

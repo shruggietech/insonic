@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/shruggietech/insonic/internal/answers"
+	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/graph"
@@ -148,6 +149,38 @@ func answerBackendSuite(t *testing.T, a *App, recording string) {
 		response = realRequest(a, op, view.Package.ID, nil)
 		if response.Error != nil || response.Result.(answerResult).Freshness != "current" {
 			t.Fatal(op, response)
+		}
+	}
+	answerGeneratedBackendSuite(t, a, r)
+}
+
+func answerGeneratedBackendSuite(t *testing.T, a *App, request answers.Request) {
+	t.Helper()
+	c := assistance.DefaultConfig()
+	c.Enabled = true
+	c.Endpoint = "http://127.0.0.1:1"
+	c.Model = "deterministic-backend-fixture"
+	cfg := assistance.SynthesisConfig{Provider: c}
+	a.AnswerFixture = func(_ context.Context, input assistance.Request, _ assistance.Config) (assistance.Generated, error) {
+		envelope, err := fixtureAnswer(input)
+		raw, _ := json.Marshal(envelope)
+		return assistance.Generated{Raw: raw, ObservedRoute: "local"}, err
+	}
+	defer func() { a.AnswerFixture = nil }()
+	raw, _ := json.Marshal(AnswerWorkflowRequest{Request: request, Configuration: &cfg})
+	work, err := a.requestAnswer(a.ctx, contracts.Request{RequestID: contracts.ID(), Data: raw})
+	if err != nil {
+		t.Fatal(err)
+	}
+	terminal := awaitWork(t, a, work.ID)
+	var progress answerProgress
+	if terminal.State != "succeeded" || json.Unmarshal(terminal.Result, &progress) != nil || !progress.Accepted {
+		t.Fatal("backend answer acceptance", terminal)
+	}
+	for _, op := range []string{"answers.show", "answers.export"} {
+		response := realRequest(a, op, progress.AnswerID, nil)
+		if response.Error != nil {
+			t.Fatal(op, response.Error)
 		}
 	}
 }

@@ -8,6 +8,8 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-11-01: Prepare question evidence across recordings with bounded catalog/graph reads, exact current-source citations, provenance-based source grouping, visible contradictions and budgeted hierarchical extracts. Retain verified immutable context packages with revision-bound cache reuse, freshness inspection/export and shared answer-envelope validation through the CLI/runtime.
 
+- 2026-11-02: Generate structured cross-recording answers through elected HTTP or Ollama providers, validate visible-context citations with bounded repair, and retain immutable answers through durable CLI/pipeline work with cancellation, linked retries and source freshness. Add synthetic answer evaluation with separate retrieval, citation and support metrics, plus explicitly elected model evaluation.
+
 ### Changed
 
 - 2026-11-01: Publish v1.1.0 for Windows/Linux with all ten qualified original assets and matching documentation. Independently download and compare every official asset, verify the exact deployed documentation and six product links, and qualify eight fresh light/dark landing layouts.

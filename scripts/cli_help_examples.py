@@ -94,6 +94,20 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
     import threading
     body = b'actual emitted model example bytes'
     class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            if self.path != '/answer':
+                self.send_error(404); return
+            length = int(self.headers.get('Content-Length', '0'))
+            if not 0 < length <= 128 * 1024:
+                self.send_error(413); return
+            from cli_answer_synthesis_qualification import fixture_reply
+            request = json.loads(self.rfile.read(length))
+            data = json.dumps(fixture_reply(request['context'])).encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
         def do_GET(self):
             self.send_response(200)
             data = json.dumps({'kind': 'model-catalog', 'schema_version': version, 'entries': []}).encode() if self.path == '/catalog' else body
@@ -193,7 +207,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
         expected = {
             'media relocate': {'unsupported_capability', 'conflict', 'invalid_request'},
             'jobs retry': {'conflict'}, 'jobs cancel': {'conflict'},
-            'work retry': {'conflict'}, 'work cancel': {'conflict'},
+            'answers request': {'engine_ci_forbidden'},
+            'answers retry': {'conflict'}, 'work retry': {'conflict'}, 'work cancel': {'conflict'},
             'artifacts abort': {'conflict'}, 'artifacts retire': {'conflict'}, 'artifacts cache-prune': {'conflict'},
             'artifacts lease-renew': {'not_found', 'conflict'}, 'artifacts lease-release': {'not_found', 'conflict'},
             'artifacts release-reference': {'not_found'},
@@ -228,6 +243,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             replacements = {k: v for k, v in ids.items()}
             kwargs = {'expected': (0, 1, 2, 4)}
             value = selected_input(name, help_text)
+            if name == 'answers request':
+                value['configuration']['provider']['endpoint'] = f'http://127.0.0.1:{server.server_port}/answer'
             if value is not None:
                 write('input.json', value)
             if name in ['backup restore', 'catalog restore']:
@@ -442,7 +459,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                 if completed is not None:
                     entry['observed'] = {'state': completed['result']['state']}
 
-                entry['scenario'] = {'media relocate': 'Managed canonical audio has no relocatable legacy source.',
+                entry['scenario'] = {'answers request': 'The CI-marked example runtime refuses model execution; the separately isolated answer campaign exercises owned fixture transport.',
+                                     'media relocate': 'Managed canonical audio has no relocatable legacy source.',
                                      'jobs cancel': 'The bounded synthetic attempt already completed.',
                                      'jobs retry': 'A completed successful synthetic attempt is not retryable.',
                                      'work cancel': 'The accepted refresh already completed.',

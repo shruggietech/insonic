@@ -127,6 +127,14 @@ func (a *App) readinessDefinition(ctx context.Context, input ReadinessInput, d *
 			return r, contracts.Fail("invalid_request")
 		}
 	}
+	if d != nil && d.AnswerSynthesis != nil {
+		r.Tasks["answer-synthesis"] = composeTask([]Prerequisite{{Name: "elected synthesis provider", State: "configured_not_probed", Correction: "The saved route is configured; answer execution will resolve its credentials and contact that route.", Identity: synthesisProvider(*d.AnswerSynthesis)}})
+		if !pipeline.HasProcessing(*d) && len(d.SpeakerTraining) == 0 {
+			r.Verification = "configuration_only; provider_not_contacted"
+			r.PipelineUsable = electedPipelineUsable(d, r.Tasks)
+			return r, nil
+		}
+	}
 	c, _ := ReadProcessingTools(a.Workspace)
 	media, _ := ReadMediaTools(a.Workspace)
 	imports := []Prerequisite{checkedPin(ctx, "ffprobe", library.PinnedFile{Path: media.FFprobe.Path, SHA256: media.FFprobe.SHA256}), checkedPin(ctx, "exiftool", library.PinnedFile{Path: media.ExifTool.Path, SHA256: media.ExifTool.SHA256}), checkedPin(ctx, "ffmpeg", library.PinnedFile{Path: media.FFmpeg.Path, SHA256: media.FFmpeg.SHA256})}
@@ -295,9 +303,13 @@ func electedPipelineUsable(d *pipeline.Definition, tasks map[string]TaskReadines
 		return false
 	}
 	elected, usable := false, true
+	if d.AnswerSynthesis != nil {
+		elected = true
+		usable = tasks["answer-synthesis"].Usable
+	}
 	if pipeline.HasProcessing(*d) {
 		elected = true
-		usable = tasks["transcription"].Usable && tasks["diarization"].Usable
+		usable = usable && tasks["transcription"].Usable && tasks["diarization"].Usable
 	}
 	if len(d.SpeakerTraining) > 0 {
 		elected = true

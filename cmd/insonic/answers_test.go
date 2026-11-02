@@ -55,3 +55,14 @@ func TestAnswerCLIInputsAndHumanLimitations(t *testing.T) {
 		}
 	}
 }
+
+func TestGroundedAnswerHumanSummary(t *testing.T) {
+	old := operatorContext
+	defer func() { operatorContext = old }()
+	operatorContext.Path = []string{"answers", "show"}
+	id := contracts.ID()
+	out, err := renderHuman(contracts.Response{Result: map[string]any{"freshness": "stale", "accepted": true, "answer": map[string]any{"kind": "grounded-answer", "id": id, "work_id": contracts.ID(), "package_id": contracts.ID(), "route": "local", "provider": map[string]any{"model": "fixture"}, "evidence_count": 2, "independent_families": 1, "answer": map[string]any{"state": "partial", "claims": []any{map[string]any{"id": "c1", "kind": "paraphrase", "support": "uncertain", "text": "Sources disagree.", "uncertainty": "Conflicting evidence"}}}, "diagnostics": []any{"graph_lag"}}}})
+	if err != nil || !strings.Contains(out, "current source freshness: stale") || !strings.Contains(out, "Sources disagree.") || !strings.Contains(out, "semantic support") {
+		t.Fatal(out, err)
+	}
+}

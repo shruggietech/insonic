@@ -63,13 +63,29 @@ func workView(w catalog.Work) any {
 	if w.ID == "" {
 		return nil
 	}
+	// Retained synthesis bytes are an internal restart checkpoint, not progress.
+	if w.Kind == "answers.request" {
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(w.Result, &fields) == nil && fields != nil {
+			delete(fields, "candidate_bytes")
+			w.Result, _ = json.Marshal(fields)
+		}
+	}
 	var result any
 	if len(w.Result) <= 16<<10 {
 		strictPayload(w.Result, &result)
 	} else {
 		result = map[string]any{"state": "paged", "operation": "work.results"}
 	}
-	return map[string]any{"work_id": w.ID, "id": w.ID, "kind": w.Kind, "state": w.State, "generation": w.Generation, "phase": w.Phase, "result": result, "error": w.Error}
+	view := map[string]any{"work_id": w.ID, "id": w.ID, "kind": w.Kind, "state": w.State, "generation": w.Generation, "phase": w.Phase, "result": result, "error": w.Error}
+	if w.Kind == "answers.request" {
+		var p answerPayload
+		if json.Unmarshal(w.Payload, &p) == nil && p.Configuration.MaxRepairs != nil {
+			view["election"] = answerProgressFor(p)
+			view["retry_of"] = p.RetryOf
+		}
+	}
+	return view
 }
 func mediaSummary(v library.EntryView) any {
 	e := v.LibraryEntry

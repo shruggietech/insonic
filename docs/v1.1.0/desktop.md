@@ -39,7 +39,7 @@ The desktop exposes Library, Import presets, Jobs, Pipelines, Speakers, Terms, M
 | Original/preview playback and current cue/span seeking | Shared playback contracts | Native audio/video controls |
 | Low-level artifact retention/leases, catalog snapshots, profile migration and detailed raw bundles | Advanced commands | Readable profiles; advanced operations remain in the CLI |
 | Text/graph queries, current evidence extraction, calendars, recording timelines, saved definitions/layouts | Implemented | Explore controls, source playback, force graph and accessible tables |
-| Question evidence/context preparation, package inspect/export and citation validation | Shared `answers prepare/show/export/validate` contracts | Dedicated evidence and answer controls follow; use the CLI workflow |
+| Grounded answers, evidence/context preparation, inspect/export and citation validation | Shared `answers request/retry/prepare/show/export/validate` and durable work contracts | Dedicated evidence and answer controls follow; use the CLI workflow |
 | Optional query assistance | Shared insonic-http/native Ollama adapters and validated current queries | Explore discovery, endpoint/model election, synthetic test, suggestion/edit/run/save and explicit auto-run |
 | Speaker-model datasets, elected training, exact retrieval and profile selection | Implemented shared commands | Speakers training and Models discovery/fetch/profile controls |
 | Roster-constrained matching of current voices | Matching-only command | Library controls and bounded outcome pages |

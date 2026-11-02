@@ -510,6 +510,33 @@
         "internal/app/answers_cache.go",
         "internal/app/answers_cache_test.go"
       ]
+    },
+    {
+      "id": "grounded-answer-workflow",
+      "disposition": "new-bounded-product-contract",
+      "origin": "one durable answer attempt; one aggregate provider synthesis deadline",
+      "parent": "earlier owner cancellation and 180s aggregate work deadline",
+      "effective": "30s default/60s maximum provider deadline shared across at most2 calls;180s complete work;20s inspection;5s materialization cleanup;existing1-minute lease fixture",
+      "files": [
+        "cmd/insonic/answers_human.go",
+        "internal/app/answer_artifact.go",
+        "internal/app/answer_synthesis.go",
+        "internal/app/answer_work.go",
+        "internal/app/answer_work_test.go",
+        "internal/catalog/answer_work_test.go"
+      ]
+    },
+    {
+      "id": "answer-workflow-qualification",
+      "disposition": "shared-expanded-test-budget",
+      "origin": "one caller qualification or standalone journey start",
+      "parent": "earlier original qualification deadline and owned journey deadline",
+      "effective": "shared command, readiness, cleanup and idle allowances; provider retains its 30s product deadline; deterministic held request releases on cancellation",
+      "files": [
+        "scripts/cli_answer_synthesis_qualification.py",
+        "scripts/qualify-answers.py",
+        "scripts/qualify-answer-backends.py"
+      ]
     }
   ],
   "workflow_owners": {

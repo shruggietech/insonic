@@ -10,6 +10,7 @@ import (
 	"github.com/shruggietech/insonic/internal/pipeline"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/speakers"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -155,11 +156,18 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 			return nil, e
 		}
 		if !pipeline.HasProcessing(d) {
-			if input.Overrides.Recognition != nil || input.Overrides.Diarization != nil || input.Overrides.Quality != nil {
+			if !reflect.ValueOf(input.Overrides).IsZero() {
 				return nil, contracts.Fail("unsupported_capability")
 			}
 			ready, e := a.readinessDefinition(a.ctx, ReadinessInput{PipelineID: p.ID, PipelineRevision: p.Revision}, &d)
-			return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": []string{"speaker-model-training"}, "reachability": "not-probed", "readiness": ready}, e
+			caps := []string{}
+			if len(d.SpeakerTraining) > 0 {
+				caps = append(caps, "speaker-model-training")
+			}
+			if d.AnswerSynthesis != nil {
+				caps = append(caps, "answer-synthesis")
+			}
+			return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": caps, "reachability": "not-probed", "readiness": ready}, e
 		}
 		d, e = pipeline.Elect(p.Preset, d, input.Overrides)
 		if e != nil {
@@ -218,7 +226,7 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 			selections = append(selections, selected)
 		}
 		ready, e := a.readinessDefinition(a.ctx, ReadinessInput{PipelineID: p.ID, PipelineRevision: p.Revision}, &d)
-		return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": []pipeline.Capability{recognition, diarization}, "model_selections": selections, "context": context, "reachability": "not-probed", "readiness": ready}, e
+		return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": appendAnswerCapability([]pipeline.Capability{recognition, diarization}, d), "model_selections": selections, "context": context, "reachability": "not-probed", "readiness": ready}, e
 	case "speakers.show":
 		return a.Catalog.Speaker(a.ctx, req.ItemID)
 	case "speakers.set":
@@ -314,3 +322,10 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 
 // Keep effective definitions canonical for durable election comparison/digests.
 func configurationBytes(value any) json.RawMessage { raw, _ := json.Marshal(value); return raw }
+
+func appendAnswerCapability(capabilities []pipeline.Capability, d pipeline.Definition) []pipeline.Capability {
+	if d.AnswerSynthesis != nil {
+		capabilities = append(capabilities, pipeline.Capability{Adapter: d.AnswerSynthesis.Provider.Adapter, Version: d.AnswerSynthesis.Provider.ContractVersion, Operations: []string{"answer-synthesis"}})
+	}
+	return capabilities
+}

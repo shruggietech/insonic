@@ -27,7 +27,7 @@ var mediaToolsSchema *jsonschema.Schema
 var recordingCoverageSchema *jsonschema.Schema
 var recordingRepairSchema *jsonschema.Schema
 var graphQuerySchema *jsonschema.Schema
-var answerRequestSchema, answerEnvelopeSchema, answerPackageSchema *jsonschema.Schema
+var answerRequestSchema, answerEnvelopeSchema, answerPackageSchema, groundedAnswerSchema *jsonschema.Schema
 var baseModelManifestSchema *jsonschema.Schema
 var compileErr error
 var historicalMu sync.Mutex
@@ -145,6 +145,10 @@ func initialize() {
 			if compileErr != nil {
 				return
 			}
+		}
+		groundedAnswerSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/grounded-answer.schema.json")
+		if compileErr != nil {
+			return
 		}
 		recordingCoverageSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/recording-coverage.schema.json")
 		if compileErr != nil {
@@ -328,4 +332,9 @@ func ValidateRecordingCoverage(data []byte) error {
 func ValidateRecordingRepair(data []byte) error {
 	initialize()
 	return validate(recordingRepairSchema, data)
+}
+
+func ValidateGroundedAnswer(data []byte) error {
+	initialize()
+	return validate(groundedAnswerSchema, data)
 }

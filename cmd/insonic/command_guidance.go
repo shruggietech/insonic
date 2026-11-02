@@ -154,8 +154,11 @@ func writeTaskGuidance(b *strings.Builder, c commandDefinition) {
 	if p == "jobs cancel" || p == "work cancel" {
 		b.WriteString("Lifecycle: cancellation applies to active work; a successful terminal item cannot be cancelled. Inspect its current state with jobs show JOB_UUID or work show WORK_UUID.\n")
 	}
-	if p == "jobs retry" || p == "work retry" {
+	if p == "jobs retry" || p == "work retry" || p == "answers retry" {
 		b.WriteString("Lifecycle: retry requires a failed, cancelled or interrupted item; successful terminal work is not retryable. Preserve the original immutable inputs.\n")
+	}
+	if p == "answers request" || p == "answers retry" {
+		b.WriteString("Completion: admission returns durable work_id. Use work wait/show/results/cancel, then answers show/export with answer_id. Retry creates a linked attempt preserving its prior history and frozen route.\n")
 	}
 	if p == "models train" {
 		b.WriteString("Prerequisites: an elected nonempty speaker dataset and a configured speaker-training pipeline at its current revision; training is optional and its accepted work still requires completion.\n")
