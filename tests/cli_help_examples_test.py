@@ -18,6 +18,14 @@ class HelpExampleTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 emitted_example(text, ['work', 'results'])
 
+    def test_answer_package_operand_requires_current_retained_identity(self):
+        identity = "10000000-0000-4000-8000-000000000001"
+        for action in ["show", "export"]:
+            actual = ["answers", action, "PACKAGE_UUID"]
+            with self.assertRaises(ValueError):
+                substitute(actual, {})
+            self.assertEqual(substitute(actual, {"PACKAGE_UUID": identity}), ["answers", action, identity])
+
     def test_only_documented_substitutions_change_actual_argv(self):
         actual = ['query', 'native', '--dialect', 'ladybug-cypher', '--file', 'FILE']
         self.assertEqual(substitute(actual, {'FILE': '/tmp/owned query.cypher'}),
