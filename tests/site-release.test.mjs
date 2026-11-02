@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import YAML from 'yaml';
 import assert from 'node:assert/strict';
 import { documentationTarget, publicationManifest, publicationDocument, releaseDownloads } from '../site/lib/release-status.mjs';
 
@@ -48,4 +50,16 @@ test('immutable historical releases retain their original platform and installer
   assert.equal(previous.length, 2);
   assert.equal(previous[0].setup, undefined);
   assert.equal(previous[0].installer, 'https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_windows_amd64_installer.msi');
+});
+
+test('Pages promotion retains the elected receipt after failed commands with attempt-qualified artifacts', () => {
+  const workflow = YAML.parse(readFileSync(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8'));
+  const steps = workflow.jobs['promote-pages'].steps;
+  const promotion = steps.find(step => step.run?.includes(' pages-promote '));
+  const retention = steps.find(step => step.name === 'Retain Pages attempt identity even on failure');
+  assert.match(promotion.run, /--output build\/release\/pages-promotion\.json/);
+  assert.equal(retention.if, 'always()');
+  assert.equal(retention.with.path, 'build/release/pages-promotion.json');
+  assert.match(retention.with.name, /github\.run_attempt/);
+  assert.ok(steps.indexOf(retention) > steps.indexOf(promotion));
 });

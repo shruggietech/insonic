@@ -33,6 +33,8 @@ class PagesFixture:
                         {'path': '.nojekyll', 'mode': '100644', 'type': 'blob', 'sha': 'f' * 40},
                         {'path': 'docs/v0.0.0/index.html', 'mode': '100644', 'type': 'blob', 'sha': '1' * 40}]
         self.results = [{'status': 'built', 'commit': NEW}]
+        self.commits = {}
+        self.ref_results = []
         self.race = False
         self.uncertain = False
         self.trees, self.blobs, self.timeouts = {}, {}, []
@@ -43,8 +45,15 @@ class PagesFixture:
         if endpoint.endswith('/pages') and method == 'GET': return copy.deepcopy(self.destination)
         if endpoint.endswith('/environments/github-pages'): return {'deployment_branch_policy': {'protected_branches': False, 'custom_branch_policies': True}}
         if endpoint.endswith('/deployment-branch-policies'): return copy.deepcopy(self.policy)
-        if endpoint.endswith('/git/ref/heads/gh-pages'): return {'object': {'type': 'commit', 'sha': self.head}}
-        if endpoint.endswith('/git/commits/' + self.head): return {'tree': {'sha': self.tree}}
+        if endpoint.endswith('/git/ref/heads/gh-pages'):
+            if self.head != OLD and self.ref_results:
+                result = self.ref_results.pop(0)
+                if isinstance(result, Exception): raise result
+                return result
+            return {'object': {'type': 'commit', 'sha': self.head}}
+        if '/git/commits/' in endpoint and endpoint.rsplit('/', 1)[-1] in self.commits:
+            return copy.deepcopy(self.commits[endpoint.rsplit('/', 1)[-1]])
+        if endpoint.endswith('/git/commits/' + OLD): return {'tree': {'sha': self.tree}}
         if '/git/trees/' in endpoint:
             key = endpoint.rsplit('/', 1)[-1].split('?')[0]
             if key not in self.trees: return {'truncated': False, 'tree': copy.deepcopy(self.entries)}
@@ -52,6 +61,8 @@ class PagesFixture:
             parents = {p.as_posix() for n in files for p in Path(n).parents if p.as_posix() != '.'}
             return {'truncated': False, 'tree': [dict(path=n, mode='100644', type='blob', sha=s, size=len(self.blobs[s])) for n, s in files.items()] +
                     [dict(path=n, mode='040000', type='tree', sha='4' * 40) for n in sorted(parents)]}
+        if '/git/blobs/' in endpoint and endpoint.rsplit('/', 1)[-1] in self.blobs:
+            return {'encoding': 'base64', 'content': base64.b64encode(self.blobs[endpoint.rsplit('/', 1)[-1]]).decode()}
         if endpoint.endswith('/git/blobs/' + 'e' * 40): return {'encoding': 'base64', 'content': base64.b64encode(b'insonic.io\n').decode()}
         if endpoint.endswith('/git/blobs') and method == 'POST':
             data = base64.b64decode(value['content'], validate=True)
@@ -72,7 +83,9 @@ class PagesFixture:
             key = hashlib.sha1(json.dumps(staged, sort_keys=True).encode()).hexdigest()
             self.trees[key] = staged
             return {'sha': key}
-        if endpoint.endswith('/git/commits') and method == 'POST': return {'sha': NEW}
+        if endpoint.endswith('/git/commits') and method == 'POST':
+            self.commits[NEW] = {'tree': {'sha': value['tree']}, 'parents': [{'sha': parent} for parent in value['parents']]}
+            return {'sha': NEW}
         if endpoint.endswith('/git/refs/heads/gh-pages') and method == 'PATCH':
             if self.race:
                 self.head = '9' * 40
@@ -413,8 +426,12 @@ class PagesTransportTests(unittest.TestCase):
         destination['entries'] = staged
         destination['tree'] = hashlib.sha1(json.dumps(staged, sort_keys=True).encode()).hexdigest()
         self.api.blobs.update({staged[n]: raw for n, raw in files.items()})
+        self.api.tree = destination['tree']
         self.api.results = [{'status': 'built', 'commit': OLD}]
-        result = self.promote(destination, files)
+        events = []
+        result = self.promote(destination, files, observe=events.append)
+        attempt = {'previous_commit': OLD, 'previous_tree': destination['tree'], **next(e for e in events if e['phase'] == 'staged')}
+        self.assertTrue(pages.reconcile_tree(self.api, REPO, files, attempt)['reconciled'])
         self.assertEqual(result['pages_commit'], OLD)
         self.assertFalse(any(m == 'PATCH' or e.endswith(('/git/commits', '/git/blobs')) for m, e, _ in self.api.calls))
         tree = next(v for m, e, v in self.api.calls if m == 'POST' and e.endswith('/git/trees'))
@@ -438,6 +455,105 @@ class PagesTransportTests(unittest.TestCase):
                          sleep=lambda _: elapsed.__setitem__(0, pages.timing.ARTIFACT_PRODUCER_SECONDS + 1))
         self.assertEqual(self.api.head, OLD)
         self.assertFalse(any(m == 'PATCH' or e.endswith('/git/commits') for m, e, _ in self.api.calls))
+
+    def test_delayed_old_head_and_lost_update_preserve_observations(self):
+        for lost in (False, True):
+            self.api = PagesFixture()
+            destination, files = self.prepared()
+            self.api.uncertain = lost
+            self.api.ref_results = [{'object': {'type': 'commit', 'sha': OLD}}]
+            events = []
+            result = self.promote(destination, files, observe=lambda event: events.append(copy.deepcopy(event)))
+            self.assertEqual(result['pages_commit'], NEW)
+            self.assertTrue(any(e.get('observed_head') == OLD for e in events))
+            self.assertEqual(any(e.get('event') == 'update-response-unavailable' for e in events), lost)
+            self.assertEqual(sum(m == 'PATCH' for m, _, _ in self.api.calls), 1)
+
+    def test_bounded_readback_refuses_missing_malformed_and_unrelated_heads(self):
+        for reads, message in [([None] * 4, 'reconciliation'),
+                               ([{'object': {'type': 'commit', 'sha': OLD}}] * 4, 'reconciliation'),
+                               ([{'object': {'type': 'tag', 'sha': NEW}}], 'identity'),
+                               ([{'object': {'type': 'commit', 'sha': '9' * 40}}], 'concurrent')]:
+            self.api = PagesFixture()
+            destination, files = self.prepared(); self.api.ref_results = reads
+            with self.assertRaisesRegex(ValueError, message): self.promote(destination, files)
+            self.assertFalse(any(m == 'POST' and e.endswith('/pages/builds') for m, e, _ in self.api.calls))
+            self.assertEqual(sum(m == 'PATCH' for m, _, _ in self.api.calls), 1)
+
+    def test_receipt_failure_prevents_ref_update(self):
+        destination, files = self.prepared()
+        def observe(event):
+            if event['phase'] == 'update-attempted': raise OSError('receipt unavailable')
+        with self.assertRaises(OSError): self.promote(destination, files, observe=observe)
+        self.assertFalse(any(m == 'PATCH' for m, _, _ in self.api.calls))
+
+    def test_read_only_reconciliation_checks_tree_parent_and_exact_build(self):
+        destination, files = self.prepared(); events = []
+        self.promote(destination, files, observe=lambda event: events.append(event))
+        attempt = {'previous_commit': OLD, 'previous_tree': destination['tree'], **next(e for e in events if e['phase'] == 'staged')}
+        self.api.calls.clear()
+        result = pages.reconcile_tree(self.api, REPO, files, attempt)
+        self.assertEqual(result['pages_commit'], NEW)
+        self.assertTrue(all(m == 'GET' for m, _, _ in self.api.calls))
+        for mutate in ('parent', 'tree', 'build', 'head', 'bytes'):
+            with self.subTest(mutate=mutate):
+                api = copy.deepcopy(self.api); changed = dict(files)
+                if mutate == 'parent': api.commits[NEW]['parents'] = [{'sha': '9' * 40}]
+                if mutate == 'tree': api.commits[NEW]['tree']['sha'] = '9' * 40
+                if mutate == 'build': api.results = [{'status': 'queued', 'commit': NEW}]
+                if mutate == 'head': api.head = '9' * 40
+                if mutate == 'bytes': changed['index.html'] = b'changed'
+                with self.assertRaises(ValueError): pages.reconcile_tree(api, REPO, changed, attempt)
+                self.assertTrue(all(m == 'GET' for m, _, _ in api.calls))
+
+    def test_atomic_receipt_refuses_overwrite_and_preserves_last_state(self):
+        path = self.root / 'attempt.json'
+        receipt = pages.PromotionReceipt(path, {'kind': 'pages-promotion'})
+        receipt.record({'phase': 'staged', 'pages_commit': NEW})
+        before = path.read_bytes()
+        with self.assertRaises(FileExistsError): pages.PromotionReceipt(path, {})
+        with patch.object(pages.os, 'replace', side_effect=OSError('disk failure')):
+            with self.assertRaises(OSError): receipt.record({'phase': 'updated'})
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(json.loads(before)['pages_commit'], NEW)
+
+    def test_concurrent_writer_after_exact_read_cannot_report_success(self):
+        destination, files = self.prepared()
+        self.api.ref_results = [{'object': {'type': 'commit', 'sha': NEW}},
+                                {'object': {'type': 'commit', 'sha': '9' * 40}}]
+        with self.assertRaisesRegex(ValueError, 'concurrent'): self.promote(destination, files)
+
+    def test_attempt_identity_is_durable_before_patch_and_lost_get_recovers(self):
+        destination, files = self.prepared()
+        path = self.root / 'attempt.json'
+        receipt = pages.PromotionReceipt(path, {'previous_commit': OLD, 'previous_tree': destination['tree']})
+        original = self.api.call
+        def readback(method, endpoint, value=None, **kwargs):
+            if method == 'PATCH':
+                retained = json.loads(path.read_bytes())
+                self.assertEqual(retained['phase'], 'update-attempted')
+                self.assertEqual(retained['pages_commit'], NEW)
+                self.assertEqual(retained['previous_commit'], OLD)
+                self.assertEqual(retained['pages_tree'], self.api.commits[NEW]['tree']['sha'])
+            return original(method, endpoint, value, **kwargs)
+        self.api.call = readback
+        self.api.ref_results = [OSError('synthetic credential must not persist')]
+        result = self.promote(destination, files, observe=receipt.record)
+        self.assertEqual(result['pages_commit'], NEW)
+        self.assertIn('ref-response-unavailable', path.read_text())
+        self.assertNotIn('synthetic credential', path.read_text())
+
+    def test_lost_build_request_reconciles_only_exact_completed_build(self):
+        destination, files = self.prepared()
+        original = self.api.call
+        def lost(method, endpoint, value=None, **kwargs):
+            result = original(method, endpoint, value, **kwargs)
+            if method == 'POST' and endpoint.endswith('/pages/builds'): raise OSError('lost')
+            return result
+        self.api.call = lost; events = []
+        self.assertEqual(self.promote(destination, files, observe=events.append)['pages_commit'], NEW)
+        self.assertTrue(any(e.get('event') == 'build-response-unavailable' for e in events))
+        self.assertEqual(sum(m == 'POST' and e.endswith('/pages/builds') for m, e, _ in self.api.calls), 1)
 
 
 if __name__ == '__main__': unittest.main()

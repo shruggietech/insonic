@@ -1,0 +1,96 @@
+{
+  "format": 1,
+  "description": "Retained JSON receipts compressed with verified reconstruction; cancelled observations are not acceptance evidence.",
+  "receipts": [
+    {
+      "file": "initial-pr-ci-gate.json.gz",
+      "size_bytes": 2915,
+      "sha256": "e9bfd393a5c493f33105f91d0605b8eec8c9029d46332b911a9fb7214a21214f",
+      "gzip_sha256": "f6a44dd504608acbc6422fd7b150c1dbc8aad3229ec5314f520ba6a708f250b4"
+    },
+    {
+      "file": "initial-pr-ci-terminal.json.gz",
+      "size_bytes": 3122,
+      "sha256": "b4533a835d9a5f03f2dd1495af219bfe8e03abaa2ff7092fe651818a494fb98e",
+      "gzip_sha256": "defa0e05615b986673786b2e6a447227a71c1a2126ba939fb71319f4c8b99079"
+    },
+    {
+      "file": "initial-pr-ci-retention.json.gz",
+      "size_bytes": 613,
+      "sha256": "217f4cdbfc7e057891170602dd88432ad614f3a7a4fb68fc50e4ba406e9f3c52",
+      "gzip_sha256": "e16edfec9d49179892059ebbbd1091f1242e1915cf0784bec4233c1e2f8082ff"
+    },
+    {
+      "file": "initial-smoke-ci-gate.json.gz",
+      "size_bytes": 3718,
+      "sha256": "d90a9fa3bf5c9507b7670b2e8ee771a36735e8c00ba733870584ca5cfc37a105",
+      "gzip_sha256": "79615c66461f970c4d429a6dca2c51b636e757c1a2edfab756950b9ac899f491"
+    },
+    {
+      "file": "initial-smoke-ci-terminal.json.gz",
+      "size_bytes": 3729,
+      "sha256": "5eceff8dceaf93464b227e3d2934323ad151351503a8f1466b0d2322faec9a4d",
+      "gzip_sha256": "6b1700c98d0ed4296652d979acbadb74a05e5cf88bf55f71afa69f5ef1c7c1da"
+    },
+    {
+      "file": "initial-smoke-ci-retention.json.gz",
+      "size_bytes": 272,
+      "sha256": "1e6eac137b76e8521877783ec321228aecbd721ffcf1a5dce16459c6fd5ed5a8",
+      "gzip_sha256": "866c95a422a956196620519274a62a94657fda68f727f6a1745492262c6e8007"
+    },
+    {
+      "file": "review-tracking.json.gz",
+      "size_bytes": 546,
+      "sha256": "d7ecf22db67403a111315125efbc14b00b5087c5c7ecb100d696f1f242e9309a",
+      "gzip_sha256": "af6ea1f554294ffe3c158d9241cebbf5b05e8010b6e6f0983e9aa2f2e1bd3c51"
+    },
+    {
+      "file": "review-threads.json.gz",
+      "size_bytes": 280,
+      "sha256": "690e766f16e72c0f000adee7d24c2b088d7d02e2c74a3a1e53350dc7ddbc5ac1",
+      "gzip_sha256": "bb47789ca2ec484cf2526717eefb2c39e4ed1aa3438562256559ae198a2183e1"
+    },
+    {
+      "file": "release-readback.json.gz",
+      "size_bytes": 1901,
+      "sha256": "36e5db168f6f9f6793a01869d745f2fc494c0aca13130b6e0a02afac85c8a82e",
+      "gzip_sha256": "d0e51f22640cc444981cf5d92ef1f76903ea978d1dd6298afbf51851f4689d08"
+    },
+    {
+      "file": "reviewed-head-ci-gate.json.gz",
+      "size_bytes": 3813,
+      "sha256": "791c7ae4996c67546bb299c971cfb76299ca8922cc674ef29439fb40c1b6bec2",
+      "gzip_sha256": "ad5cf302e401cc004d2d85517340b9455aec05da80746ab589b6e6fa122e0761"
+    },
+    {
+      "file": "reviewed-head-ci-terminal.json.gz",
+      "size_bytes": 3824,
+      "sha256": "8143ae87d3cd58b519baa077040d5a57014568c977f6087c11c148deb8d3931e",
+      "gzip_sha256": "815baad55c46b2b79acf44b518e564db5ba8e1b175ecba7dd2ba871e215b635d"
+    },
+    {
+      "file": "reviewed-head-ci-retention.json.gz",
+      "size_bytes": 1232,
+      "sha256": "a31965d81303944c275241959f80ad30c1d1c6f19528128cf736e4204be6ba68",
+      "gzip_sha256": "bb5d5ad38228e65117970c0dbb56659aa6c8c071ed7c1f1c26d4e0520e9275de"
+    },
+    {
+      "file": "reviewed-pr-ci-gate.json.gz",
+      "size_bytes": 3813,
+      "sha256": "822d388daea39c6a5162175e0eb870e455a6c970e72bfb8445bca04afff3ed18",
+      "gzip_sha256": "c35f6d7ed5492328b86298060cdb7443846cb141a5b02162f854769f024e7d0e"
+    },
+    {
+      "file": "reviewed-pr-ci-terminal.json.gz",
+      "size_bytes": 3824,
+      "sha256": "0090fd82c8f457408b4bb1b43ca80a035d7f94187ddf96dc359ccd164653a272",
+      "gzip_sha256": "6a09cf1e0f63fde8fa6259b2d35bd6a98cf4c5630b56c86356d13355bf1ca6de"
+    },
+    {
+      "file": "reviewed-pr-ci-retention.json.gz",
+      "size_bytes": 1227,
+      "sha256": "72792ba247a752fb3a461316cb669e51928ed0652eae7dc2f327d3cbb09e06e6",
+      "gzip_sha256": "f8f9fe24fca91cb9940eb78dab317096341c2f48349aed6ea587927e1af93e38"
+    }
+  ]
+}

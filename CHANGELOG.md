@@ -8,6 +8,15 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-11-01: Publish v1.1.0 for Windows/Linux with all ten qualified original assets and matching documentation. Independently download and compare every official asset, verify the exact deployed documentation and six product links, and qualify eight fresh light/dark landing layouts.
 
+### Fixed
+
+- 2026-11-01: Retain durable Pages promotion identities before branch updates, recover bounded old-head or lost responses only against the exact staged commit, and provide read-only reconciliation of the original tree, parent, completed build and public content. Preserve concurrent-writer refusal and original failure observations.
+- 2026-11-01: Align current release and website guidance with executed acquisition, transport, content, browser and cleanup allowances while keeping qualification acceptance limits distinct.
+
+### Decisions
+
+- 2026-11-01: Retain Pages promotion receipts even when the release workflow fails, using attempt-qualified artifacts and atomic local receipt updates. Recovery consumes original accepted bytes and leaves failed attempt evidence unchanged; this maintenance does not replace published release assets or deploy a website correction.
+
 ## [1.1.0] - 2026-10-31
 
 ### Fixed
