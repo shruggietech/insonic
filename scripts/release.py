@@ -1063,15 +1063,59 @@ def pages_module():
     return module
 
 
-def pages_promote(directory, api, verifier=verify_package, trusted_root=ROOT, history_runner=child, source_root=ROOT):
+def pages_promote(directory, api, verifier=verify_package, trusted_root=ROOT, history_runner=child, source_root=ROOT, *, output=None):
     value = promotion_authority(directory, api, verifier, trusted_root, history_runner, source_root)
     transport = pages_module()
     destination = transport.preflight(api, REPOSITORY)
     files = transport.prepare_tree(directory / 'documentation.tar.gz', destination, value['version'], value['revision'])
-    result = transport.promote_tree(api, REPOSITORY, destination, files, value['version'], value['revision'])
-    result['public_verification'] = verify_public(directory, api, source_root=source_root,
-        verifier=verifier, pages_commit=result['pages_commit'])
-    return result
+    receipt = transport.PromotionReceipt(output or directory / 'pages-promotion.json', {
+        'kind': 'pages-promotion', 'format': 1, 'phase': 'qualified', 'destination_changed': False,
+        'repository': REPOSITORY, 'domain': transport.DOMAIN, 'branch': transport.BRANCH,
+        'version': value['version'], 'revision': value['revision'],
+        'archive': file_entry(directory / 'documentation.tar.gz'),
+        'previous_commit': destination['head'], 'previous_tree': destination['tree']})
+    try:
+        result = transport.promote_tree(api, REPOSITORY, destination, files, value['version'], value['revision'], observe=receipt.record)
+        receipt.record({'phase': 'public-verification'})
+        result['public_verification'] = verify_public(directory, api, source_root=source_root,
+            verifier=verifier, pages_commit=result['pages_commit'])
+        receipt.record({'phase': 'public-verified', 'result': result})
+        return result
+    except BaseException as error:
+        receipt.failed(error)
+        raise
+
+
+def pages_reconcile(directory, attempt, output, api, verifier=verify_package, trusted_root=ROOT, history_runner=child, source_root=ROOT):
+    if attempt.resolve() == output.resolve() or output.exists():
+        raise ValueError('Pages reconciliation requires a new distinct output receipt')
+    # A recovery receipt is evidence, never authority to skip original validation.
+    original = read_json(attempt)
+    value = promotion_authority(directory, api, verifier, trusted_root, history_runner, source_root)
+    transport = pages_module()
+    expected = {'kind': 'pages-promotion', 'format': 1, 'repository': REPOSITORY,
+                'domain': transport.DOMAIN, 'branch': transport.BRANCH,
+                'version': value['version'], 'revision': value['revision'],
+                'archive': file_entry(directory / 'documentation.tar.gz')}
+    if any(original.get(key) != expected_value for key, expected_value in expected.items()):
+        raise ValueError('Pages attempt source/archive/destination identity differs')
+    transport.preflight(api, REPOSITORY)
+    previous = transport.destination_at(api, REPOSITORY, transport.commit_sha(original.get('previous_commit')))
+    if previous['tree'] != original.get('previous_tree'):
+        raise ValueError('Pages attempt previous tree differs')
+    files = transport.prepare_tree(directory / 'documentation.tar.gz', previous, value['version'], value['revision'])
+    receipt = transport.PromotionReceipt(output, {**expected, 'kind': 'pages-reconciliation',
+        'phase': 'reconciling', 'attempt_sha256': sha(attempt)})
+    try:
+        result = transport.reconcile_tree(api, REPOSITORY, files, original)
+        receipt.record({'phase': 'deployed', **result})
+        result['public_verification'] = verify_public(directory, api, source_root=source_root,
+            verifier=verifier, pages_commit=result['pages_commit'])
+        receipt.record({'phase': 'public-verified', 'result': result})
+        return result
+    except BaseException as error:
+        receipt.failed(error)
+        raise
 
 
 def public_release(api, value):
@@ -1137,7 +1181,8 @@ def main():
     p = sub.add_parser('verify-public'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT); p.add_argument('--site', default='https://insonic.io/'); p.add_argument('--pages-commit'); p.add_argument('--output', type=Path)
     p = sub.add_parser('deployment'); p.add_argument('--configuration', type=Path, required=True)
     sub.add_parser('pages-preflight')
-    p = sub.add_parser('pages-promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
+    p = sub.add_parser('pages-promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT); p.add_argument('--output', type=Path)
+    p = sub.add_parser('pages-reconcile'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT); p.add_argument('--attempt', type=Path, required=True); p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser('promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--configuration', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     options = parser.parse_args()
     if options.command == 'prepare': result = prepare(options.version, options.date, options.highlights.read_text(encoding='utf-8'))
@@ -1156,7 +1201,8 @@ def main():
         destination = pages_module().preflight(GitHub(os.environ.get('GH_TOKEN', '')), REPOSITORY)
         result = {key: destination[key] for key in ('repository', 'domain', 'branch', 'head')}
         result['pages_destination'] = 'verified'
-    elif options.command == 'pages-promote': result = pages_promote(options.candidate, GitHub(os.environ.get('GH_TOKEN', '')), source_root=options.source_root)
+    elif options.command == 'pages-promote': result = pages_promote(options.candidate, GitHub(os.environ.get('GH_TOKEN', '')), source_root=options.source_root, output=options.output)
+    elif options.command == 'pages-reconcile': result = pages_reconcile(options.candidate, options.attempt, options.output, GitHub(os.environ.get('GH_TOKEN', ''), read_only=True), source_root=options.source_root)
     else: result = promote(options.candidate, read_json(options.configuration), GitHub(os.environ.get('GH_TOKEN', '')), source_root=options.source_root)
     print(json.dumps(result))
 

@@ -4,6 +4,8 @@
 import base64
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import PurePosixPath
 import re
 import tarfile
@@ -20,6 +22,35 @@ SHA = re.compile(r'[0-9a-f]{40}')
 TREE_REQUEST_BYTES = 1 << 20
 BLOB_REQUEST_BYTES = 24 << 20
 STATIC_PAYLOAD_BYTES = 128 << 20
+
+
+class PromotionReceipt:
+    """Keep the last complete attempt on disk; never reuse an old attempt path."""
+    def __init__(self, path, initial):
+        self.path = Path(path)
+        self.state = {**initial, 'observations': []}
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open('x', encoding='utf-8', newline='\n') as stream:
+            json.dump(self.state, stream, indent=2, sort_keys=True)
+            stream.write('\n'); stream.flush(); os.fsync(stream.fileno())
+
+    def record(self, event):
+        state = {**self.state, **event, 'observations': [*self.state['observations'], event]}
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='\n',
+                                             dir=self.path.parent, delete=False) as stream:
+                temporary = Path(stream.name)
+                json.dump(state, stream, indent=2, sort_keys=True)
+                stream.write('\n'); stream.flush(); os.fsync(stream.fileno())
+            os.replace(temporary, self.path)
+            self.state = state
+        finally:
+            if temporary is not None: temporary.unlink(missing_ok=True)
+
+    def failed(self, error):
+        self.record({'phase': 'failed', 'failure': {'phase': self.state.get('phase'),
+                     'category': type(error).__name__}})
 
 
 def commit_sha(value):
@@ -53,6 +84,12 @@ def preflight(api, repository):
     if not ref or ref.get('object', {}).get('type') != 'commit':
         raise ValueError('Pages branch commit is unavailable')
     head = commit_sha(ref['object']['sha'])
+    return destination_at(api, repository, head)
+
+
+def destination_at(api, repository, head):
+    endpoint = f'repos/{repository}'
+    commit_sha(head)
     commit = api.call('GET', endpoint + '/git/commits/' + head)
     tree_sha = commit_sha(commit.get('tree', {}).get('sha') if commit else None)
     tree = api.call('GET', endpoint + '/git/trees/' + tree_sha + '?recursive=1')
@@ -170,7 +207,48 @@ def verify_staged_tree(tree, files):
         raise ValueError('Pages staged tree inventory differs from original files')
 
 
-def promote_tree(api, repository, destination, files, version, revision, *, sleep=time.sleep, clock=time.monotonic):
+def ref_head(value):
+    if value is None: return None
+    obj = value.get('object') if isinstance(value, dict) else None
+    if not isinstance(obj, dict) or obj.get('type') != 'commit':
+        raise ValueError('Pages branch identity is invalid')
+    return commit_sha(obj.get('sha'))
+
+
+def verify_commit(request, endpoint, staged, tree, previous, previous_tree):
+    commit = request('GET', endpoint + '/git/commits/' + commit_sha(staged))
+    if not isinstance(commit, dict) or commit.get('tree', {}).get('sha') != commit_sha(tree):
+        raise ValueError('Pages staged commit tree differs')
+    if staged == previous:
+        if tree != previous_tree: raise ValueError('Pages unchanged commit tree differs')
+    else:
+        parents = commit.get('parents')
+        if (not isinstance(parents, list) or len(parents) != 1
+                or not isinstance(parents[0], dict) or parents[0].get('sha') != previous):
+            raise ValueError('Pages staged commit parent differs')
+
+
+def reconcile_tree(api, repository, files, attempt):
+    """Read-only proof for an already completed exact deployment."""
+    endpoint = f'repos/{repository}'
+    staged, tree = commit_sha(attempt.get('pages_commit')), commit_sha(attempt.get('pages_tree'))
+    previous, previous_tree = commit_sha(attempt.get('previous_commit')), commit_sha(attempt.get('previous_tree'))
+    def read(method, route):
+        if method != 'GET': raise ValueError('Pages reconciliation permits GET only')
+        return api.call(method, route)
+    verify_commit(read, endpoint, staged, tree, previous, previous_tree)
+    verify_staged_tree(read('GET', endpoint + '/git/trees/' + tree + '?recursive=1'), files)
+    if ref_head(read('GET', endpoint + '/git/ref/heads/' + BRANCH)) != staged:
+        raise ValueError('Pages reconciliation branch differs from staged commit')
+    build = read('GET', endpoint + '/pages/builds/latest')
+    if not build or build.get('status') != 'built' or build.get('commit') != staged:
+        raise ValueError('Pages reconciliation requires the exact completed build')
+    if ref_head(read('GET', endpoint + '/git/ref/heads/' + BRANCH)) != staged:
+        raise ValueError('Pages reconciliation branch changed')
+    return {'pages_commit': staged, 'pages_build': 'built', 'domain': DOMAIN, 'reconciled': True}
+
+
+def promote_tree(api, repository, destination, files, version, revision, *, sleep=time.sleep, clock=time.monotonic, observe=lambda event: None):
     if destination['repository'] != repository:
         raise ValueError('Pages repository election differs')
     started = clock()
@@ -236,24 +314,50 @@ def promote_tree(api, repository, destination, files, version, revision, *, slee
     else:
         commit = request('POST', endpoint + '/git/commits', {'message': f'Publish insonic {version} documentation ({revision})', 'tree': tree_sha, 'parents': [destination['head']]})
         staged = commit_sha(commit.get('sha') if commit else None)
+    observe({'phase': 'staged', 'pages_commit': staged, 'pages_tree': tree_sha})
+    verify_commit(request, endpoint, staged, tree_sha, destination['head'], destination['tree'])
+    if staged != destination['head']:
+        observe({'phase': 'update-attempted', 'destination_changed': 'unconfirmed'})
         try:
             request('PATCH', endpoint + '/git/refs/heads/' + BRANCH, {'sha': staged, 'force': False})
-        except (OSError, ValueError):
-            # A lost response may follow a successful atomic update. Only its
-            # exact remote identity can reconcile that outcome; races still fail.
-            ref = request('GET', endpoint + '/git/ref/heads/' + BRANCH)
-            if not ref or ref.get('object', {}).get('sha') != staged: raise
-    ref = request('GET', endpoint + '/git/ref/heads/' + BRANCH)
-    if not ref or ref.get('object', {}).get('sha') != staged:
-        raise ValueError('Pages branch changed before its build was requested')
-    requested = request('POST', endpoint + '/pages/builds')
-    if not requested: raise ValueError('Pages build request was not accepted')
+        except (OSError, ValueError) as error:
+            observe({'phase': 'update-attempted', 'event': 'update-response-unavailable', 'category': type(error).__name__})
+
+    def confirm_head():
+        for attempt in range(3):
+            try:
+                ref = request('GET', endpoint + '/git/ref/heads/' + BRANCH)
+            except (OSError, ValueError) as error:
+                observe({'phase': 'readback', 'event': 'ref-response-unavailable', 'category': type(error).__name__})
+                ref = None
+            # Parsing is outside the retry handler: malformed identity fails.
+            head = ref_head(ref)
+            observe({'phase': 'readback', 'observed_head': head})
+            if head == staged: return
+            if head is not None and head != destination['head']:
+                raise ValueError('Pages concurrent branch update detected')
+            if attempt < 2:
+                remaining = deadline - clock()
+                if remaining <= 0: raise ValueError('Pages build deadline exceeded')
+                sleep(min(1, remaining))
+        raise ValueError('Pages branch reconciliation exhausted')
+
+    confirm_head()
+    observe({'phase': 'updated', 'destination_changed': staged != destination['head']})
+    observe({'phase': 'build-requested'})
+    try:
+        requested = request('POST', endpoint + '/pages/builds')
+        if not requested: raise ValueError('Pages build request was not accepted')
+    except (OSError, ValueError) as error:
+        observe({'phase': 'build-requested', 'event': 'build-response-unavailable', 'category': type(error).__name__})
     while True:
         if clock() - started >= timing.ARTIFACT_PRODUCER_SECONDS: raise ValueError('Pages build deadline exceeded')
         build = request('GET', endpoint + '/pages/builds/latest')
         if not build: raise ValueError('Pages build result is unavailable')
         if build.get('status') == 'built':
             if build.get('commit') == staged:
+                confirm_head()
+                observe({'phase': 'deployed', 'pages_build': 'built'})
                 return {'promoted': True, 'version': version, 'revision': revision, 'pages_commit': staged, 'domain': DOMAIN, 'pages_build': 'built'}
             if build.get('commit') != destination['head']:
                 raise ValueError('Pages completed build differs from staged commit')

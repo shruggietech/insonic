@@ -403,10 +403,12 @@ class ReleaseDeliveryTests(unittest.TestCase):
         from types import SimpleNamespace
         target = self.root / 'original'
         identity = {'version': VERSION, 'revision': REVISION}
+        target.mkdir(); (target / 'documentation.tar.gz').write_bytes(b'original archive')
         order = []
         transport = SimpleNamespace(
-            preflight=lambda *a: {}, prepare_tree=lambda *a: {},
-            promote_tree=lambda *a: order.append('built') or {'pages_commit': 'b' * 40})
+            DOMAIN='insonic.io', BRANCH='gh-pages', PromotionReceipt=release.pages_module().PromotionReceipt,
+            preflight=lambda *a: {'head': 'a' * 40, 'tree': 'd' * 40}, prepare_tree=lambda *a: {},
+            promote_tree=lambda *a, **kw: kw['observe']({'phase': 'deployed', 'pages_commit': 'b' * 40}) or order.append('built') or {'pages_commit': 'b' * 40})
         def verify(directory, api, **options):
             self.assertEqual(order, ['built'])
             self.assertEqual(directory, target)
@@ -416,6 +418,45 @@ class ReleaseDeliveryTests(unittest.TestCase):
         with patch.object(release, 'promotion_authority', return_value=identity), patch.object(release, 'pages_module', return_value=transport), patch.object(release, 'verify_public', side_effect=verify):
             result = release.pages_promote(target, object(), source_root=self.root)
         self.assertEqual(result['public_verification']['content_proof'], 'downloaded-original-byte-match')
+        self.assertEqual(release.read_json(target / 'pages-promotion.json')['phase'], 'public-verified')
+        with patch.object(release, 'promotion_authority', return_value=identity), patch.object(release, 'pages_module', return_value=transport), patch.object(release, 'verify_public', side_effect=ValueError('synthetic secret must not persist')):
+            with self.assertRaises(FileExistsError): release.pages_promote(target, object(), source_root=self.root)
+            failed = target / 'failed.json'
+            with self.assertRaises(ValueError): release.pages_promote(target, object(), source_root=self.root, output=failed)
+        retained = release.read_json(failed)
+        self.assertEqual(retained['failure']['phase'], 'public-verification')
+        self.assertEqual(retained['pages_commit'], 'b' * 40)
+        self.assertNotIn('synthetic secret', failed.read_text())
+
+
+    def test_pages_reconciliation_preserves_failed_receipt_and_refuses_changed_archive(self):
+        from pages_test import PagesTransportTests, REPO
+        fixture = PagesTransportTests(); fixture.setUp()
+        self.addCleanup(fixture.tearDown)
+        destination, files = fixture.prepared()
+        transport = release.pages_module()
+        path = fixture.root / 'attempt.json'
+        output = fixture.root / 'recovered.json'
+        initial = {'kind': 'pages-promotion', 'format': 1, 'repository': REPO,
+                   'domain': 'insonic.io', 'branch': 'gh-pages', 'version': '1.1.0', 'revision': REVISION,
+                   'archive': release.file_entry(fixture.archive), 'previous_commit': destination['head'],
+                   'previous_tree': destination['tree']}
+        receipt = transport.PromotionReceipt(path, initial)
+        fixture.promote(destination, files, observe=receipt.record)
+        receipt.failed(ValueError('original failure'))
+        before = path.read_bytes()
+        fixture.api.calls.clear()
+        with patch.object(release, 'promotion_authority', return_value={'version': '1.1.0', 'revision': REVISION}), patch.object(release, 'verify_public', return_value={'verified': True}):
+            result = release.pages_reconcile(fixture.root, path, output, fixture.api)
+            self.assertTrue(result['reconciled'])
+            self.assertEqual(path.read_bytes(), before)
+            self.assertTrue(all(m == 'GET' for m, _, _ in fixture.api.calls))
+            with self.assertRaises(ValueError): release.pages_reconcile(fixture.root, path, path, fixture.api)
+            with self.assertRaises(ValueError): release.pages_reconcile(fixture.root, path, output, fixture.api)
+            fixture.archive.write_bytes(b'changed archive')
+            with self.assertRaisesRegex(ValueError, 'identity differs'):
+                release.pages_reconcile(fixture.root, path, fixture.root / 'changed.json', fixture.api)
+            self.assertEqual(path.read_bytes(), before)
 
     def test_preparation_preserves_old_bytes_and_freezes_release_authorities(self):
         self.assertEqual(release.versions(self.root), VERSION)
