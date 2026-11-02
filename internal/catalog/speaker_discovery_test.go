@@ -316,3 +316,67 @@ func TestDiscoveryPreservesInactiveManualOwner(t *testing.T) {
 		t.Fatal(e)
 	}
 }
+
+func TestDiscoveryMatchingCompletionInvalidatesAtomically(t *testing.T) {
+	discoveryMatchingCompletionSuite(t, localStore(t, contracts.ID()))
+}
+func discoveryMatchingCompletionSuite(t *testing.T, s *Store) {
+	ctx := context.Background()
+	_, r, voice := evidenceRecording(t, s)
+	f, e := s.FreezeSpeakerDiscovery(ctx, r.ID, 100, "")
+	if e != nil {
+		t.Fatal(e)
+	}
+	raw, _ := json.Marshal(map[string]any{"recording_id": r.ID, "source_epoch": f.SourceEpoch, "max_cues": 100})
+	discovery := speakerWorkPayload(t, s, "speakers.discover", raw)
+	p, _ := sd.NormalizePolicy(sd.Policy{})
+	decisions, _ := sd.Resolve(f.Context, nil, p)
+	a := sd.Aggregate{Version: 1, Coverage: f.Coverage, Hypotheses: []sd.Hypothesis{}, Acoustic: f.Context.Acoustic, Policy: p, Decisions: decisions}
+	if _, e = s.AcceptSpeakerDiscovery(ctx, discovery, f, a); e != nil {
+		t.Fatal(e)
+	}
+	match, e := s.FreezeSpeakerMatching(ctx, r.ID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	raw, _ = json.Marshal(map[string]any{"options": map[string]any{"recording_id": r.ID}, "snapshot": match})
+	w := speakerWorkPayload(t, s, "recordings.match", raw)
+	if _, e = s.CommitSpeakerMatching(ctx, w, match, []SpeakerMatchDecision{{LocalSpeakerID: voice, State: "unknown", CueIDs: []string{"cue-000000"}, Diagnostics: json.RawMessage("{}")}}, json.RawMessage("{}")); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.SpeakerDiscovery(ctx, r.ID); e != nil {
+		t.Fatal("running work invalidated unchanged source", e)
+	}
+	result, _ := json.Marshal(map[string]any{"recording_id": r.ID, "state": "accepted", "decisions": []any{map[string]any{"local_speaker_id": voice, "state": "unknown"}}})
+	if _, e = s.CheckpointWork(ctx, w, "complete", "succeeded", result, time.Minute); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.SpeakerDiscovery(ctx, r.ID); contracts.SafeError(e).Code != "not_found" {
+		t.Fatal("stale content was not retired", e)
+	}
+	snap, e := s.Export(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = localStore(t, s.workspace).Restore(ctx, snap); e != nil {
+		t.Fatal("completion broke portable authority", e)
+	}
+	if _, e = s.AcceptSpeakerDiscovery(ctx, discovery, f, a); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.SpeakerDiscovery(ctx, r.ID); e == nil {
+		t.Fatal("replay resurrected invalidated content")
+	}
+}
+func speakerWorkPayload(t *testing.T, s *Store, kind string, payload json.RawMessage) Work {
+	t.Helper()
+	w, e := s.EnqueueWork(context.Background(), contracts.ID(), kind, payload)
+	if e != nil {
+		t.Fatal(e)
+	}
+	w, e = s.ClaimWork(context.Background(), w.ID, contracts.ID(), time.Minute)
+	if e != nil {
+		t.Fatal(e)
+	}
+	return w
+}

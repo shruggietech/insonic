@@ -241,3 +241,7 @@ func TestPostgreSQLDiscoveryFencesAndInvalidation(t *testing.T) {
 		t.Run(mode, func(t *testing.T) { discoveryMutationCase(t, postgresStore(t, contracts.ID()), mode) })
 	}
 }
+
+func TestPostgreSQLDiscoveryMatchingCompletion(t *testing.T) {
+	discoveryMatchingCompletionSuite(t, postgresStore(t, contracts.ID()))
+}

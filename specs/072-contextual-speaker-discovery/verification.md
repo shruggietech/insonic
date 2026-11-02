@@ -40,3 +40,7 @@ Local readiness: 2026-11-02T20:56:56.202Z; qualification terminal: 2026-11-02T21
 | Source integrity | git diff --check and UTF-8/LF/BOM/mojibake inspection before commit |
 
 Hosted full CI, exact-head terminal acceptance and external reviews remain mandatory. No active-desktop GUI qualification was performed. Reviewer evidence checklist remains 0/12, untouched.
+
+## 2026-11-02: first external review correction
+
+PR #250 first review identified matching completion without mapping changes as an additional acoustic-selection authority transition. A new shared SQLite/PostgreSQL regression reproduced stale discovery after unknown-only matching completion. Terminal matching now retires the affected default/explicit-current selection in its own journal transaction, before the new receipt becomes visible to acoustic selection. The same receipt stores the tombstone; export/restore and historical discovery replay remain consistent. Focused regression, full catalog/application suites, Go vet and foundation/schema checks passed. Existing CI observations were retained before advancing the head. One final review round remains authorized; no third round will be requested.
