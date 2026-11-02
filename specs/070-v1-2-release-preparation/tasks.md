@@ -25,16 +25,16 @@ Independent test: all owned current versions equal 1.2.0; historical trees match
 
 Independent test: original current capture provenance and audited mandatory package/backend/installer evidence match source/version.
 
-- [ ] T009 [US2] Save and temporarily omit new-version walkthrough image blocks in docs/v1.2.0/desktop.md and windows-installation.md; run bootstrap checks, commit/push and dispatch .github/workflows/ci.yml on clean branch (FR-004, FR-005).
-- [ ] T010 [US2] Retain/audit bootstrap acceptance and artifact digests under .local/s070/ before another full run; report separate timing with target1800/hard3600/reserve60 (FR-006).
-- [ ] T011 [US2] Import only original receipt-enumerated captures into docs/screenshots/v1.2.0; restore matching walkthroughs, validate source/version/hash/dimensions and visually inspect images (FR-005).
-- [ ] T012 [US2] Complete root/Python/Go/frontend/site checks, full docs archive/transfer validation and existing security/workspace isolation coverage; retain logs under .local/s070/ (FR-001, FR-002, FR-004).
+- [x] T009 [US2] Save and temporarily omit new-version walkthrough image blocks in docs/v1.2.0/desktop.md and windows-installation.md; run bootstrap checks, commit/push and dispatch .github/workflows/ci.yml on clean branch (FR-004, FR-005).
+- [x] T010 [US2] Retain/audit bootstrap acceptance and artifact digests under .local/s070/ before another full run; report separate timing with target1800/hard3600/reserve60 (FR-006).
+- [x] T011 [US2] Import only original receipt-enumerated captures into docs/screenshots/v1.2.0; restore matching walkthroughs, validate source/version/hash/dimensions and visually inspect images (FR-005).
+- [x] T012 [US2] Complete root/Python/Go/frontend/site checks, full docs archive/transfer validation and existing security/workspace isolation coverage; retain logs under .local/s070/ (FR-001, FR-002, FR-004).
 
 ## Phase 5: User Story 3 (P2), owner handoff
 
 Independent test: final PR and exact-head CI receipts, reviews and project status establish merge readiness without publication.
 
-- [ ] T013 [US3] Converge spec/plan/tasks against implementation and evidence in specs/070-v1-2-release-preparation/verification.md; correct any concrete gaps (FR-001 through FR-009).
+- [x] T013 [US3] Converge spec/plan/tasks against implementation and evidence in specs/070-v1-2-release-preparation/verification.md; correct any concrete gaps (FR-001 through FR-009).
 - [ ] T014 [US3] Commit/push complete candidate, open official non-draft PR, attach to chat and Project7/S070/In Review; record review round1 in .local/s070/reviews.json without new issue or premature dependency closure (FR-007, FR-008).
 - [ ] T015 [US3] Respond to every finding, implement necessary fixes and resolve all review threads; request at most one second review and record actual rounds in .local/s070/reviews.json (FR-007).
 - [ ] T016 [US3] Retain/audit final PR and direct-head runs; digest-verify complete candidate and load via scripts/release.py; inspect all four package answer campaigns and MSI/setup receipts in .local/s070/ (FR-004, FR-006, FR-007, FR-009).
@@ -42,7 +42,7 @@ Independent test: final PR and exact-head CI receipts, reviews and project statu
 
 ## Phase 6: Cross-cutting closeout
 
-- [ ] T018 Preserve UTF-8 without BOM/LF, check mojibake and final diff, and record performed versus unverified evidence in specs/070-v1-2-release-preparation/verification.md before final-head qualification.
+- [x] T018 Preserve UTF-8 without BOM/LF, check mojibake and final diff, and record performed versus unverified evidence in specs/070-v1-2-release-preparation/verification.md before final-head qualification.
 
 ## Dependencies and execution
 
