@@ -27,3 +27,9 @@ Regression failures were corrected and rerun: late cancellation now returns non-
 Prerequisite-only failures were corrected in hidden test children: APPDATA uses the verified existing roaming-profile directory; Python setup-code tests use the already selected Go 1.27.1 compiler rather than an older PATH shim; the disposable source CLI workspace explicitly pins Cueson. The replacement fixture now elects --replace-transcript. The maintained schema-count and timer-owner inventories include the new contract and bounded product deadlines without changing qualification timing. Logs remain in .local/s068/.
 
 No tracking issue, milestone, release or merge was created. Existing #220-#223 remain the only proposed closures. External reviews and exact-head CI are pending.
+
+## 2026-11-02 first external review
+
+Official PR #244 is open against main; initial implementation commit 14ab5d7d194fe96fa9a5169d36d824d686565333. Existing issues and PR are In review in Project 7, milestone 48. Automatic Codex round one completed with one P2 finding: DateSpan did not decode persisted earliest/latest bounds. A regression using serialized library.Date contracts reproduced bounded, lower-only and upper-only failures. Explicit tags correct the reader; tests cover timezone conversion, matching/nonmatching intervals and both include_undated settings. The installed CLI journey now imports approximate/open-bound dates and checks actual answer filtering. Second review is reserved for the corrected head; no third round is authorized.
+
+The review correction passed focused answers/catalog/app tests, npm run check, npm test (223 passing), and the rebuilt Windows CLI date-filter/cache/export/validation journey (9.672 seconds; binary SHA-256 47029c9d1797c0286e4eddfc451ecba24dc29a91a6e0a3149fe81ecb342c66c5). The first PR CI run remains diagnostic for the superseded initial source; its run/job/artifact inventory was retained locally before pushing the correction.

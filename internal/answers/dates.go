@@ -11,13 +11,16 @@ import (
 // DateSpan reads only the elected calendar interpretation. Original literals,
 // unresolved alternatives and their identity remain in the catalog authority.
 func DateSpan(raw []byte, zone string) (string, string, bool, error) {
+	type instant struct {
+		ISO string `json:"iso"`
+	}
 	var value struct {
 		Selected *struct {
-			Precision              string `json:"precision"`
-			Literal                string `json:"literal"`
-			Resolved, Lower, Upper *struct {
-				ISO string `json:"iso"`
-			}
+			Precision string   `json:"precision"`
+			Literal   string   `json:"literal"`
+			Resolved  *instant `json:"resolved"`
+			Lower     *instant `json:"earliest"`
+			Upper     *instant `json:"latest"`
 		} `json:"selected"`
 	}
 	if json.Unmarshal(raw, &value) != nil || value.Selected == nil {

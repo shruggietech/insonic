@@ -43,7 +43,7 @@ Goal: bounded hierarchical context with source-linked condensation and genuine c
 ## Phase 7: Convergence and delivery
 
 - [x] T015 Update authoritative docs/v1.1.0/ and CHANGELOG.md, run formatting/schema/repository/Go/CLI/backend/site checks, and complete Spec Kit convergence (all FR/SC).
-- [ ] T016 Commit, push and open the official PR closing only #220-#223; use existing milestone 48/Project 7 and retain source/test/CI evidence (all FR/SC).
+- [x] T016 Commit, push and open the official PR closing only #220-#223; use existing milestone 48/Project 7 and retain source/test/CI evidence (all FR/SC).
 - [ ] T017 Resolve every external finding within automatic round one plus at most one explicit second round; require green applicable exact-head CI, zero unresolved review threads, retained audited receipts and owner final merge handoff (all FR/SC).
 
 ## Dependencies and execution
