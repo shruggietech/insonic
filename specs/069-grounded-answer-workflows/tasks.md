@@ -50,7 +50,7 @@
 ## Phase 6: Convergence, qualification and handoff
 
 - [ ] T021 Run speckit-converge, affected local checks, npm run check, npm test and site/package parity; retain results in specs/069-grounded-answer-workflows/verification.md and .local/s069/ without private content.
-- [ ] T022 Commit/push and open the authorized official PR with closing references to #224-#226 (and #210 only if fully met); record the PR in specs/069-grounded-answer-workflows/verification.md or its retained PR handoff receipt. No new tracking issue.
+- [x] T022 Commit/push and open the authorized official PR with closing references to #224-#226 (and #210 only if fully met); record the PR in specs/069-grounded-answer-workflows/verification.md or its retained PR handoff receipt. No new tracking issue.
 - [ ] T023 Resolve every external finding within at most two review rounds, retain exact-final-head CI terminal audits and artifact digests, verify project/issue/review state and ping owner for final review/merge in the retained PR handoff receipt.
 
 ## Dependencies and execution order

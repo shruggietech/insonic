@@ -8,6 +8,8 @@ import (
 	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -186,78 +188,143 @@ func TestAnswerSourceReplacementDuringSynthesisAndPipelineReplay(t *testing.T) {
 	}
 }
 func TestAnswerRestartReconcilesCandidateWithoutProvider(t *testing.T) {
-	a, p, c := answerSynthesisApp(t)
-	// Bind the retained context to the exact frozen election used by durable work.
-	request := p.Request
-	request.Provider = synthesisProvider(c)
-	prepared, err := a.prepareAnswer(context.Background(), request)
-	if err != nil {
-		t.Fatal(err)
+	for _, stage := range []string{"before-publication", "after-publication", "corrupt-checkpoint"} {
+		t.Run(stage, func(t *testing.T) {
+			a, p, c := answerSynthesisApp(t)
+			// Bind the retained context to the exact frozen election used by durable work.
+			request := p.Request
+			request.Provider = synthesisProvider(c)
+			prepared, err := a.prepareAnswer(context.Background(), request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			p = prepared.Package
+			payload := answerPayload{Request: p.Request, Configuration: c, RequestDigest: strings.Repeat("a", 64), PublicationID: contracts.ID()}
+			raw, _ := json.Marshal(payload)
+			id := contracts.ID()
+			if _, err = a.Catalog.EnqueueWork(context.Background(), id, "answers.request", raw); err != nil {
+				t.Fatal(err)
+			}
+			claim, err := a.Catalog.ClaimWork(context.Background(), id, a.Session, time.Minute)
+			if err != nil {
+				t.Fatal(err)
+			}
+			input, _ := answers.SynthesisInput(p, nil)
+			body, _ := json.Marshal(input)
+			envelope, err := fixtureAnswer(assistance.Request{Context: body})
+			if err != nil {
+				t.Fatal(err)
+			}
+			result := answers.Grounded{Kind: answers.GroundedKind, Version: contracts.Version, ID: payload.PublicationID, WorkID: id, WorkspaceID: a.Workspace.Config.WorkspaceID, PackageID: p.ID, SourceEpoch: p.Observation.SourceEpoch, Answer: envelope, Provider: synthesisProvider(c), Route: "local", IndependentFamilies: p.IndependentFamilies, EvidenceCount: len(p.Items), Attempts: []answers.Attempt{}, Diagnostics: []string{}, Validation: "current-source-citation-authority;semantic-entailment-not-evaluated"}
+			raw, _ = json.Marshal(result)
+			progress := answerProgressFor(payload)
+			progress.AnswerID = result.ID
+			progress.PackageID = p.ID
+			progress.Candidate = &catalog.AnswerCandidate{PublicationID: result.ID, PackageID: p.ID, Digest: documentHash(raw), Size: int64(len(raw)), SourceEpoch: p.Observation.SourceEpoch, MediaIDs: p.Request.Filters.MediaIDs}
+			checkpoint, _ := json.Marshal(progress)
+			var saved map[string]any
+			json.Unmarshal(checkpoint, &saved)
+			retained := append([]byte{}, raw...)
+			if stage == "corrupt-checkpoint" {
+				retained[0] = '['
+			}
+			saved["candidate_bytes"] = retained
+			checkpoint, _ = json.Marshal(saved)
+			if _, err = a.Catalog.CheckpointWork(context.Background(), claim, "publication", "running", checkpoint, time.Minute); err != nil {
+				t.Fatal(err)
+			}
+			if stage == "after-publication" {
+				if err = a.saveGroundedAnswer(context.Background(), id, result.ID, raw); err != nil {
+					t.Fatal(err)
+				}
+				// Simulate loss after byte publication but before the work reference persisted.
+				if err = a.Catalog.ArtifactReference(context.Background(), result.ID, id, true); err != nil {
+					t.Fatal(err)
+				}
+			}
+			viewBytes, _ := json.Marshal(workView(catalog.Work{ID: id, Kind: "answers.request", Result: checkpoint}))
+			if strings.Contains(string(viewBytes), "candidate_bytes") {
+				t.Fatal("work view exposes internal candidate bytes")
+			}
+			w := a.Workspace
+			a.Close()
+			w.Config.Profiles.Graph.Adapter = "ladybugdb"
+			b, err := New(w)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer b.Close()
+			completed := awaitWork(t, b, id)
+			if stage == "corrupt-checkpoint" {
+				if completed.State != "failed" {
+					t.Fatal("corrupted candidate accepted", completed)
+				}
+				if _, e := b.Catalog.Publication(context.Background(), result.ID); contracts.SafeError(e).Code != "not_found" {
+					t.Fatal("corrupted candidate published", e)
+				}
+				return
+			}
+			if completed.State != "succeeded" {
+				t.Fatal("restart did not reconcile", completed)
+			}
+			if strings.Contains(string(completed.Result), "candidate_bytes") {
+				t.Fatal("accepted work retained redundant bytes")
+			}
+			view, err := b.inspectGroundedAnswer(context.Background(), result.ID)
+			if err != nil || !view.Accepted || view.Freshness != "current" {
+				t.Fatal(view, err)
+			}
+			// Accepted immutable output is still readable but visibly stale after replacement.
+			item := p.Items[0]
+			entry, err := b.Catalog.Library(context.Background(), item.Reference.RecordingID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			current, err := b.Catalog.Recording(context.Background(), entry.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			doc, _ := os.ReadFile("../subtitles/testdata/source.cueson.json")
+			desktopRecording(t, b, entry, current.Revision, doc)
+			stale, err := b.inspectGroundedAnswer(context.Background(), result.ID)
+			if err != nil || stale.Freshness != "stale" || !stale.Accepted {
+				t.Fatal(stale, err)
+			}
+		})
 	}
-	p = prepared.Package
-	payload := answerPayload{Request: p.Request, Configuration: c, RequestDigest: strings.Repeat("a", 64), PublicationID: contracts.ID()}
-	raw, _ := json.Marshal(payload)
-	id := contracts.ID()
-	if _, err = a.Catalog.EnqueueWork(context.Background(), id, "answers.request", raw); err != nil {
-		t.Fatal(err)
-	}
-	claim, err := a.Catalog.ClaimWork(context.Background(), id, a.Session, time.Minute)
-	if err != nil {
-		t.Fatal(err)
-	}
-	input, _ := answers.SynthesisInput(p, nil)
-	body, _ := json.Marshal(input)
-	envelope, err := fixtureAnswer(assistance.Request{Context: body})
-	if err != nil {
-		t.Fatal(err)
-	}
-	result := answers.Grounded{Kind: answers.GroundedKind, Version: contracts.Version, ID: payload.PublicationID, WorkID: id, WorkspaceID: a.Workspace.Config.WorkspaceID, PackageID: p.ID, SourceEpoch: p.Observation.SourceEpoch, Answer: envelope, Provider: synthesisProvider(c), Route: "local", IndependentFamilies: p.IndependentFamilies, EvidenceCount: len(p.Items), Attempts: []answers.Attempt{}, Diagnostics: []string{}, Validation: "current-source-citation-authority;semantic-entailment-not-evaluated"}
-	raw, _ = json.Marshal(result)
-	progress := answerProgressFor(payload)
-	progress.AnswerID = result.ID
-	progress.PackageID = p.ID
-	progress.Candidate = &catalog.AnswerCandidate{PublicationID: result.ID, PackageID: p.ID, Digest: documentHash(raw), Size: int64(len(raw)), SourceEpoch: p.Observation.SourceEpoch, MediaIDs: p.Request.Filters.MediaIDs}
-	checkpoint, _ := json.Marshal(progress)
-	if _, err = a.Catalog.CheckpointWork(context.Background(), claim, "publication", "running", checkpoint, time.Minute); err != nil {
-		t.Fatal(err)
-	}
-	if err = a.saveGroundedAnswer(context.Background(), id, result.ID, raw); err != nil {
-		t.Fatal(err)
-	}
-	// Simulate loss after byte publication but before the work reference persisted.
-	if err = a.Catalog.ArtifactReference(context.Background(), result.ID, id, true); err != nil {
-		t.Fatal(err)
-	}
-	w := a.Workspace
-	a.Close()
-	w.Config.Profiles.Graph.Adapter = "ladybugdb"
-	b, err := New(w)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer b.Close()
-	completed := awaitWork(t, b, id)
-	if completed.State != "succeeded" {
-		t.Fatal("restart did not reconcile", completed)
-	}
-	view, err := b.inspectGroundedAnswer(context.Background(), result.ID)
-	if err != nil || !view.Accepted || view.Freshness != "current" {
-		t.Fatal(view, err)
-	}
-	// Accepted immutable output is still readable but visibly stale after replacement.
-	item := p.Items[0]
-	entry, err := b.Catalog.Library(context.Background(), item.Reference.RecordingID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	current, err := b.Catalog.Recording(context.Background(), entry.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	doc, _ := os.ReadFile("../subtitles/testdata/source.cueson.json")
-	desktopRecording(t, b, entry, current.Revision, doc)
-	stale, err := b.inspectGroundedAnswer(context.Background(), result.ID)
-	if err != nil || stale.Freshness != "stale" || !stale.Accepted {
-		t.Fatal(stale, err)
+}
+
+func TestAnswerInterruptedResponseRemainsFailedWork(t *testing.T) {
+	for _, adapter := range []string{"insonic-http", "ollama"} {
+		t.Run(adapter, func(t *testing.T) {
+			a, _, c := answerSynthesisApp(t)
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/api/show" {
+					w.Write([]byte(`{"capabilities":["completion"],"details":{"format":"gguf"}}`))
+					return
+				}
+				calls++
+				w.Header().Set("Content-Length", "1000")
+				w.Write([]byte(`{"partial":`))
+			}))
+			defer server.Close()
+			a.hostedClient = server.Client()
+			c.Provider.Adapter, c.Provider.Endpoint = adapter, server.URL
+			raw, _ := json.Marshal(AnswerWorkflowRequest{Request: answers.Request{Version: contracts.Version, Question: "q"}, Configuration: &c})
+			work, err := a.requestAnswer(context.Background(), contracts.Request{RequestID: contracts.ID(), Data: raw})
+			if err != nil {
+				t.Fatal(err)
+			}
+			done := awaitWork(t, a, work.ID)
+			if done.State != "failed" || done.Error != "unavailable" || calls != 1 {
+				t.Fatal("interrupted transport repaired or accepted", done.State, done.Error, calls)
+			}
+			var p answerProgress
+			json.Unmarshal(done.Result, &p)
+			if p.Accepted || p.AnswerID != "" {
+				t.Fatal("transport failure published answer", p)
+			}
+		})
 	}
 }

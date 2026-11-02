@@ -102,7 +102,7 @@ func (a HTTPAdapter) Generate(ctx context.Context, input Request, c Config, inst
 		return empty, contracts.Condition("output_limit", "provider_response_limit")
 	}
 	if e != nil {
-		return empty, contracts.Condition("operation_failed", "provider_protocol")
+		return empty, contracts.Condition("unavailable", "provider_unavailable")
 	}
 	if catalog.ValidateJSON(raw) != nil {
 		return empty, contracts.Condition("operation_failed", "provider_protocol")

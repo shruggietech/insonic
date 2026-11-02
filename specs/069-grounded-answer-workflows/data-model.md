@@ -14,9 +14,9 @@ Envelope states remain complete, partial and insufficient (cancelled is historic
 
 ## Durable work and candidate
 
-Work kind answers.request follows pending -> running -> succeeded/failed/cancelled/interrupted. Running phases are retrieval, context, synthesis, validation and publication. Lease owner/generation fences every checkpoint and acceptance. Progress stores only references and bounded counts/route identity; full text resides in artifacts.
+Work kind answers.request follows pending -> running -> succeeded/failed/cancelled/interrupted. Running phases are retrieval, context, synthesis, validation and publication. Lease owner/generation fences every checkpoint and acceptance. Public progress stores only references and bounded counts/route identity. The internal publication checkpoint also retains the exact candidate bytes (at most 1 MiB, base64 encoded within the existing 4 MiB journal limit) until terminal acceptance; accepted full text resides in artifacts.
 
-Before publication, candidate metadata stores publication ID, content digest/size, package ID, source epoch and selected media IDs. On restart, an available matching artifact is verified and accepted under current work/source authority; missing or incomplete publication produces a recoverable diagnosed outcome instead of assuming success. Accepted receipt replay prevents duplicate effects. Cancellation prohibits acceptance even if bytes became available.
+Before publication, one fenced checkpoint stores exact candidate bytes together with publication ID, content digest/size, package ID, source epoch and selected media IDs. On restart, an available matching artifact is verified and accepted under current work/source authority; confirmed missing or pending publication resumes from independently validated retained bytes without another provider call. Available-object integrity failures stop recovery instead of overwriting evidence. Accepted receipt replay prevents duplicate effects. Cancellation prohibits acceptance even if bytes became available.
 
 Retry creates a new work ID with parent_work_id and the same normalized configuration election; original attempts and their artifacts remain inspectable. A fresh request is required to select changed route/configuration. A retry refreshes evidence under the original scope instead of blessing stale evidence.
 

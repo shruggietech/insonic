@@ -63,6 +63,14 @@ func workView(w catalog.Work) any {
 	if w.ID == "" {
 		return nil
 	}
+	// Retained synthesis bytes are an internal restart checkpoint, not progress.
+	if w.Kind == "answers.request" {
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(w.Result, &fields) == nil && fields != nil {
+			delete(fields, "candidate_bytes")
+			w.Result, _ = json.Marshal(fields)
+		}
+	}
 	var result any
 	if len(w.Result) <= 16<<10 {
 		strictPayload(w.Result, &result)

@@ -123,7 +123,7 @@ func (a Ollama) call(ctx context.Context, endpoint, route, id string, body any, 
 		return contracts.Condition("output_limit", "provider_response_limit")
 	}
 	if e != nil {
-		return contracts.Condition("operation_failed", "ollama_protocol")
+		return contracts.Condition("unavailable", "ollama_unavailable")
 	}
 	if catalog.ValidateJSON(raw) != nil || json.Unmarshal(raw, out) != nil {
 		return contracts.Condition("operation_failed", "ollama_protocol")

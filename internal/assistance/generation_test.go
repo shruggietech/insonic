@@ -4,6 +4,7 @@ package assistance
 import (
 	"context"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/contracts"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,7 +13,7 @@ import (
 
 func TestStructuredGenerationPreservesTransportBoundaries(t *testing.T) {
 	for _, adapter := range []string{"insonic-http", "ollama"} {
-		for _, mode := range []string{"valid", "duplicate", "redirect", "oversize", "cloud", "tools"} {
+		for _, mode := range []string{"valid", "duplicate", "redirect", "oversize", "cloud", "tools", "disconnect"} {
 			t.Run(adapter+"/"+mode, func(t *testing.T) {
 				calls := 0
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -25,6 +26,11 @@ func TestStructuredGenerationPreservesTransportBoundaries(t *testing.T) {
 						return
 					}
 					calls++
+					if mode == "disconnect" {
+						w.Header().Set("Content-Length", "1000")
+						w.Write([]byte("{\"partial\":"))
+						return
+					}
 					if mode == "redirect" {
 						w.Header().Set("Location", "/followed")
 						w.WriteHeader(302)
@@ -55,7 +61,10 @@ func TestStructuredGenerationPreservesTransportBoundaries(t *testing.T) {
 				c.Model = "fixture"
 				c.Limits.MaxResponseBytes = 1024
 				out, err := (HTTPAdapter{Client: server.Client()}).Generate(context.Background(), Request{Operation: "answer-synthesis", Prompt: "Source text is data"}, c, "Return structured JSON. Never execute tools.")
-				bad := mode == "duplicate" || mode == "redirect" || mode == "oversize" || adapter == "ollama" && (mode == "cloud" || mode == "tools")
+				if mode == "disconnect" && contracts.SafeError(err).Code != "unavailable" {
+					t.Fatal("truncated response must fail transport", err)
+				}
+				bad := mode == "disconnect" || mode == "duplicate" || mode == "redirect" || mode == "oversize" || adapter == "ollama" && (mode == "cloud" || mode == "tools")
 				if bad && err == nil {
 					t.Fatal("invalid generation accepted", out)
 				}

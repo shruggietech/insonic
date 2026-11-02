@@ -28,6 +28,9 @@ type answerPayload struct {
 	RetryOf          string                     `json:"retry_of,omitempty"`
 }
 type answerProgress struct {
+	// Exact bounded bytes survive a crash before publication; omitted from public
+	// work views and removed from the terminal accepted result.
+	CandidateBytes      []byte                   `json:"candidate_bytes,omitempty"`
 	Candidate           *catalog.AnswerCandidate `json:"candidate,omitempty"`
 	AnswerID            string                   `json:"answer_id,omitempty"`
 	PackageID           string                   `json:"package_id,omitempty"`
@@ -171,13 +174,42 @@ func (a *App) processAnswer(parent context.Context, claim catalog.Work) (out ans
 		_, e := a.Catalog.CheckpointWork(ctx, claim, phase, "running", raw, leaseTTL)
 		return e
 	}
-	// Candidate metadata precedes publication. Recovery must reconcile it before
+	// Candidate bytes and metadata precede publication. Recovery reconciles them before
 	// replacing phases or invoking a nondeterministic provider again.
 	var prior answerProgress
 	if json.Unmarshal(claim.Result, &prior) == nil && prior.Candidate != nil {
 		out = prior
 		if !out.Candidate.Valid() || out.Candidate.PublicationID != p.PublicationID {
 			return out, contracts.Fail("conflict")
+		}
+		pub, publicationErr := a.Catalog.Publication(ctx, p.PublicationID)
+		if publicationErr != nil && contracts.SafeError(publicationErr).Code != "not_found" {
+			return out, publicationErr
+		}
+		if publicationErr != nil || pub.State == "pending" {
+			if publicationErr == nil && (pub.Kind != answers.GroundedKind || pub.Digest != out.Candidate.Digest || pub.Size != out.Candidate.Size) {
+				return out, contracts.Fail("conflict")
+			}
+			retained, e := a.decodeGroundedAnswer(ctx, p.PublicationID, out.Candidate.Digest, out.Candidate.Size, out.CandidateBytes)
+			if e != nil {
+				return out, e
+			}
+			if retained.WorkID != claim.ID || retained.PackageID != out.Candidate.PackageID || retained.SourceEpoch != out.Candidate.SourceEpoch {
+				return out, contracts.Fail("conflict")
+			}
+			if e = a.validateAnswer(ctx, retained.Answer); e != nil {
+				return out, e
+			}
+			if e = checkpoint("publication"); e != nil {
+				return out, e
+			}
+			if e = a.saveGroundedAnswer(ctx, claim.ID, p.PublicationID, out.CandidateBytes); e != nil {
+				// A write can succeed even if its response is lost. Readback below
+				// remains authoritative and never replaces a corrupt available object.
+				if _, readErr := a.readGroundedAnswer(ctx, p.PublicationID, out.Candidate.Digest); readErr != nil {
+					return out, e
+				}
+			}
 		}
 		result, e := a.readGroundedAnswer(ctx, p.PublicationID, out.Candidate.Digest)
 		if e != nil {
@@ -223,6 +255,7 @@ func (a *App) processAnswer(parent context.Context, claim catalog.Work) (out ans
 		return out, contracts.Fail("output_limit")
 	}
 	out.Candidate = &catalog.AnswerCandidate{PublicationID: p.PublicationID, PackageID: pkg.ID, Digest: documentHash(raw), Size: int64(len(raw)), SourceEpoch: pkg.Observation.SourceEpoch, MediaIDs: p.Request.Filters.MediaIDs}
+	out.CandidateBytes = raw
 	out.AnswerID = p.PublicationID
 	out.Limitations = append(out.Limitations, grounded.Diagnostics...)
 	if err = checkpoint("publication"); err != nil {
@@ -241,16 +274,18 @@ func (a *App) processAnswer(parent context.Context, claim catalog.Work) (out ans
 	return a.acceptAnswerProgress(ctx, claim, out)
 }
 func (a *App) acceptAnswerProgress(ctx context.Context, claim catalog.Work, out answerProgress) (answerProgress, error) {
-	out.Accepted = true
-	raw, _ := json.Marshal(out)
+	accepted := out
+	accepted.Accepted = true
+	accepted.CandidateBytes = nil
+	raw, _ := json.Marshal(accepted)
 	_, err := a.Catalog.AcceptAnswer(ctx, claim, *out.Candidate, raw)
 	if err != nil {
 		actual, e := a.Catalog.Work(ctx, claim.ID)
 		if e == nil && actual.Kind == "answers.request" && actual.State == "succeeded" && reflect.DeepEqual(actual.Result, raw) {
-			return out, nil
+			return accepted, nil
 		}
 		out.Accepted = false
 		return out, err
 	}
-	return out, nil
+	return accepted, nil
 }

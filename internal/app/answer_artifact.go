@@ -75,7 +75,16 @@ func (a *App) readGroundedAnswer(ctx context.Context, id, digest string) (out an
 	}
 	defer f.Close()
 	raw, err := io.ReadAll(io.LimitReader(f, answers.MaxPackageBytes+1))
-	if err != nil || len(raw) > answers.MaxPackageBytes || documentHash(raw) != pub.Digest || schemas.ValidateGroundedAnswer(raw) != nil || contracts.DecodeExplore(raw, &out) != nil {
+	if err != nil {
+		return out, contracts.Fail("conflict")
+	}
+	return a.decodeGroundedAnswer(ctx, id, pub.Digest, pub.Size, raw)
+}
+
+// Both a durable checkpoint and a published object require the same bounded
+// identity, context and citation validation before they can be accepted.
+func (a *App) decodeGroundedAnswer(ctx context.Context, id, digest string, size int64, raw []byte) (out answers.Grounded, err error) {
+	if len(raw) < 1 || len(raw) > answers.MaxPackageBytes || int64(len(raw)) != size || documentHash(raw) != digest || schemas.ValidateGroundedAnswer(raw) != nil || contracts.DecodeExplore(raw, &out) != nil {
 		return out, contracts.Fail("conflict")
 	}
 	if out.Kind != answers.GroundedKind || out.Version != contracts.Version || out.ID != id || out.WorkspaceID != a.Workspace.Config.WorkspaceID || !contracts.ValidID(out.WorkID) || !answers.ValidDigest(out.SourceEpoch) || out.Answer.PackageID != out.PackageID || len(out.Attempts) > 2 {

@@ -18,9 +18,9 @@ import (
 func TestProviderFailureMatrix(t *testing.T) {
 	for _, adapter := range []string{"insonic-http", "ollama"} {
 		t.Run(adapter, func(t *testing.T) {
-			protocol := "provider_protocol"
+			protocol, transport := "provider_protocol", "provider_unavailable"
 			if adapter == "ollama" {
-				protocol = "ollama_protocol"
+				protocol, transport = "ollama_protocol", "ollama_unavailable"
 			}
 			cases := []struct {
 				name, code, reason string
@@ -33,7 +33,7 @@ func TestProviderFailureMatrix(t *testing.T) {
 				{"malformed", "operation_failed", protocol, 200}, {"duplicate", "operation_failed", protocol, 200},
 				{"invalid-proposal", "operation_failed", protocol, 200},
 				{"trailing", "operation_failed", protocol, 200}, {"truncated", "operation_failed", protocol, 200},
-				{"short-body", "operation_failed", protocol, 200}, {"oversize", "output_limit", "provider_response_limit", 200},
+				{"short-body", "unavailable", transport, 200}, {"oversize", "output_limit", "provider_response_limit", 200},
 				{"deadline", "unavailable", "provider_timeout", 200}, {"body-deadline", "unavailable", "provider_timeout", 200},
 			}
 			for _, tc := range cases {
