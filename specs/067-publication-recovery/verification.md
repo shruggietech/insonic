@@ -20,4 +20,4 @@ Timing audit: acquisition/extraction 600s; content 600s with request socket cap1
 
 ## PR and hosted verification
 
-Pending push and external checks/reviews. At most two external rounds; no automatic merge.
+PR #243 opened at 342cb1b314324cdad1d3a93b35754905dbc76dc5. Automatic round 1 completed without findings. Security review state is absent. Initial PR CI 41368507331 and read-only site run41368532684 started; their metadata is retained locally. A subsequent self-review bound recovery SHA256 to the single consumed receipt byte snapshot; four targeted integration checks pass. Second/final review and final hosted checks pending. No automatic merge.

@@ -450,6 +450,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
             result = release.pages_reconcile(fixture.root, path, output, fixture.api)
             self.assertTrue(result['reconciled'])
             self.assertEqual(path.read_bytes(), before)
+            self.assertEqual(release.read_json(output)['attempt_sha256'], release.hashlib.sha256(before).hexdigest())
             self.assertTrue(all(m == 'GET' for m, _, _ in fixture.api.calls))
             with self.assertRaises(ValueError): release.pages_reconcile(fixture.root, path, path, fixture.api)
             with self.assertRaises(ValueError): release.pages_reconcile(fixture.root, path, output, fixture.api)

@@ -29,7 +29,7 @@ Independent proof: audit each current publication timing claim against its execu
 ## Phase 5: Qualification and delivery
 
 - [x] T011 Run affected Python suites, npm check/test and site test/check/build; record outcomes and encoding sanity in `specs/067-publication-recovery/verification.md` (SC-001/002/003/004).
-- [ ] T012 Converge artifacts, commit/push/open official PR linking both issues and milestone 52; record identity in `specs/067-publication-recovery/verification.md` (SC-005).
+- [x] T012 Converge artifacts, commit/push/open official PR linking both issues and milestone 52; record identity in `specs/067-publication-recovery/verification.md` (SC-005).
 - [ ] T013 Resolve all actionable review comments within two rounds, retain CI receipts outside Actions, and hand off green final head for owner merge in `specs/067-publication-recovery/verification.md` (SC-005).
 
 ## Dependencies and strategy

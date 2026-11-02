@@ -1090,7 +1090,8 @@ def pages_reconcile(directory, attempt, output, api, verifier=verify_package, tr
     if attempt.resolve() == output.resolve() or output.exists():
         raise ValueError('Pages reconciliation requires a new distinct output receipt')
     # A recovery receipt is evidence, never authority to skip original validation.
-    original = read_json(attempt)
+    original_bytes = attempt.read_bytes()
+    original = json.loads(original_bytes)
     value = promotion_authority(directory, api, verifier, trusted_root, history_runner, source_root)
     transport = pages_module()
     expected = {'kind': 'pages-promotion', 'format': 1, 'repository': REPOSITORY,
@@ -1105,7 +1106,7 @@ def pages_reconcile(directory, attempt, output, api, verifier=verify_package, tr
         raise ValueError('Pages attempt previous tree differs')
     files = transport.prepare_tree(directory / 'documentation.tar.gz', previous, value['version'], value['revision'])
     receipt = transport.PromotionReceipt(output, {**expected, 'kind': 'pages-reconciliation',
-        'phase': 'reconciling', 'attempt_sha256': sha(attempt)})
+        'phase': 'reconciling', 'attempt_sha256': hashlib.sha256(original_bytes).hexdigest()})
     try:
         result = transport.reconcile_tree(api, REPOSITORY, files, original)
         receipt.record({'phase': 'deployed', **result})
