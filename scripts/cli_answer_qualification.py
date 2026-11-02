@@ -8,6 +8,20 @@ import time
 from cli_media_qualification import pcm_fixture
 
 
+def qualify_isolated(invoke, workspace, version):
+    """Keep this two-recording journey independent of pagination/library fixtures."""
+    library = workspace / 'isolated answer qualification'
+    invoke(['workspace', 'init', library], scoped=False)
+    def selected(args, **kwargs):
+        kwargs.setdefault('workspace_path', library)
+        return invoke(args, **kwargs)
+    def supplied(args, value, expected=0):
+        path = library / 'answer-input.json'
+        path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
+        return selected([*args, '--input', path], expected=expected)
+    return qualify(selected, supplied, library, version)
+
+
 def qualify(invoke, supplied, workspace, version):
     started = time.monotonic()
     directory = workspace / 'answer evidence fixtures'

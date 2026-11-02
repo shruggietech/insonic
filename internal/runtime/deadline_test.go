@@ -26,11 +26,18 @@ func TestOperationTimeoutPreservesCallerDefaultsAndLongFamilies(t *testing.T) {
 	}
 }
 
-func TestNativeQueryAcceptsValidResponsePastOrdinaryDeadline(t *testing.T) {
+func TestNativeQueryAndAnswerAcceptValidResponsePastOrdinaryDeadline(t *testing.T) {
 	for _, example := range []struct {
 		name         string
+		operation    string
 		cancelCaller bool
-	}{{"slow valid response", false}, {"caller cancellation after connection", true}} {
+	}{
+		{"slow valid query response", "query.run", false},
+		{"query caller cancellation", "query.run", true},
+		{"slow answer preparation", "answers.prepare", false},
+		{"slow answer export", "answers.export", false},
+		{"answer caller cancellation", "answers.prepare", true},
+	} {
 		t.Run(example.name, func(t *testing.T) {
 			w, err := workspace.Init(t.TempDir(), "slow native query transport")
 			if err != nil {
@@ -75,7 +82,7 @@ func TestNativeQueryAcceptsValidResponsePastOrdinaryDeadline(t *testing.T) {
 				done <- err
 			}()
 			request := contracts.Request{Kind: "runtime-request", Version: contracts.Version,
-				WorkspaceID: w.Config.WorkspaceID, RequestID: contracts.ID(), Operation: "query.run"}
+				WorkspaceID: w.Config.WorkspaceID, RequestID: contracts.ID(), Operation: example.operation}
 			response, err := Call(ctx, w, request)
 			if example.cancelCaller {
 				cancel()
@@ -112,5 +119,21 @@ func TestFrameDeadlineIsNotMalformedInput(t *testing.T) {
 	condition, ok := err.(*contracts.Error)
 	if !ok || condition.Code != "cancelled" {
 		t.Fatalf("deadline reported as malformed input: %v", err)
+	}
+}
+
+func TestAnswerRPCBudgetEnclosesProductDeadline(t *testing.T) {
+	for _, ordinary := range []time.Duration{5 * time.Second, 10 * time.Second} {
+		if OperationTimeout("answers.prepare", ordinary) <= 60*time.Second {
+			t.Fatal("preparation transport truncates elected maximum")
+		}
+		for _, operation := range []string{"answers.show", "answers.export", "answers.validate"} {
+			if OperationTimeout(operation, ordinary) <= 20*time.Second {
+				t.Fatal(operation, "transport truncates source inspection")
+			}
+		}
+		if OperationTimeout("answers.unknown", ordinary) != ordinary {
+			t.Fatal("unknown operations acquired extended authority")
+		}
 	}
 }

@@ -503,7 +503,7 @@
       "disposition": "new-bounded-product-contract",
       "origin": "single question preparation request; inspection and citation validation requests",
       "parent": "earlier caller cancellation or elected operation deadline",
-      "effective": "20s default and60s maximum preparation;20s inspect/validate;5s bounded lease cleanup;retained1-minute lease fixture",
+      "effective": "20s default and60s maximum preparation;20s inspect/validate;65s preparation RPC and25s inspect/validate RPC preserve these limits;5s bounded lease cleanup;retained1-minute lease fixture",
       "files": [
         "internal/answers/contracts.go",
         "internal/app/answers.go",
