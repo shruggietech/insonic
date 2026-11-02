@@ -1,0 +1,1292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.1.0/schemas/v1.1.0/answer-evidence.schema.json",
+  "title": "Answer evidence and context",
+  "type": "object",
+  "additionalProperties": false,
+  "description": "Immutable retained evidence/context package. Inspect/export wraps this with current freshness, cache and execution observations.",
+  "properties": {
+    "kind": {
+      "const": "answer-evidence-context",
+      "description": "Owned package kind."
+    },
+    "schema_version": {
+      "const": "1.1.0",
+      "description": "Shared software/docs/schema version."
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Retained artifact publication UUID."
+    },
+    "workspace_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Owning workspace UUID."
+    },
+    "key": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Request/source/graph/configuration cache identity."
+    },
+    "state": {
+      "enum": [
+        "complete",
+        "partial",
+        "insufficient",
+        "cancelled"
+      ],
+      "description": "Evidence preparation disposition."
+    },
+    "request": {
+      "$ref": "#/$defs/request",
+      "description": "Effective normalized request."
+    },
+    "observation": {
+      "$ref": "#/$defs/observation",
+      "description": "Original authority observation."
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item",
+        "description": "Source span."
+      },
+      "maxItems": 500,
+      "description": "Ranked source spans."
+    },
+    "independent_families": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 500,
+      "description": "Distinct observed non-reported source families; unknown shared upstream origins remain possible."
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conflict",
+        "description": "Conflict."
+      },
+      "maxItems": 124750,
+      "description": "Retained contradictions."
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/exclusion",
+        "description": "Exclusion."
+      },
+      "maxItems": 100000,
+      "description": "Excluded evidence."
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 256,
+        "description": "Diagnostic."
+      },
+      "maxItems": 128,
+      "description": "Visible completeness/budget limitations."
+    },
+    "usage": {
+      "$ref": "#/$defs/usage",
+      "description": "Work measured when the immutable package was serialized."
+    },
+    "next": {
+      "type": "string",
+      "maxLength": 8192,
+      "description": "Optional opaque catalog continuation; keep request/scope unchanged."
+    },
+    "context": {
+      "$ref": "#/$defs/context",
+      "description": "Budgeted source-preserving context."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "workspace_id",
+    "key",
+    "state",
+    "request",
+    "observation",
+    "items",
+    "independent_families",
+    "conflicts",
+    "exclusions",
+    "diagnostics",
+    "usage",
+    "context"
+  ],
+  "$defs": {
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Exact known source-clock interval in microseconds; absence means untimed.",
+      "properties": {
+        "start_us": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Inclusive exact source start."
+        },
+        "end_us": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Exclusive exact source end; greater than start."
+        }
+      },
+      "required": [
+        "start_us",
+        "end_us"
+      ]
+    },
+    "calendar": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Elected recording calendar scope.",
+      "properties": {
+        "from": {
+          "type": "string",
+          "format": "date",
+          "description": "Inclusive first date."
+        },
+        "through": {
+          "type": "string",
+          "format": "date",
+          "description": "Inclusive last date."
+        },
+        "timezone": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "IANA timezone; omitted uses UTC."
+        },
+        "include_undated": {
+          "type": "boolean",
+          "description": "Include sources without a selected resolved date."
+        }
+      },
+      "required": []
+    },
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Combined normalized scope. Expansion retains media, speaker, calendar and source interval constraints.",
+      "properties": {
+        "entity_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Entity identity."
+          },
+          "maxItems": 500,
+          "description": "Exact normalized entity IDs."
+        },
+        "media_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Recording UUID."
+          },
+          "maxItems": 500,
+          "description": "Selected recording UUIDs."
+        },
+        "speaker_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Speaker UUID."
+          },
+          "maxItems": 500,
+          "description": "Selected current speaker identities."
+        },
+        "concept_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Concept UUID."
+          },
+          "maxItems": 500,
+          "description": "Typed normalized concept identities."
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Case-insensitive literal seed text."
+        },
+        "recording_dates": {
+          "$ref": "#/$defs/calendar",
+          "description": "Elected calendar interpretation."
+        },
+        "source_interval": {
+          "$ref": "#/$defs/interval",
+          "description": "Exact known source interval overlap."
+        }
+      },
+      "required": []
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One aggregate retrieval allowance. Omitted or zero numeric limits use defaults; neighbor_cues zero disables neighbors.",
+      "properties": {
+        "rows": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000,
+          "description": "rows; default 4096.",
+          "default": 4096
+        },
+        "source_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8388608,
+          "description": "source bytes; default 4194304.",
+          "default": 4194304
+        },
+        "items": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500,
+          "description": "items; default 128.",
+          "default": 128
+        },
+        "evidence_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 524288,
+          "description": "evidence bytes; default 262144.",
+          "default": 262144
+        },
+        "edges": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "edges; default 128.",
+          "default": 128
+        },
+        "rounds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256,
+          "description": "rounds; default 32.",
+          "default": 32
+        },
+        "deadline_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "deadline ms; default 20000.",
+          "default": 20000
+        },
+        "neighbor_cues": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8,
+          "description": "neighbor cues; default 1.",
+          "default": 1
+        },
+        "context_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144,
+          "description": "context bytes; default 32768.",
+          "default": 32768
+        },
+        "context_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144,
+          "description": "context tokens; default 8192.",
+          "default": 8192
+        }
+      },
+      "required": []
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Nonsecret elected provider identity. Preparation uses deterministic extracts and makes no inference request.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Configured provider identity."
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Exact elected model identity."
+        },
+        "configuration_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA256 of effective nonsecret provider configuration."
+        },
+        "prompt_contract": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Elected prompt contract identity."
+        },
+        "summary_contract": {
+          "const": "source-extract-v1",
+          "description": "Source-preserving condensation algorithm.",
+          "default": "source-extract-v1"
+        }
+      },
+      "required": []
+    },
+    "traversal": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Bounded relationship expansion from qualifying cues and explicit graph seeds.",
+      "properties": {
+        "direction": {
+          "enum": [
+            "in",
+            "out",
+            "both"
+          ],
+          "description": "Edge direction."
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "description": "Maximum edge depth; default 3."
+        },
+        "relationship_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Relationship kind."
+          },
+          "maxItems": 64,
+          "description": "Optional edge kind allowlist."
+        }
+      },
+      "required": [
+        "direction",
+        "max_depth"
+      ]
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Versioned question and explicit evidence/context preparation scope.",
+      "properties": {
+        "version": {
+          "const": "1.1.0",
+          "description": "Shared software and contract release."
+        },
+        "question": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Question used for deterministic relevance ranking.",
+          "minLength": 1
+        },
+        "filters": {
+          "$ref": "#/$defs/filters",
+          "description": "Combined scope."
+        },
+        "traversal": {
+          "$ref": "#/$defs/traversal",
+          "description": "Bounded graph expansion; default both directions and depth 3."
+        },
+        "budget": {
+          "$ref": "#/$defs/budget",
+          "description": "Aggregate limits including identity checks."
+        },
+        "provider": {
+          "$ref": "#/$defs/provider",
+          "description": "Elected configuration identity."
+        },
+        "cursor": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "Opaque continuation from unchanged request and source epoch."
+        }
+      },
+      "required": [
+        "version",
+        "question"
+      ],
+      "examples": [
+        {
+          "version": "1.1.0",
+          "question": "Which recordings describe changes to the launch plan?",
+          "budget": {
+            "items": 64,
+            "context_bytes": 32768,
+            "context_tokens": 8192
+          }
+        }
+      ]
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Current source authority; all exact potentially large integers travel as decimal strings.",
+      "properties": {
+        "workspace_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Workspace UUID."
+        },
+        "recording_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Recording UUID."
+        },
+        "recording_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$",
+          "description": "Exact accepted recording revision."
+        },
+        "document_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Current transcript SHA256."
+        },
+        "source_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Accepted source bytes SHA256."
+        },
+        "source_map_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Canonical source-map SHA256."
+        },
+        "identity_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Speaker, date, provenance and assertion identity SHA256."
+        },
+        "cue_id": {
+          "type": "string",
+          "maxLength": 1024,
+          "description": "Exact source cue identifier.",
+          "minLength": 1
+        },
+        "ordinal": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Zero-based cue ordinal."
+        },
+        "source": {
+          "$ref": "#/$defs/interval",
+          "description": "Absent for untimed evidence."
+        },
+        "stream_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Known canonical stream index."
+        },
+        "channel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63,
+          "description": "Known source channel."
+        }
+      },
+      "required": [
+        "workspace_id",
+        "recording_id",
+        "recording_revision",
+        "document_digest",
+        "source_digest",
+        "source_map_digest",
+        "identity_digest",
+        "cue_id",
+        "ordinal"
+      ]
+    },
+    "path": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Exact selection route.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "catalog-filter",
+            "neighbor-cue",
+            "graph"
+          ],
+          "description": "Selection origin."
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Entity identity."
+          },
+          "maxItems": 9,
+          "description": "Ordered source/entity route."
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Edge identity."
+          },
+          "maxItems": 8,
+          "description": "Ordered relationship route."
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Inspectable deterministic score components.",
+      "properties": {
+        "relevance": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "relevance component."
+        },
+        "independence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "independence component."
+        },
+        "coverage": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "coverage component."
+        },
+        "contradiction": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "contradiction component."
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "total component."
+        }
+      },
+      "required": [
+        "relevance",
+        "independence",
+        "coverage",
+        "contradiction",
+        "total"
+      ]
+    },
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Current extracted assertion; its authority remains its source cues.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Current extraction identity."
+        },
+        "subject": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Normalized subject."
+        },
+        "relation": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Normalized relation."
+        },
+        "object": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Normalized object."
+        },
+        "polarity": {
+          "enum": [
+            "positive",
+            "negative",
+            "unspecified"
+          ],
+          "description": "Recorded polarity."
+        },
+        "modality": {
+          "enum": [
+            "asserted",
+            "possible",
+            "conditional",
+            "question",
+            "verbatim"
+          ],
+          "description": "Recorded modality."
+        },
+        "conditions": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "maxLength": 4096,
+            "description": "Condition."
+          },
+          "maxItems": 64,
+          "description": "Required conditions."
+        },
+        "cue_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Cue identity."
+          },
+          "maxItems": 128,
+          "description": "Supporting cue identities."
+        },
+        "local_speaker_id": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Optional embedded voice identity."
+        },
+        "quoted_attribution": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Reported speech attribution; never independent corroboration."
+        }
+      },
+      "required": [
+        "subject",
+        "relation",
+        "object",
+        "polarity",
+        "modality",
+        "conditions",
+        "cue_ids"
+      ]
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Current source span with provenance grouping and explained rank.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "Normalized evidence identity."
+        },
+        "reference": {
+          "$ref": "#/$defs/reference",
+          "description": "Exact current source binding."
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 8388608,
+          "description": "Authoritative cue text."
+        },
+        "speaker_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Speaker UUID."
+          },
+          "maxItems": 500,
+          "description": "Current external known-speaker UUIDs."
+        },
+        "local_speaker_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Local voice."
+          },
+          "maxItems": 500,
+          "description": "Embedded source voice identities."
+        },
+        "recording_date": {
+          "type": "string",
+          "maxLength": 10,
+          "description": "Selected lower or exact calendar date."
+        },
+        "recording_date_through": {
+          "type": "string",
+          "maxLength": 10,
+          "description": "Selected upper or exact calendar date."
+        },
+        "date_known": {
+          "type": "boolean",
+          "description": "Whether a selected date is known."
+        },
+        "family": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Proven common source digest or canonical-origin family."
+        },
+        "lineage": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Reason and uncertainty of source-family grouping."
+        },
+        "overlap_group": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "Representative overlapping span identity."
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/path",
+            "description": "Selection route."
+          },
+          "maxItems": 16,
+          "description": "Selection routes; repeated routes do not create support."
+        },
+        "statements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement",
+            "description": "Derived assertion."
+          },
+          "maxItems": 1000,
+          "description": "Current extracted assertions referring to this cue."
+        },
+        "score": {
+          "$ref": "#/$defs/score",
+          "description": "Reproducible score."
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Explanation."
+          },
+          "maxItems": 32,
+          "description": "Ranking explanations and limitations."
+        },
+        "origin_stream_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Proven original stream index from accepted canonicalization lineage."
+        }
+      },
+      "required": [
+        "id",
+        "reference",
+        "text",
+        "date_known",
+        "family",
+        "lineage",
+        "paths",
+        "score",
+        "reasons"
+      ]
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Unresolved contradictory evidence retained for inspection.",
+      "properties": {
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Evidence ID."
+          },
+          "maxItems": 500,
+          "description": "Source members of the conflict."
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Deterministic contradiction rule."
+        }
+      },
+      "required": [
+        "evidence_ids",
+        "reason"
+      ]
+    },
+    "exclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Visible exclusion or omission.",
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "Affected evidence identity when known."
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Reason."
+        }
+      },
+      "required": [
+        "reason"
+      ]
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Measured work; current-request observations may include final publication freshness checks beyond the immutable package snapshot.",
+      "properties": {
+        "rows": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "rows."
+        },
+        "source_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "source bytes."
+        },
+        "evidence_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "evidence bytes."
+        },
+        "edges": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "edges."
+        },
+        "rounds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "rounds."
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "elapsed ms."
+        }
+      },
+      "required": [
+        "rows",
+        "source_bytes",
+        "evidence_bytes",
+        "edges",
+        "rounds",
+        "elapsed_ms"
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Observed catalog/graph authority, separate from semantic source identity.",
+      "properties": {
+        "source_epoch": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Bounded current-source identity digest."
+        },
+        "catalog_revision": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Catalog observation revision."
+        },
+        "graph_generation": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Graph publication generation."
+        },
+        "graph_sequence": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Graph publication sequence."
+        },
+        "graph_revision": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Catalog revision represented by graph."
+        },
+        "graph_state": {
+          "enum": [
+            "unobserved",
+            "current",
+            "lagging",
+            "missing",
+            "unavailable"
+          ],
+          "description": "Observed graph completeness."
+        }
+      },
+      "required": [
+        "source_epoch",
+        "catalog_revision",
+        "graph_state"
+      ]
+    },
+    "contextNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Navigation/condensation node; only cue extracts contain text and no node becomes a new source.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "Context node identity."
+        },
+        "level": {
+          "enum": [
+            "cue",
+            "section",
+            "recording",
+            "cross-recording"
+          ],
+          "description": "Hierarchy level."
+        },
+        "parent": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "Parent context node identity."
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 8388608,
+          "description": "Exact source prefix, never a generated assertion."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Evidence ID."
+          },
+          "maxItems": 500,
+          "description": "Underlying package evidence IDs."
+        },
+        "condensed": {
+          "type": "boolean",
+          "description": "Visible source-text condensation."
+        }
+      },
+      "required": [
+        "id",
+        "level",
+        "sources"
+      ]
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Entire bounded provider context envelope including hierarchy and source links.",
+      "properties": {
+        "contract": {
+          "const": "source-extract-v1",
+          "description": "Source-preserving extractive contract."
+        },
+        "question": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Question included in budget."
+        },
+        "token_accounting": {
+          "const": "utf8-byte-upper-bound",
+          "description": "Conservative UTF-8 byte token units, not a provider tokenizer claim."
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144,
+          "description": "Full serialized envelope UTF-8 bytes."
+        },
+        "tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144,
+          "description": "Conservative token units for the full serialized envelope."
+        },
+        "omitted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500,
+          "description": "Number of selected evidence items omitted from context."
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/contextNode",
+            "description": "Hierarchy node."
+          },
+          "maxItems": 1501,
+          "description": "Bounded hierarchical extracts and source references."
+        }
+      },
+      "required": [
+        "contract",
+        "question",
+        "token_accounting",
+        "bytes",
+        "tokens",
+        "omitted",
+        "nodes"
+      ]
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A faithful quote with exact source binding; semantic entailment requires later answer evaluation.",
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "Retained package evidence member."
+        },
+        "reference": {
+          "$ref": "#/$defs/reference",
+          "description": "Exact source reference."
+        },
+        "quote": {
+          "type": "string",
+          "maxLength": 8388608,
+          "description": "Exact substring of current cue text.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "evidence_id",
+        "reference",
+        "quote"
+      ]
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A claim either cites current source evidence or explicitly records missing/uncertain/conflicting support.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Claim identity.",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 16384,
+          "description": "Claim text.",
+          "minLength": 1
+        },
+        "support": {
+          "enum": [
+            "supported",
+            "unsupported",
+            "uncertain",
+            "conflicting"
+          ],
+          "description": "Support disposition."
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citation",
+            "description": "Citation."
+          },
+          "maxItems": 128,
+          "description": "Faithful source citations."
+        },
+        "uncertainty": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Reason support is unresolved."
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "support"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "support": {
+                "const": "supported",
+                "description": "Supported claim."
+              }
+            },
+            "required": [
+              "support"
+            ]
+          },
+          "then": {
+            "required": [
+              "citations"
+            ],
+            "properties": {
+              "citations": {
+                "type": "array",
+                "minItems": 1,
+                "description": "At least one source citation."
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "uncertainty"
+            ],
+            "properties": {
+              "uncertainty": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Explicit unresolved support reason."
+              }
+            }
+          }
+        }
+      ]
+    },
+    "envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Shared future answer contract; this release validates citations without synthesizing answers.",
+      "properties": {
+        "version": {
+          "const": "1.1.0",
+          "description": "Shared contract release."
+        },
+        "package_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Retained evidence/context package UUID."
+        },
+        "state": {
+          "enum": [
+            "complete",
+            "partial",
+            "insufficient",
+            "cancelled"
+          ],
+          "description": "Completion disposition."
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/claim",
+            "description": "Claim."
+          },
+          "maxItems": 500,
+          "description": "Answer claims."
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096,
+            "description": "Limitation."
+          },
+          "maxItems": 128,
+          "description": "Visible limitations."
+        }
+      },
+      "required": [
+        "version",
+        "package_id",
+        "state",
+        "claims"
+      ],
+      "examples": [
+        {
+          "version": "1.1.0",
+          "package_id": "10000000-0000-4000-8000-000000000001",
+          "state": "insufficient",
+          "claims": [
+            {
+              "id": "c1",
+              "text": "No current evidence resolves the question.",
+              "support": "unsupported",
+              "uncertainty": "No matching current source cues."
+            }
+          ]
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "complete",
+                "description": "Completed answer disposition."
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "claims": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "support": {
+                      "const": "supported",
+                      "description": "Every completed claim requires cited support."
+                    }
+                  }
+                },
+                "description": "Completed claims with cited support."
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "kind": "answer-evidence-context",
+      "schema_version": "1.1.0",
+      "id": "10000000-0000-4000-8000-000000000001",
+      "workspace_id": "10000000-0000-4000-8000-000000000002",
+      "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "insufficient",
+      "request": {
+        "version": "1.1.0",
+        "question": "What changed?"
+      },
+      "observation": {
+        "source_epoch": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "catalog_revision": "9007199254740993",
+        "graph_state": "unavailable"
+      },
+      "items": [],
+      "independent_families": 0,
+      "conflicts": [],
+      "exclusions": [],
+      "diagnostics": [
+        "no_matching_evidence"
+      ],
+      "usage": {
+        "rows": 1,
+        "source_bytes": 0,
+        "evidence_bytes": 0,
+        "edges": 0,
+        "rounds": 1,
+        "elapsed_ms": 1
+      },
+      "context": {
+        "contract": "source-extract-v1",
+        "question": "What changed?",
+        "token_accounting": "utf8-byte-upper-bound",
+        "bytes": 150,
+        "tokens": 150,
+        "omitted": 0,
+        "nodes": []
+      }
+    }
+  ]
+}

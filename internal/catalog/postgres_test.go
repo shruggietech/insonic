@@ -42,6 +42,11 @@ func TestPostgreSQLIdentityDomains(t *testing.T) { identitySuite(t, postgresStor
 func TestPostgreSQLCurrentSpeakerSelection(t *testing.T) {
 	selectionSuite(t, postgresStore(t, contracts.ID()))
 }
+func TestPostgreSQLAnswerEvidence(t *testing.T) {
+	answerEvidenceSuite(t, postgresStore(t, contracts.ID()))
+	answerNeighborBoundarySuite(t, postgresStore(t, contracts.ID()))
+	answerOriginSuite(t, postgresStore(t, contracts.ID()))
+}
 func TestPostgreSQLSpeakerSelectionEpoch(t *testing.T) {
 	selectionEpochSuite(t, postgresStore(t, contracts.ID()))
 }

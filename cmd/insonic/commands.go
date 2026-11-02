@@ -290,6 +290,10 @@ var commandDefinitions = func() []commandDefinition {
 	add("models train", "", 0, 0, "--input", "--input")
 	add("models speaker fetch", "VERSION_UUID", 1, 1, "--destination", "--destination")
 	add("models profile set", "SPEAKER_UUID", 1, 1, "--input", "--input")
+	add("answers prepare", "", 0, 0, "--input", "--input")
+	add("answers validate", "", 0, 0, "--input", "--input")
+	add("answers show", "PACKAGE_UUID", 1, 1, "", "")
+	add("answers export", "PACKAGE_UUID", 1, 1, "", "")
 	for _, a := range strings.Fields("capabilities status publish rebuild") {
 		add("graph "+a, "", 0, 0, "", "")
 	}

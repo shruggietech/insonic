@@ -103,7 +103,7 @@ func commandExample(c commandDefinition) []string {
 			"DIRECTORY_OR_BACKUP_UUID":                 {"DIRECTORY"}, "WORK_UUID": {"WORK_UUID"},
 			"MODEL_UUID": {"MODEL_UUID"}, "MANIFEST_FILE": {"MANIFEST_FILE"}, "REFERENCE": {"REFERENCE"},
 			"SOURCE_UUID": {"SOURCE_UUID"}, "VERSION_UUID": {"VERSION_UUID"}, "SPEAKER_UUID": {"SPEAKER_UUID"},
-			"QUERY_UUID": {"QUERY_UUID"}, "VIEW_UUID": {"VIEW_UUID"}, "MEDIA_UUID PATH": {"MEDIA_UUID", "FILE"},
+			"PACKAGE_UUID": {"PACKAGE_UUID"}, "QUERY_UUID": {"QUERY_UUID"}, "VIEW_UUID": {"VIEW_UUID"}, "MEDIA_UUID PATH": {"MEDIA_UUID", "FILE"},
 			"TEXT": {"fixture"}, "native|vault|session": {"session"},
 		}
 		out = append(out, operands[c.Operands]...)

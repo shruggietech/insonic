@@ -17,7 +17,7 @@ import uuid
 
 PLACEHOLDERS = {'UUID', 'MEDIA_UUID', 'JOB_UUID', 'PUBLICATION_UUID', 'REFERENCE_UUID',
                 'WORK_UUID', 'MODEL_UUID', 'SOURCE_UUID', 'VERSION_UUID', 'SPEAKER_UUID',
-                'QUERY_UUID', 'VIEW_UUID', 'CURRENT_REVISION', 'REFERENCE', 'FILE',
+                'PACKAGE_UUID', 'QUERY_UUID', 'VIEW_UUID', 'CURRENT_REVISION', 'REFERENCE', 'FILE',
                 'INPUT_FILE', 'MANIFEST_FILE', 'DIRECTORY', 'ABSOLUTE_DIRECTORY'}
 TEMPLATE_MARKER = 'JSON file template (replace illustrative IDs/revisions with current records):\n'
 
@@ -156,6 +156,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                         return ids['SPEAKER_UUID']
                     if key in ['media_id', 'recording_id']:
                         return ids['MEDIA_UUID']
+                    if key == 'package_id':
+                        return ids['PACKAGE_UUID']
                     if key == 'query_id':
                         return ids['QUERY_UUID']
                     if key in ['model_id', 'base_model_id']:
@@ -183,6 +185,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
         source['source']['local_http'] = True
         input_call(['models', 'source', 'set', ids['UUID']], source)
         ids['SOURCE_UUID'] = ids['UUID']
+        answer = input_call(['answers', 'prepare'], template(by_path[('answers', 'prepare')]))['result']['package']
+        ids['PACKAGE_UUID'] = answer['id']
 
         # Explicit expected refusals describe real configured prerequisites and
         # retained lifecycle states. Syntax/type/schema errors are never permitted.

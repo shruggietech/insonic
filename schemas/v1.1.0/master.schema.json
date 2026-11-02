@@ -115,6 +115,10 @@
     "recording-repair": {
       "$ref": "recording-repair.schema.json",
       "description": "recording repair."
+    },
+    "answer-evidence-context": {
+      "$ref": "answer-evidence.schema.json",
+      "description": "Current source authority, bounded retrieval, provenance ranking, context and citation contracts."
     }
   },
   "oneOf": [
@@ -199,6 +203,9 @@
     },
     {
       "$ref": "#/$defs/recording-repair"
+    },
+    {
+      "$ref": "#/$defs/answer-evidence-context"
     }
   ]
 }

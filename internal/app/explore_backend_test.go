@@ -34,6 +34,7 @@ func exploreBackendSuite(t *testing.T, a *App, g graph.Adapter) {
 	if published.Error != nil {
 		t.Fatal("publish dispatch", published.Error)
 	}
+	answerBackendSuite(t, a, entry.ID)
 	snap, e := a.Catalog.Export(a.ctx)
 	if e != nil {
 		t.Fatal(e)

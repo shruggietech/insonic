@@ -494,7 +494,15 @@ func renderHuman(response contracts.Response) (string, error) {
 			b.line("Help: %s", commandFor(strings.TrimSpace(helpPath+" --help")))
 		}
 	} else if !operatorContext.Quiet {
-		b.line("%s completed.", humanLabel(op))
+		if root, ok := v.(map[string]any); ok && strings.HasPrefix(op, "answers ") {
+			if p, ok := root["package"].(map[string]any); ok {
+				b.line("Evidence preparation state: %s.", humanValue(p["state"]))
+			} else {
+				b.line("%s completed.", humanLabel(op))
+			}
+		} else {
+			b.line("%s completed.", humanLabel(op))
+		}
 	}
 	if operatorContext.Verbose || operatorContext.Debug {
 		if response.RequestID != "" {
@@ -507,7 +515,7 @@ func renderHuman(response contracts.Response) (string, error) {
 	compactWork := false
 	if !operatorContext.Quiet || response.Error != nil {
 		if root, ok := v.(map[string]any); ok {
-			compactWork = humanWorkSummary(b, root, response.Error != nil)
+			compactWork = humanWorkSummary(b, root, response.Error != nil) || humanAnswerSummary(b, root)
 		}
 		if !compactWork {
 			humanSummary(b, v, 0)

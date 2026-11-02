@@ -27,6 +27,7 @@ var mediaToolsSchema *jsonschema.Schema
 var recordingCoverageSchema *jsonschema.Schema
 var recordingRepairSchema *jsonschema.Schema
 var graphQuerySchema *jsonschema.Schema
+var answerRequestSchema, answerEnvelopeSchema, answerPackageSchema *jsonschema.Schema
 var baseModelManifestSchema *jsonschema.Schema
 var compileErr error
 var historicalMu sync.Mutex
@@ -139,6 +140,12 @@ func initialize() {
 			compileErr = err
 			return
 		}
+		for fragment, target := range map[string]**jsonschema.Schema{"#/$defs/request": &answerRequestSchema, "#/$defs/envelope": &answerEnvelopeSchema, "": &answerPackageSchema} {
+			*target, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/answer-evidence.schema.json" + fragment)
+			if compileErr != nil {
+				return
+			}
+		}
 		recordingCoverageSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/recording-coverage.schema.json")
 		if compileErr != nil {
 			return
@@ -195,6 +202,19 @@ func ValidateSpeakerDocument(data []byte) error {
 	default:
 		return errors.New("unsupported speaker document")
 	}
+}
+
+func ValidateAnswerRequest(data []byte) error {
+	initialize()
+	return validate(answerRequestSchema, data)
+}
+func ValidateAnswerEnvelope(data []byte) error {
+	initialize()
+	return validate(answerEnvelopeSchema, data)
+}
+func ValidateAnswerPackage(data []byte) error {
+	initialize()
+	return validate(answerPackageSchema, data)
 }
 
 func ValidateGraphQuery(data []byte) error { initialize(); return validate(graphQuerySchema, data) }
