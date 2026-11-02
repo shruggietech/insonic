@@ -16,7 +16,7 @@ import time
 import uuid
 
 PLACEHOLDERS = {'UUID', 'MEDIA_UUID', 'JOB_UUID', 'PUBLICATION_UUID', 'REFERENCE_UUID',
-                'WORK_UUID', 'MODEL_UUID', 'SOURCE_UUID', 'VERSION_UUID', 'SPEAKER_UUID',
+                'WORK_UUID', 'MODEL_UUID', 'SOURCE_UUID', 'VERSION_UUID', 'SPEAKER_UUID', 'RECORDING_UUID',
                 'PACKAGE_UUID', 'QUERY_UUID', 'VIEW_UUID', 'CURRENT_REVISION', 'REFERENCE', 'FILE',
                 'INPUT_FILE', 'MANIFEST_FILE', 'DIRECTORY', 'ABSOLUTE_DIRECTORY'}
 TEMPLATE_MARKER = 'JSON file template (replace illustrative IDs/revisions with current records):\n'
@@ -95,14 +95,22 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
     body = b'actual emitted model example bytes'
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
-            if self.path != '/answer':
+            if self.path not in ['/answer', '/speaker-discovery']:
                 self.send_error(404); return
             length = int(self.headers.get('Content-Length', '0'))
             if not 0 < length <= 128 * 1024:
                 self.send_error(413); return
             from cli_answer_synthesis_qualification import fixture_reply
             request = json.loads(self.rfile.read(length))
-            data = json.dumps(fixture_reply(request['context'])).encode()
+            if self.path == '/speaker-discovery':
+                if request.get('operation') != 'speaker-discovery' or not request.get('context', {}).get('cues'):
+                    self.send_error(400); return
+                # The owned subtitle has no identity claim. Successful abstention
+                # still creates a current aggregate for the read/resolve examples.
+                reply = {'version': 1, 'observations': []}
+            else:
+                reply = fixture_reply(request['context'])
+            data = json.dumps(reply).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(data)))
@@ -137,6 +145,7 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
         subtitle.write_text('WEBVTT\n\n00:00:00.000 --> 00:00:00.500\n<v Alex>fixture résumé 文 😀\n\n', encoding='utf-8', newline='\n')
         media = wait(call(['media', 'import', audio, '--no-pipeline'])['result'])['result']['items'][0]
         ids['MEDIA_UUID'] = media['media_id']
+        ids['RECORDING_UUID'] = ids['MEDIA_UUID']
         wait(call(['transcript', 'import', subtitle, '--record', ids['MEDIA_UUID']])['result'])
         record = call(['recordings', 'show', ids['MEDIA_UUID']])['result']['recording']
         speaker_input = template(by_path[('speakers', 'set')])
@@ -321,6 +330,17 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                 replacements['CURRENT_REVISION'] = current_media()
             elif name.startswith('recordings roster ') and command[-1] != 'show':
                 replacements['CURRENT_REVISION'] = call(['recordings', 'roster', 'show', ids['MEDIA_UUID']])['result']['revision']
+            elif name == 'speakers discover':
+                value['configuration'] = {
+                    'enabled': True, 'adapter': 'insonic-http', 'route': 'local',
+                    'endpoint': f'http://127.0.0.1:{server.server_port}/speaker-discovery',
+                    'model': 'owned-help-fixture',
+                }
+                write('input.json', value)
+            elif name == 'speakers resolve':
+                current = call(['speakers', 'hypotheses', ids['RECORDING_UUID']])['result']
+                value['expected_revision'] = current['revision']
+                write('input.json', value)
             elif name in ['speakers set', 'speakers show', 'speakers aliases', 'speakers select', 'speakers diagnostics']:
                 replacements['UUID'] = ids['SPEAKER_UUID']
                 if name == 'speakers set':
