@@ -11,7 +11,7 @@ Save this request as `answer-request.json`, replacing the example endpoint and m
 ```json
 {
   "request": {
-    "version": "1.1.0",
+    "version": "1.2.0",
     "question": "Which recordings describe changes to the launch plan?",
     "filters": { "text": "launch" },
     "budget": { "items": 64, "context_bytes": 32768, "context_tokens": 8192 }
@@ -58,7 +58,7 @@ Save a request as `question.json`:
 
 ```json
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "question": "Which recordings describe changes to the launch plan?",
   "filters": { "text": "launch" },
   "traversal": { "direction": "both", "max_depth": 4 },

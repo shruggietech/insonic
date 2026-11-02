@@ -4,6 +4,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-02
+
 ### Added
 
 - 2026-11-01: Prepare question evidence across recordings with bounded catalog/graph reads, exact current-source citations, provenance-based source grouping, visible contradictions and budgeted hierarchical extracts. Retain verified immutable context packages with revision-bound cache reuse, freshness inspection/export and shared answer-envelope validation through the CLI/runtime.
@@ -14,14 +16,20 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-11-01: Publish v1.1.0 for Windows/Linux with all ten qualified original assets and matching documentation. Independently download and compare every official asset, verify the exact deployed documentation and six product links, and qualify eight fresh light/dark landing layouts.
 
+- 2026-11-02: Update x/net to 0.62.0 and Next.js to 16.4.3 while retaining upstream Wails/WebView source checksum authority.
+
 ### Fixed
 
 - 2026-11-01: Retain durable Pages promotion identities before branch updates, recover bounded old-head or lost responses only against the exact staged commit, and provide read-only reconciliation of the original tree, parent, completed build and public content. Preserve concurrent-writer refusal and original failure observations.
 - 2026-11-01: Align current release and website guidance with executed acquisition, transport, content, browser and cleanup allowances while keeping qualification acceptance limits distinct.
 
+- 2026-11-02: Advance owned answer request versions and their documented examples during release preparation so newly prepared candidates accept current-runtime answer operations. Preserve independent upstream model identities.
+
 ### Decisions
 
 - 2026-11-01: Retain Pages promotion receipts even when the release workflow fails, using attempt-qualified artifacts and atomic local receipt updates. Recovery consumes original accepted bytes and leaves failed attempt evidence unchanged; this maintenance does not replace published release assets or deploy a website correction.
+
+- 2026-11-02: Prepare the unpublished v1.2.0 minor candidate for evidence-grounded answers, including current advanced CLI capability metadata, original published v1.1.0 documentation/schema authority and genuine isolated hosted captures. Preserve mandatory qualification, unelected real-model boundaries and owner-controlled merge/publication.
 
 ## [1.1.0] - 2026-10-31
 
@@ -535,7 +543,7 @@ All notable changes to this project will be documented here. The format follows 
 - Preserve closed GitHub Projects when rerunning repository setup.
 - Cover root schema-validation dependencies in grouped Dependabot updates and correct contributor installation guidance.
 
-[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.2.0...HEAD
 
 ## Decisions (2026-10-08)
 
@@ -558,3 +566,5 @@ All notable changes to this project will be documented here. The format follows 
 [1.0.3]: https://github.com/shruggietech/insonic/compare/v1.0.2...v1.0.3
 
 [1.1.0]: https://github.com/shruggietech/insonic/compare/v1.0.3...v1.1.0
+
+[1.2.0]: https://github.com/shruggietech/insonic/compare/v1.1.0...v1.2.0

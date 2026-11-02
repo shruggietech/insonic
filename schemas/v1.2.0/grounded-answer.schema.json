@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.1.0/schemas/v1.1.0/grounded-answer.schema.json",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.2.0/schemas/v1.2.0/grounded-answer.schema.json",
   "title": "Grounded answer",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
       "description": "Document kind."
     },
     "schema_version": {
-      "const": "1.1.0",
+      "const": "1.2.0",
       "description": "Release contract version."
     },
     "id": {
@@ -190,7 +190,7 @@
       "examples": [
         {
           "request": {
-            "version": "1.1.0",
+            "version": "1.2.0",
             "question": "What do the recordings establish?"
           },
           "configuration": {
@@ -246,14 +246,14 @@
   "examples": [
     {
       "kind": "grounded-answer",
-      "schema_version": "1.1.0",
+      "schema_version": "1.2.0",
       "id": "11111111-1111-4111-8111-111111111111",
       "workspace_id": "22222222-2222-4222-8222-222222222222",
       "work_id": "33333333-3333-4333-8333-333333333333",
       "package_id": "44444444-4444-4444-8444-444444444444",
       "source_epoch": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "answer": {
-        "version": "1.1.0",
+        "version": "1.2.0",
         "package_id": "44444444-4444-4444-8444-444444444444",
         "state": "insufficient",
         "claims": [

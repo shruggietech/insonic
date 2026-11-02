@@ -13,11 +13,11 @@ func TestAnswerRequestAndEnvelopeSchemas(t *testing.T) {
 		raw   string
 		valid bool
 	}{
-		{`{"version":"1.1.0","question":"What changed?"}`, true},
-		{`{"version":"1.1.0","question":"What changed?","filters":{"source_interval":{"start_us":"9007199254740993","end_us":"9007199254741993"}}}`, true},
-		{`{"version":"1.1.0","question":"q","provider":{"credential":"private"}}`, false},
-		{`{"version":"1.1.0","question":"q","budget":{"rows":100001}}`, false},
-		{`{"version":"1.1.0","question":"q","filters":{"source_interval":{"start_us":9007199254740993,"end_us":9007199254741993}}}`, false},
+		{`{"version":"1.2.0","question":"What changed?"}`, true},
+		{`{"version":"1.2.0","question":"What changed?","filters":{"source_interval":{"start_us":"9007199254740993","end_us":"9007199254741993"}}}`, true},
+		{`{"version":"1.2.0","question":"q","provider":{"credential":"private"}}`, false},
+		{`{"version":"1.2.0","question":"q","budget":{"rows":100001}}`, false},
+		{`{"version":"1.2.0","question":"q","filters":{"source_interval":{"start_us":9007199254740993,"end_us":9007199254741993}}}`, false},
 	} {
 		if (ValidateAnswerRequest([]byte(scenario.raw)) == nil) != scenario.valid {
 			t.Fatal(scenario)
@@ -28,7 +28,7 @@ func TestAnswerRequestAndEnvelopeSchemas(t *testing.T) {
 	if err := ValidateAnswerEnvelope(raw); err != nil {
 		t.Fatal(err)
 	}
-	base := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: "answers.prepare", Data: json.RawMessage(`{"version":"1.1.0","question":"q"}`)}
+	base := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: "answers.prepare", Data: json.RawMessage(`{"version":"1.2.0","question":"q"}`)}
 	raw, _ = json.Marshal(base)
 	if err := ValidateRequest(raw); err != nil {
 		t.Fatal(err)

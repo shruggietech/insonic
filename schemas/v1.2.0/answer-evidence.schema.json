@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.1.0/schemas/v1.1.0/answer-evidence.schema.json",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.2.0/schemas/v1.2.0/answer-evidence.schema.json",
   "title": "Answer evidence and context",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
       "description": "Owned package kind."
     },
     "schema_version": {
-      "const": "1.1.0",
+      "const": "1.2.0",
       "description": "Shared software/docs/schema version."
     },
     "id": {
@@ -382,7 +382,7 @@
       "description": "Versioned question and explicit evidence/context preparation scope.",
       "properties": {
         "version": {
-          "const": "1.1.0",
+          "const": "1.2.0",
           "description": "Shared software and contract release."
         },
         "question": {
@@ -419,7 +419,7 @@
       ],
       "examples": [
         {
-          "version": "1.1.0",
+          "version": "1.2.0",
           "question": "Which recordings describe changes to the launch plan?",
           "budget": {
             "items": 64,
@@ -1160,7 +1160,7 @@
       "description": "Source-bound answer claims; generated answers additionally validate the actual provider-visible extracts.",
       "properties": {
         "version": {
-          "const": "1.1.0",
+          "const": "1.2.0",
           "description": "Shared contract release."
         },
         "package_id": {
@@ -1205,7 +1205,7 @@
       ],
       "examples": [
         {
-          "version": "1.1.0",
+          "version": "1.2.0",
           "package_id": "10000000-0000-4000-8000-000000000001",
           "state": "insufficient",
           "claims": [
@@ -1256,13 +1256,13 @@
   "examples": [
     {
       "kind": "answer-evidence-context",
-      "schema_version": "1.1.0",
+      "schema_version": "1.2.0",
       "id": "10000000-0000-4000-8000-000000000001",
       "workspace_id": "10000000-0000-4000-8000-000000000002",
       "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "state": "insufficient",
       "request": {
-        "version": "1.1.0",
+        "version": "1.2.0",
         "question": "What changed?"
       },
       "observation": {

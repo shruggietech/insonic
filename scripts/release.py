@@ -154,6 +154,8 @@ def rewrite_owned_schema(node, old, new, fields=None, context=None):
 
 def prepare_schema(value, filename, old, version):
     fields = {'schema_version'} | ({'version', 'product_version', 'documentation_version', 'tag'} if filename == 'release-candidate.schema.json' else set())
+    if filename in ('answer-evidence.schema.json', 'grounded-answer.schema.json'):
+        fields.add('version')  # Owned answer request envelopes, not upstream model versions.
     value = rewrite_owned_schema(value, old, version, fields)
     if filename == 'common.schema.json':
         value['description'] = re.sub(r'^Shared logical types for the v' + VERSION_PATTERN + r' contract(?: baseline)?\.',
@@ -249,6 +251,8 @@ def prepare(version, date, highlights, root=ROOT):
             if path.name == 'index.md':
                 text = re.sub(r'(?m)^(# insonic v|v)' + re.escape(old) + r'(?=\s|$)', lambda match: match[1] + version, text)
             text = re.sub(r'("schema_version"\s*:\s*")' + re.escape(old) + r'(")', lambda match: match[1] + version + match[2], text)
+            if path.name == 'answers.md':
+                text = re.sub(r'("version"\s*:\s*")' + re.escape(old) + r'(")', lambda match: match[1] + version + match[2], text)
             if path.name == 'index.md':
                 text = re.sub(r'(?m)^v' + re.escape(version) + r' (?:is a specification baseline|documents (?:this release|the prepared release candidate))[^\n]*', f'v{version} documents the prepared release candidate. Official product downloads have not been published; package availability and executed qualification are recorded in its candidate manifest.', text)
             frozen[target] = text.encode('utf-8')
@@ -490,7 +494,7 @@ def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_pac
         queue('documentation', path, None, file_entry(path))
     value = {'kind': 'release-candidate', 'schema_version': version, 'version': version, 'revision': revision,
              'tag': 'v' + version, 'repository': REPOSITORY, 'packages': packages, 'assets': files,
-             'capabilities': {'variants': list(VARIANTS), 'platforms': list(PLATFORMS), 'advanced_cli': ['backup', 'recordings coverage', 'recordings repair'], 'inference_qualification': 'not-executed'}}
+             'capabilities': {'variants': list(VARIANTS), 'platforms': list(PLATFORMS), 'advanced_cli': ['backup', 'recordings coverage', 'recordings repair', 'answers'], 'inference_qualification': 'not-executed'}}
     if installers: value['installers'] = installers
     def verify_check(item):
         kind, path, receipt = item

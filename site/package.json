@@ -1,6 +1,6 @@
 {
   "name": "insonic-docs",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -18,7 +18,7 @@
     "markdown-it": "15.0.3",
     "markdown-it-task-lists": "2.1.1",
     "mermaid": "12.2.0",
-    "next": "16.4.2",
+    "next": "16.4.3",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
