@@ -25,6 +25,7 @@ type worker struct {
 	cancel  context.CancelFunc
 }
 type App struct {
+	DiscoveryFixture     func(context.Context, assistance.Request, assistance.Config) (assistance.Generated, error) // Explicit deterministic fixtures only.
 	AnswerFixture        func(context.Context, assistance.Request, assistance.Config) (assistance.Generated, error) // Explicit deterministic fixture construction only.
 	AssistanceFixture    assistance.Fixture                                                                         // Non-nil only in explicit deterministic test/qualification construction.
 	graphMu              sync.Mutex
@@ -421,6 +422,8 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 			if err == nil {
 				result, err = a.runQuery(ctx, q, req.Operation)
 			}
+		} else if speakerDiscoveryOperation(req.Operation) {
+			result, err = a.speakerDiscoveryDispatch(ctx, req)
 		} else if strings.HasPrefix(req.Operation, "answers.") {
 			result, err = a.answersDispatch(ctx, req)
 		} else if contracts.ExploreOperation(req.Operation) {

@@ -225,3 +225,19 @@ func TestPostgreSQLRecordingRepairFencesAndReplay(t *testing.T) {
 func TestPostgreSQLAnswerWorkFence(t *testing.T) {
 	answerWorkSuite(t, postgresStore(t, contracts.ID()))
 }
+
+func TestPostgreSQLSpeakerDiscovery(t *testing.T) {
+	speakerDiscoverySuite(t, postgresStore(t, contracts.ID()))
+}
+func TestPostgreSQLDiscoveryPortable(t *testing.T) {
+	discoveryPortableSuite(t, postgresStore(t, contracts.ID()))
+}
+
+func TestPostgreSQLDiscoveryAcoustic(t *testing.T) {
+	discoveryAcousticSuite(t, func(t *testing.T) *Store { return postgresStore(t, contracts.ID()) })
+}
+func TestPostgreSQLDiscoveryFencesAndInvalidation(t *testing.T) {
+	for _, mode := range []string{"foreign", "generation", "cancel", "selection", "max-cues", "revision", "source", "alias", "roster", "owner"} {
+		t.Run(mode, func(t *testing.T) { discoveryMutationCase(t, postgresStore(t, contracts.ID()), mode) })
+	}
+}

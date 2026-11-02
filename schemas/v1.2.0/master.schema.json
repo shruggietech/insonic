@@ -123,6 +123,10 @@
     "grounded-answer": {
       "$ref": "grounded-answer.schema.json",
       "description": "Immutable grounded answer result."
+    },
+    "speaker-discovery": {
+      "$ref": "speaker-discovery.schema.json",
+      "description": "Current contextual hypotheses, source provenance and reproducible speaker resolution."
     }
   },
   "oneOf": [
@@ -213,6 +217,9 @@
     },
     {
       "$ref": "#/$defs/grounded-answer"
+    },
+    {
+      "$ref": "#/$defs/speaker-discovery"
     }
   ]
 }

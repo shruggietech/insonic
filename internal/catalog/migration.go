@@ -53,6 +53,7 @@ var domains = []domainTable{
 	{"library_cleanup", "Cleanups", "id", "CHECK (state IN ('pending','done'))", nil},
 	{"speaker_mapping", "SpeakerMappings", "id", "CHECK (revision>0), UNIQUE (workspace_id,recording_id,local_speaker_id)", []string{"recording_id:current_recording:id", "speaker_id:speaker:id"}},
 	{"current_extraction", "Extractions", "id", "CHECK(revision>0 AND recording_revision>0 AND length(document_digest)=64)", []string{"id:current_recording:id"}},
+	{"current_speaker_discovery", "Discoveries", "id", "CHECK(revision>0 AND recording_revision>0 AND max_cues BETWEEN 1 AND 500 AND length(source_epoch)=64 AND length(document_digest)=64)", []string{"id:current_recording:id", "work_id:work_operation:id"}},
 	{"saved_query", "SavedQueries", "id,revision", "CHECK(revision>0)", nil},
 	{"graph_layout", "Layouts", "id", "CHECK(revision>0)", nil},
 	{"speaker_output", "SpeakerOutputs", "id", "", []string{"id:model_version:id", "model_id:speaker_model:id", "speaker_id:speaker:id", "dataset_id:training_dataset:id", "work_id:work_operation:id"}},
@@ -241,6 +242,9 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
+		if version == 11 && digest == historicalV11Digest() {
+			return s.finishProcessingMigration(ctx, tx)
+		}
 		if version == 10 && digest == historicalV10Digest() {
 			return s.finishProcessingMigration(ctx, tx)
 		}
@@ -366,6 +370,10 @@ func validateRecord(value any) error {
 		}
 	}
 	switch r := value.(type) {
+	case SpeakerDiscovery:
+		if !validSpeakerDiscovery(r) {
+			return contracts.Fail("invalid_request")
+		}
 	case ModelAlias:
 		if !validModelAlias(r) || r.Revision < 1 {
 			return contracts.Fail("invalid_request")

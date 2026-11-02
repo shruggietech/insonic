@@ -1,0 +1,9 @@
+# Validation journey
+
+1. Use a disposable configured workspace with current Cue JSON containing an unambiguous self-introduction, an unregistered person, a quoted introduction, a third-person mention, duplicate aliases, conflicting roster context and an unknown voice. Preserve original mappings for comparison.
+2. Configure an elected fixture or live assistance provider and create discovery.json with assistance configuration and explicit cue/call/observation bounds. Run insonic speakers discover RECORDING_UUID --input discovery.json --json, then insonic work wait WORK_UUID --json.
+3. Inspect insonic speakers hypotheses RECORDING_UUID --json. Check source/cue/voice provenance, coverage, evidence classes, multilingual aliases, abstentions and alternatives. No quoted transcript body is retained in portable derived records.
+4. Resolve using insonic speakers resolve RECORDING_UUID --input resolution.json --json. Repeat identical inputs and compare deterministic decisions. Confirm unregistered direct introductions survive, equal aliases remain ambiguous, mentions/quotes remain unknown, independently grounded acoustic agreement supports matching and contradictions stay visible.
+5. Replace a transcript, edit an alias/roster or correct an owner mapping while provider work is in flight. Require stale rejection and content-free inspection after invalidation. Cancellation, deadline, oversized output, duplicate keys and foreign references must leave no partially accepted discovery.
+6. Export/restore through SQLite and PostgreSQL fixtures. Reject forged aggregate proofs, stale epochs and attempted resurrection even with recomputed outer digests. Confirm accepted mappings and model associations are unchanged throughout.
+7. Run root checks/tests, Go test/vet, Python tests, affected site/frontend checks and hosted full CI. Retain exact-head terminal acceptance evidence and resolve no more than two review rounds before owner merge handoff.

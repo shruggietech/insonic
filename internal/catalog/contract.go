@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/answers"
+	sd "github.com/shruggietech/insonic/internal/speakerdiscovery"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"time"
 )
@@ -12,6 +13,11 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	FreezeSpeakerDiscovery(context.Context, string, int, string) (SpeakerDiscoverySnapshot, error)
+	SpeakerDiscovery(context.Context, string) (SpeakerDiscovery, error)
+	AcceptSpeakerDiscovery(context.Context, Work, SpeakerDiscoverySnapshot, sd.Aggregate) (Work, error)
+	ResolveSpeakerDiscovery(context.Context, string, string, int64, sd.Policy) (SpeakerDiscovery, error)
+	SpeakerDiscoveryAcoustic(context.Context, string, string) (sd.AcousticEvidence, error)
 	AnswerEpoch(context.Context, []string, int, int) (AnswerEpoch, error)
 	AnswerCandidates(context.Context, AnswerPageRequest) (AnswerPage, error)
 	ResolveAnswerEvidence(context.Context, answers.Reference, int) (answers.Item, error)

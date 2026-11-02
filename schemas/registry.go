@@ -26,6 +26,7 @@ var pipelineConfigurationSchema *jsonschema.Schema
 var mediaToolsSchema *jsonschema.Schema
 var recordingCoverageSchema *jsonschema.Schema
 var recordingRepairSchema *jsonschema.Schema
+var speakerDiscoverySchema *jsonschema.Schema
 var graphQuerySchema *jsonschema.Schema
 var answerRequestSchema, answerEnvelopeSchema, answerPackageSchema, groundedAnswerSchema *jsonschema.Schema
 var baseModelManifestSchema *jsonschema.Schema
@@ -155,6 +156,10 @@ func initialize() {
 			return
 		}
 		recordingRepairSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/recording-repair.schema.json")
+		if compileErr != nil {
+			return
+		}
+		speakerDiscoverySchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/speaker-discovery.schema.json")
 		if compileErr != nil {
 			return
 		}
@@ -337,4 +342,10 @@ func ValidateRecordingRepair(data []byte) error {
 func ValidateGroundedAnswer(data []byte) error {
 	initialize()
 	return validate(groundedAnswerSchema, data)
+}
+
+// ValidateSpeakerDiscovery validates a current evidence package offline.
+func ValidateSpeakerDiscovery(data []byte) error {
+	initialize()
+	return validate(speakerDiscoverySchema, data)
 }
