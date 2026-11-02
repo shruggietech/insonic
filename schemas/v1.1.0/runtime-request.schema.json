@@ -171,7 +171,9 @@
         "answers.prepare",
         "answers.show",
         "answers.export",
-        "answers.validate"
+        "answers.validate",
+        "answers.request",
+        "answers.retry"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -6347,7 +6349,9 @@
               "answers.prepare",
               "answers.show",
               "answers.export",
-              "answers.validate"
+              "answers.validate",
+              "answers.request",
+              "answers.retry"
             ],
             "description": "Shared evidence/context operation."
           }
@@ -6509,6 +6513,58 @@
             "$ref": "answer-evidence.schema.json#/$defs/envelope",
             "description": "Versioned answer envelope to validate against current source authority."
           }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "answers.request",
+            "description": "Admit durable answer work."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "$ref": "grounded-answer.schema.json#/$defs/request",
+            "description": "Frozen answer workflow input."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "answers.retry",
+            "description": "Create a linked answer attempt."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "required": [
+            "data"
+          ]
         }
       }
     }

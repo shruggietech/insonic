@@ -229,8 +229,8 @@ func (a Ollama) Inspect(ctx context.Context, endpoint, id, selected string) (Oll
 	}
 	return out, selectedError
 }
-func (a Ollama) Propose(ctx context.Context, input Request, c Config) (Proposal, error) {
-	var empty Proposal
+func (a Ollama) Generate(ctx context.Context, input Request, c Config, instruction string) (Generated, error) {
+	var empty Generated
 	if a.Client == nil && InCI() {
 		return empty, contracts.Fail("engine_ci_forbidden")
 	}
@@ -258,7 +258,7 @@ func (a Ollama) Propose(ctx context.Context, input Request, c Config) (Proposal,
 	if e != nil || len(raw) > 128<<10 {
 		return empty, contracts.Fail("input_limit")
 	}
-	body := map[string]any{"model": c.Model, "stream": false, "messages": []map[string]string{{"role": "system", "content": "Return exactly one JSON object with contract_version equal to 1, query containing only title, definition and parameters from the supplied query_contract. Omit kind, schema_version, workspace_id, query_id, revision and access_mode from query. Include a bounded pagination limit for normalized queries. Return and a nonempty explanation. Choose a bounded read-only query. Do not return Markdown, tool calls or other text."}, {"role": "user", "content": string(raw)}}, "options": map[string]any{"temperature": 0}}
+	body := map[string]any{"model": c.Model, "stream": false, "messages": []map[string]string{{"role": "system", "content": instruction}, {"role": "user", "content": string(raw)}}, "options": map[string]any{"temperature": 0}}
 	if m.InferenceRoute == "local" {
 		body["format"] = "json"
 	}
@@ -285,7 +285,21 @@ func (a Ollama) Propose(ctx context.Context, input Request, c Config) (Proposal,
 	if err := ProviderContextError(ctx); err != nil {
 		return empty, err
 	}
-	proposal, err := ParseProvider([]byte(response.Message.Content), "ollama")
-	proposal.ObservedRoute = m.InferenceRoute
-	return proposal, err
+	raw = []byte(response.Message.Content)
+	if catalog.ValidateJSON(raw) != nil {
+		return empty, contracts.Condition("operation_failed", "ollama_protocol")
+	}
+	return Generated{Raw: raw, ObservedRoute: m.InferenceRoute}, nil
+}
+
+const queryInstruction = "Return exactly one JSON object with contract_version equal to 1, query containing only title, definition and parameters from the supplied query_contract. Omit kind, schema_version, workspace_id, query_id, revision and access_mode from query. Include a bounded pagination limit for normalized queries. Return and a nonempty explanation. Choose a bounded read-only query. Do not return Markdown, tool calls or other text."
+
+func (a Ollama) Propose(ctx context.Context, input Request, c Config) (Proposal, error) {
+	out, err := a.Generate(ctx, input, c, queryInstruction)
+	if err != nil {
+		return Proposal{}, err
+	}
+	p, err := ParseProvider(out.Raw, "ollama")
+	p.ObservedRoute = out.ObservedRoute
+	return p, err
 }

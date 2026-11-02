@@ -11,6 +11,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/processing"
@@ -18,6 +19,7 @@ import (
 )
 
 type Definition struct {
+	AnswerSynthesis *assistance.SynthesisConfig `json:"answer_synthesis,omitempty"`
 	Coverage        *processing.CoverageOptions `json:"coverage,omitempty"`
 	Repair          *processing.RepairPolicy    `json:"repair,omitempty"`
 	Windows         *processing.WindowOptions   `json:"windows,omitempty"`
@@ -211,6 +213,15 @@ func Validate(preset string, d Definition) error {
 	if preset != "local" && preset != "connected" && preset != "custom" {
 		return contracts.Fail("invalid_request")
 	}
+	if d.AnswerSynthesis != nil {
+		c, e := assistance.NormalizeSynthesis(*d.AnswerSynthesis)
+		if e != nil {
+			return e
+		}
+		if preset == "local" && c.Provider.Route != "local" || preset == "connected" && c.Provider.Route != "hosted" {
+			return contracts.Fail("invalid_request")
+		}
+	}
 	if len(d.SpeakerTraining) > 0 {
 		if voicemodels.ValidateTrainingConfiguration(d.SpeakerTraining) != nil {
 			return contracts.Fail("invalid_request")
@@ -226,6 +237,12 @@ func Validate(preset string, d Definition) error {
 		if !HasProcessing(d) {
 			return nil
 		}
+	}
+	if d.AnswerSynthesis != nil && !HasProcessing(d) {
+		if d.Coverage != nil || d.Repair != nil || d.Windows != nil || !reflect.ValueOf(d.Quality).IsZero() {
+			return contracts.Fail("invalid_request")
+		}
+		return nil
 	}
 	if e := ValidateStage(d.Recognition, "transcription"); e != nil {
 		return e

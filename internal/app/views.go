@@ -69,7 +69,15 @@ func workView(w catalog.Work) any {
 	} else {
 		result = map[string]any{"state": "paged", "operation": "work.results"}
 	}
-	return map[string]any{"work_id": w.ID, "id": w.ID, "kind": w.Kind, "state": w.State, "generation": w.Generation, "phase": w.Phase, "result": result, "error": w.Error}
+	view := map[string]any{"work_id": w.ID, "id": w.ID, "kind": w.Kind, "state": w.State, "generation": w.Generation, "phase": w.Phase, "result": result, "error": w.Error}
+	if w.Kind == "answers.request" {
+		var p answerPayload
+		if json.Unmarshal(w.Payload, &p) == nil && p.Configuration.MaxRepairs != nil {
+			view["election"] = answerProgressFor(p)
+			view["retry_of"] = p.RetryOf
+		}
+	}
+	return view
 }
 func mediaSummary(v library.EntryView) any {
 	e := v.LibraryEntry

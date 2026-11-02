@@ -237,6 +237,15 @@ func (a *App) validateAnswer(parent context.Context, envelope answers.Envelope) 
 }
 func (a *App) answersDispatch(ctx context.Context, req contracts.Request) (any, error) {
 	switch req.Operation {
+	case "answers.request":
+		work, err := a.requestAnswer(ctx, req)
+		return workView(work), err
+	case "answers.retry":
+		if len(req.Data) > 0 {
+			return nil, contracts.Fail("invalid_request")
+		}
+		work, err := a.retryAnswer(ctx, req.RequestID, req.ItemID)
+		return workView(work), err
 	case "answers.prepare":
 		var r answers.Request
 		if contracts.DecodeExplore(req.Data, &r) != nil {
@@ -246,6 +255,13 @@ func (a *App) answersDispatch(ctx context.Context, req contracts.Request) (any, 
 	case "answers.show", "answers.export":
 		if len(req.Data) > 0 {
 			return nil, contracts.Fail("invalid_request")
+		}
+		pub, err := a.Catalog.Publication(ctx, req.ItemID)
+		if err != nil {
+			return nil, err
+		}
+		if pub.Kind == answers.GroundedKind {
+			return a.inspectGroundedAnswer(ctx, req.ItemID)
 		}
 		return a.inspectAnswer(ctx, req.ItemID)
 	case "answers.validate":

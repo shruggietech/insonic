@@ -218,7 +218,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	defer a.wg.Done()
 	var result any
 	var e error
-	if claim.Kind == "workers.setup" {
+	if claim.Kind == "answers.request" {
+		result, e = a.processAnswer(ctx, claim)
+	} else if claim.Kind == "workers.setup" {
 		result, e = a.executeWorkerSetup(ctx, claim)
 	} else if claim.Kind == "evidence.extract" {
 		result, e = a.processEvidence(ctx, claim)
@@ -313,6 +315,15 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 		}
 		cause = code
 		failure := map[string]any{"state": "failed", "error": code, "cause": contracts.SafeError(e)}
+		if claim.Kind == "answers.request" {
+			raw, _ := json.Marshal(result)
+			var detail map[string]any
+			if json.Unmarshal(raw, &detail) == nil {
+				for k, v := range detail {
+					failure[k] = v
+				}
+			}
+		}
 		if claim.Kind == "recordings.process" || claim.Kind == "recordings.repair" {
 			if current, readErr := a.Catalog.Work(ctx, claim.ID); readErr == nil && current.Generation == claim.Generation {
 				var progress struct {
@@ -445,6 +456,13 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		current, e := a.Catalog.Work(a.ctx, req.ItemID)
 		if e != nil {
 			return nil, e
+		}
+		if current.Kind == "answers.request" {
+			next, err := a.retryAnswer(a.ctx, req.RequestID, req.ItemID)
+			if err != nil {
+				return nil, err
+			}
+			return workView(next), nil
 		}
 		if current.Kind == "recordings.assemble" {
 			return nil, &contracts.Error{Code: "invalid_request", Message: "Resubmit the assembly inputs through recordings.assemble to retry this job."}

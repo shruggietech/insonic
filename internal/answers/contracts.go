@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Package answers prepares derived, source-linked context. It does not turn
-// extracted text into independent evidence or perform answer synthesis.
+// Package answers defines bounded evidence and grounded synthesis contracts.
+// Derived text never becomes an independent evidence source.
 package answers
 
 import (
@@ -155,6 +155,7 @@ type Citation struct {
 	Quote      string    `json:"quote"`
 }
 type Claim struct {
+	Kind        string     `json:"kind,omitempty"`
 	ID          string     `json:"id"`
 	Text        string     `json:"text"`
 	Support     string     `json:"support"`
@@ -236,10 +237,13 @@ func Normalize(r Request) (Request, error) {
 			return r, contracts.Fail("invalid_request")
 		}
 	}
-	for _, s := range []string{r.Provider.ID, r.Provider.Model, r.Provider.PromptContract} {
+	for _, s := range []string{r.Provider.ID, r.Provider.PromptContract} {
 		if !contracts.ValidTextLength(s, 0, 256) {
 			return r, contracts.Fail("invalid_request")
 		}
+	}
+	if !contracts.ValidTextLength(r.Provider.Model, 0, 512) {
+		return r, contracts.Fail("invalid_request")
 	}
 	if r.Provider.ConfigurationDigest != "" && !ValidDigest(r.Provider.ConfigurationDigest) {
 		return r, contracts.Fail("invalid_request")
@@ -304,6 +308,9 @@ func ValidateEnvelope(e Envelope, p Package) error {
 			return contracts.Fail("invalid_request")
 		}
 		seen[c.ID] = true
+		if c.Kind != "" && c.Kind != "quote" && c.Kind != "paraphrase" {
+			return contracts.Fail("invalid_request")
+		}
 		switch c.Support {
 		case "supported":
 			if len(c.Citations) == 0 {

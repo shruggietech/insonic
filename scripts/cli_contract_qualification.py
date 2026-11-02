@@ -202,7 +202,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
 
     def phase(label):
         nonlocal current_scenario
-        current_scenario = {'media-lifecycle': 'media', 'query-contracts': 'query', 'documented-workflows': 'documented', 'provider-contracts': 'provider'}.get(label, 'core')
+        current_scenario = {'media-lifecycle': 'media', 'query-contracts': 'query', 'documented-workflows': 'documented', 'provider-contracts': 'provider', 'answer-workflows': 'answer'}.get(label, 'core')
         if progress is not None:progress(label)
 
     phase('help')
@@ -377,6 +377,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
             from cli_query_qualification import qualify as qualify_queries
             phase('query-contracts')
             query_contracts = qualify_queries(invoke, supplied, workspace, version)
+        answer_workflows = {'state': 'not-included', 'reason': 'required in extracted packages'}
         provider_contracts = {'state': 'not-included', 'reason': 'required in extracted packages'}
         documented = {'state': 'not-included', 'reason': 'source CLI lane; required in extracted packages'}
         examples = {'state': 'not-included', 'reason': 'requires exact installed companions'}
@@ -402,7 +403,21 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
             from cli_provider_qualification import qualify as qualify_providers
             phase('provider-contracts')
             provider_contracts = qualify_providers(documented_invoke, documented_supplied, documented_workspace)
-            # Package smoke's existing bounded idle-owner cleanup covers this workspace too.
+            from cli_answer_synthesis_qualification import qualify as qualify_answers
+            phase('answer-workflows')
+            answer_workspace = workspace / 'isolated answer workflows'
+            invoke(['workspace', 'init', answer_workspace], scoped=False)
+            def answer_invoke(args, **kwargs):
+                return invoke(args, workspace_path=answer_workspace,
+                              execution_environment=fixture_environment, **kwargs)
+            def answer_supplied(args, value, **kwargs):
+                path = answer_workspace / 'answer request.json'
+                path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
+                return answer_invoke([*args, '--input', path], **kwargs)
+            answer_workflows = qualify_answers(answer_invoke, answer_supplied, answer_workspace, version)
+            if not answer_workflows['passed']:
+                raise ValueError('Installed answer corpus failed: ' + json.dumps(answer_workflows))
+            # Package smoke's existing bounded idle-owner cleanup covers these workspaces too.
         phase('join-regressions')
         operator_contracts = regressions['operator'].result()
         input_contracts = regressions['input'].result()
@@ -423,9 +438,9 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
     for entry in examples.get('ledger', []):
         coverage.assert_example(entry)
     ledger = coverage.finish({'core': True, 'operator': True, 'input': True, 'text-duration': True, 'readiness': True, 'terminal': True, 'recovery': True, 'storage': True, 'backup': True,
-                              **{name: documentation for name in ['media', 'query', 'provider', 'documented', 'examples']}})
+                              **{name: documentation for name in ['media', 'query', 'provider', 'answer', 'documented', 'examples']}})
     phase('complete')
-    return {'coverage': ledger, 'terminal_contracts': terminal_contracts, 'recovery_contracts': recovery_contracts, 'storage_contracts': storage_contracts, 'backup_contracts': backup_contracts, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'answer_workflows': answer_workflows, 'coverage': ledger, 'terminal_contracts': terminal_contracts, 'recovery_contracts': recovery_contracts, 'storage_contracts': storage_contracts, 'backup_contracts': backup_contracts, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'cold_startup_timing': cold_timing, 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

@@ -11,7 +11,7 @@ import (
 // Durable work has a known envelope. Show its outcome without recursively
 // dumping model/configuration internals; read-only query columns remain intact.
 func humanWorkSummary(b *humanBuffer, root map[string]any, errorShown bool) bool {
-	if !strings.HasPrefix(strings.Join(operatorContext.Path, " "), "work ") {
+	if !strings.HasPrefix(strings.Join(operatorContext.Path, " "), "work ") && root["kind"] != "answers.request" {
 		return false
 	}
 	id, _ := root["id"].(string)
@@ -28,6 +28,9 @@ func humanWorkSummary(b *humanBuffer, root map[string]any, errorShown bool) bool
 		b.line("Phase: %s", phase)
 	}
 	result, _ := root["result"].(map[string]any)
+	if root["kind"] == "answers.request" {
+		humanAnswerWork(b, root, result)
+	}
 	if completed, ok := windowProgressCount(result["completed_windows"]); ok {
 		if total, valid := windowProgressCount(result["total_windows"]); valid && completed <= total {
 			b.line("Windows complete: %d of %d", completed, total)

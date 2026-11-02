@@ -193,7 +193,7 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
         expected = {
             'media relocate': {'unsupported_capability', 'conflict', 'invalid_request'},
             'jobs retry': {'conflict'}, 'jobs cancel': {'conflict'},
-            'work retry': {'conflict'}, 'work cancel': {'conflict'},
+            'answers retry': {'conflict'}, 'work retry': {'conflict'}, 'work cancel': {'conflict'},
             'artifacts abort': {'conflict'}, 'artifacts retire': {'conflict'}, 'artifacts cache-prune': {'conflict'},
             'artifacts lease-renew': {'not_found', 'conflict'}, 'artifacts lease-release': {'not_found', 'conflict'},
             'artifacts release-reference': {'not_found'},
@@ -228,6 +228,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             replacements = {k: v for k, v in ids.items()}
             kwargs = {'expected': (0, 1, 2, 4)}
             value = selected_input(name, help_text)
+            if name == 'answers request':
+                value['configuration']['provider']['endpoint'] = f'http://127.0.0.1:{server.server_port}/answer'
             if value is not None:
                 write('input.json', value)
             if name in ['backup restore', 'catalog restore']:

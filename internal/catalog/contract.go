@@ -90,6 +90,7 @@ type Catalog interface {
 	RepairWindowAttempts(context.Context, string) (map[string]int, error)
 	SpeakerMappings(context.Context, string) ([]SpeakerMapping, error)
 	SetSpeakerMapping(context.Context, string, int64, SpeakerMapping) (SpeakerMapping, error)
+	AcceptAnswer(context.Context, Work, AnswerCandidate, json.RawMessage) (Work, error)
 	EnqueueWork(context.Context, string, string, json.RawMessage) (Work, error)
 	Work(context.Context, string) (Work, error)
 	Works(context.Context) ([]Work, error)

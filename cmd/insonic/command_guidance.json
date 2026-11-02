@@ -171,9 +171,11 @@
     "recordings coverage": "Inspect transcript coverage, acoustic evidence limits and bounded suspicious source regions without running inference.",
     "recordings repair": "Repair elected transcript regions with finite window attempts; retain the current document unless fixed-evidence coverage strictly improves.",
     "answers prepare": "Prepare bounded current-source evidence and extractive context for a question, preserving provenance, omissions and graph freshness. No answer synthesis or graph publication runs.",
-    "answers show": "Inspect a retained evidence/context package and its current source freshness.",
-    "answers export": "Return the retained package with current freshness; use --json for complete export and redirection.",
-    "answers validate": "Validate answer claims and quotes against a retained package and current source authority; this does not evaluate semantic entailment."
+    "answers show": "Inspect an evidence package or grounded answer, including acceptance and current source freshness.",
+    "answers export": "Return the complete retained evidence package or grounded answer with live freshness; use --json and redirection.",
+    "answers validate": "Validate answer claims and quotes against a retained package and current source authority; this does not evaluate semantic entailment.",
+    "answers request": "Request durable grounded synthesis using an explicit or saved route. Use work wait/show/results/cancel for progress, then answers show/export for the retained result.",
+    "answers retry": "Create a linked attempt for failed, cancelled or interrupted answer work, preserving the original route and prior attempt."
   },
   "groups": {
     "": "Choose a library, admit media, process recordings and inspect retained evidence.",
@@ -210,7 +212,7 @@
     "query": "Validate, save, explain and execute read-only queries.",
     "timeline": "Explore retained recording dates and timed evidence.",
     "views": "Read and save revision-checked query views.",
-    "answers": "Prepare and inspect source-grounded evidence/context and validate citations."
+    "answers": "Prepare evidence, request grounded answers, inspect/export results and validate citations."
   },
   "options": {
     "--workspace": {

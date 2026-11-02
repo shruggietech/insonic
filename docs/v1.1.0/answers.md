@@ -1,8 +1,56 @@
-# Answer evidence and context
+# Grounded answers, evidence and context
 
-Evidence preparation collects current source spans for a question, explains their selection and provenance, and fits source-preserving extracts into an explicit context budget. It does not synthesize an answer or call an inference provider. The shared answer envelope supports later claims and citations; validation checks current source authority and faithful quotes, without claiming that a quote logically proves a claim.
+Evidence preparation collects current source spans for a question, explains their selection and provenance, and fits source-preserving extracts into an explicit context budget. `answers prepare` does not call an inference provider. `answers request` uses the elected provider to produce a structured answer, checks its citations against the exact visible context and current source authority, and retains verified answer bytes. Citation validity and faithful quotations do not establish that a quotation logically proves a paraphrased claim.
 
 These commands are available in builds containing the evidence/context capability. Published package availability follows the [release notes](changelog.md). Dedicated desktop controls follow; the shared runtime already accepts the same requests as the CLI. Ordinary [search and graph queries](graph.md) remain available independently.
+
+## Request a grounded answer
+
+Save this request as `answer-request.json`, replacing the example endpoint and model with your elected provider. The `insonic-http` adapter implements the structured answer contract; native `ollama` uses its configured service root and exact model. An existing encrypted credential reference can be supplied as `credential_id` for authenticated routes.
+
+```json
+{
+  "request": {
+    "version": "1.1.0",
+    "question": "Which recordings describe changes to the launch plan?",
+    "filters": { "text": "launch" },
+    "budget": { "items": 64, "context_bytes": 32768, "context_tokens": 8192 }
+  },
+  "configuration": {
+    "provider": {
+      "enabled": true,
+      "adapter": "insonic-http",
+      "contract_version": "1",
+      "route": "local",
+      "endpoint": "http://127.0.0.1:11435/answer",
+      "model": "elected-model",
+      "limits": { "timeout_ms": 30000 }
+    },
+    "max_repairs": 1
+  }
+}
+```
+
+```sh
+insonic answers request --input answer-request.json --json
+insonic work wait WORK_UUID --json
+insonic work show WORK_UUID
+insonic work results WORK_UUID --json
+insonic answers show ANSWER_UUID
+insonic answers export ANSWER_UUID --json
+insonic work cancel WORK_UUID
+insonic answers retry WORK_UUID --json
+```
+
+Admission returns a durable `work_id`. Work reports retrieval, context, synthesis, validation and publication phases, selected model/route, budgets, independent families and limitations. Successful work returns `answer_id` and `package_id`. A wait timeout ends only the wait. Explicit cancellation prevents later acceptance. Retry of failed, cancelled or interrupted work creates a new linked attempt with the original frozen configuration; prior history remains readable. Generic `work retry` uses the same behavior for answer work. A new `answers request` elects changed settings.
+
+Instead of `configuration`, select a saved `pipeline_id` and optional `pipeline_revision`. A pipeline can contain only `answer_synthesis`, or combine it with processing/training configuration. With neither configuration nor pipeline specified, the current saved assistance settings supply the election. Admission freezes that election, including its nonsecret configuration digest. No provider, model or route is silently substituted.
+
+The provider receives only the question, bounded visible cue prefixes, authoritative references, family identities, conflicts and limitations. Source instructions remain source data. Generated claims declare `kind: quote` or `kind: paraphrase`; quote claims must equal one of their cited quotations. A response can contain at most 128 claims and 128 distinct references. The provider response is bounded to 512 KiB, the complete serialized request to 128 KiB, and the retained answer to 1 MiB. An oversized request fails explicitly rather than silently dropping evidence.
+
+`max_repairs` accepts zero or one and defaults to one. Invalid structured output can consume that single repair using locally generated reasons and the same evidence and route. Both calls and their validation share the elected provider deadline (30 seconds by default, maximum 60 seconds). Exhaustion produces an explicit insufficient answer without accepted unsupported claims. Authentication, routing and transport failures remain durable failures. Whole-work execution has a separate 180-second bound; ordinary retrieval retains the bounds below.
+
+Candidate bytes are hash-verified before acceptance. The catalog accepts the answer and terminal work state together only while source identity, work generation, lease and cancellation state still match. Restart reconciles retained candidate bytes before any provider rerun. Inspection separates immutable historical bytes from current freshness and acceptance. An artifact published before failed or cancelled acceptance is never presented as an accepted answer. Export contains source references and safe provider identity, without provider endpoints or credential values.
 
 ## Prepare and inspect
 

@@ -126,6 +126,10 @@
         "repair": {
           "$ref": "#/$defs/repair",
           "description": "Saved bounded repair policy; saving it alone does not launch repair."
+        },
+        "answer_synthesis": {
+          "$ref": "grounded-answer.schema.json#/$defs/configuration",
+          "description": "Optional configured answer synthesis, independently usable or combined with speech stages."
         }
       },
       "description": "Saved worker selections and optional quality configuration. Defaults are normalized when an immutable election is submitted.",
@@ -139,6 +143,11 @@
         {
           "required": [
             "speaker_training"
+          ]
+        },
+        {
+          "required": [
+            "answer_synthesis"
           ]
         }
       ],
