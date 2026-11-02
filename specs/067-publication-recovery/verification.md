@@ -20,4 +20,17 @@ Timing audit: acquisition/extraction 600s; content 600s with request socket cap1
 
 ## PR and hosted verification
 
-PR #243 opened at 342cb1b314324cdad1d3a93b35754905dbc76dc5. Automatic round 1 completed without findings. Security review state is absent. Initial PR CI 41368507331 and read-only site run41368532684 started; their metadata is retained locally. A subsequent self-review bound recovery SHA256 to the single consumed receipt byte snapshot; four targeted integration checks pass. Second/final review and final hosted checks pending. No automatic merge.
+PR [#243](https://github.com/shruggietech/insonic/pull/243), milestone52, Project7. Reviewed implementation: f1ccf2decb34143c4a117999660f1197028c13c1. The closeout commit adds only internal Spec Kit records and compressed receipts; final-head check readback and terminal receipts are retained on the PR before owner handoff.
+
+| Run | Outcome | Preparation | Qualification | Combined |
+| --- | --- | --- | --- | --- |
+| [Initial PR 41368507331](https://github.com/shruggietech/insonic/actions/runs/41368507331) | Superseded/cancelled, not acceptance | See retained diagnostic | Not accepted | Not accepted |
+| [Read-only live site 41368532684](https://github.com/shruggietech/insonic/actions/runs/41368532684) | Terminal accepted | 20s | 246s | 266s |
+| [Reviewed direct head 41369033810](https://github.com/shruggietech/insonic/actions/runs/41369033810) | Terminal accepted, 30 success / 18 intentional skips | 250s | 837s | 1,087s |
+| [Reviewed PR 41368814576](https://github.com/shruggietech/insonic/actions/runs/41368814576) | Terminal accepted, 30 success / 18 intentional skips | 950s | 801s | 1,751s |
+
+The maintained auditor re-read terminal timestamps and confirmed all three successful runs. Preparation includes queue time. The cancelled initial attempt and failed aggregate remain separately retained. Original acceptance ZIPs, job/artifact metadata and audits remain under .local/s067/. Fifteen compact JSON records are compressed in evidence/manifest.json and verified by hash and exact decompression. The published v1.1.0 release metadata still matches all ten original asset sizes and digests.
+
+Automatic Codex round1 at342cb1b completed without findings. The sole explicit second request reviewed f1ccf2de and [returned no findings](https://github.com/shruggietech/insonic/pull/243#issuecomment-6566396794). Review-thread readback found zero threads. No third round was triggered. No separate security-review receipt was returned.
+
+The self-review refinement hashes the same receipt bytes consumed by recovery, avoiding a second file read; targeted integration checks passed before the two accepted full runs. Both issues remain In review and close on owner merge. Auto-merge is disabled. No release, tag or production website publication occurred; corrected current-site prose follows the ordinary post-merge website path.
