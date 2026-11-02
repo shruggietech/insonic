@@ -4,6 +4,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Changed
+
+- Published v1.2.0 on 2026-11-02 and independently verified all ten original release files, matching live documentation and desktop/mobile light/dark landing views.
+
 ## [1.2.0] - 2026-11-02
 
 ### Added
