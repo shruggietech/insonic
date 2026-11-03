@@ -1,0 +1,147 @@
+[
+  {
+    "name": "application-capture.json",
+    "size": 285290,
+    "sha256": "d55a5319c04f05dd0dc86cd87a0ea29662684b02ebd4dd4f7ba911400b76e3dd"
+  },
+  {
+    "name": "density-capture.json",
+    "size": 586647,
+    "sha256": "86f0adba426e5a1c17493b8d94bd51142e55eb6f26979987f0e00edd9c6a439d"
+  },
+  {
+    "name": "desktop-jobs.png",
+    "size": 60199,
+    "sha256": "4e2d1235464bd2ecc8d69df701ec8dc825207416983094b909b1221c758fcaba"
+  },
+  {
+    "name": "desktop-library.png",
+    "size": 63082,
+    "sha256": "cdde32ba093df36204ecfc93f483cb128620d6539dc0f4e82c4889044e9833b1"
+  },
+  {
+    "name": "desktop-models.png",
+    "size": 63164,
+    "sha256": "f630a012f3de0bc230474c24fdb98e9870dbf9e3c5ba3d176f6a2bfc64e4fa83"
+  },
+  {
+    "name": "desktop-pipelines.png",
+    "size": 62522,
+    "sha256": "7bc19b14aadc4a3ac28b19353da81143a9fc90beb27fa76b28909f85698ae256"
+  },
+  {
+    "name": "desktop-settings-enlarged.png",
+    "size": 54005,
+    "sha256": "f6310b61eac74b6c41493057b6ff5e10b84990cbb40885bb48af3da8ab640a28"
+  },
+  {
+    "name": "desktop-settings.png",
+    "size": 66253,
+    "sha256": "ff6243176ab246a8851f7e72726f623e0233dbc2869a78d6a8d4d5dadddedd12"
+  },
+  {
+    "name": "desktop-setup.png",
+    "size": 85316,
+    "sha256": "e72be91f5ce69c06e64525a6a29a05c37e0b2b714c27b0489c6a9060fe2fe32c"
+  },
+  {
+    "name": "library-ready.png",
+    "size": 101528,
+    "sha256": "05c2f886f692140bc2f017ce7fb1d9889bc09d00dc61bc83d673553c8267d384"
+  },
+  {
+    "name": "setup-backends.png",
+    "size": 166580,
+    "sha256": "7bfa4ca1474bc440194f3ead740ade00441d4aa0f6eafa5caaaff4569aba4885"
+  },
+  {
+    "name": "setup-location.png",
+    "size": 176155,
+    "sha256": "7b006ce1ed68f3bcfd5997d08cb3cac3feaab66a813d9d85d5e6d760c623ef4f"
+  },
+  {
+    "name": "setup-processing.png",
+    "size": 82883,
+    "sha256": "b32bf6411d9a68afe489460c8eb3733f96d2a5a4b4877d4dc8e2058c0a495e0a"
+  },
+  {
+    "name": "installer-01-welcome.png",
+    "size": 6738,
+    "sha256": "b66cf4fc949b264e51451a3eb78d4958ad94c65ec984967921f24a9d4f7ec6d6"
+  },
+  {
+    "name": "installer-02-license.png",
+    "size": 10069,
+    "sha256": "6d971cf2de2572fade11a8a3408914006f1b5cc6a37e41c1665a26a694027307"
+  },
+  {
+    "name": "installer-03-choices.png",
+    "size": 10742,
+    "sha256": "9666082c4e2febe490f685e6d6f53df1d63b566a538695737d1d199967f9650a"
+  },
+  {
+    "name": "installer-04-location.png",
+    "size": 9330,
+    "sha256": "0029e6d1bbfb08c1f9975f7d4ad7394777cc61165c147773689015d6ca97e160"
+  },
+  {
+    "name": "installer-05-ready.png",
+    "size": 7869,
+    "sha256": "37a8343aaee224de690697340b14f37ba2f8d3478ce94e3d3519f6d0ffacbed2"
+  },
+  {
+    "name": "installer-06-maintenance.png",
+    "size": 8106,
+    "sha256": "3894d1ce1ddc165cea2a91cae957ea88d32e88e06cd4eca542757cf820fffd4c"
+  },
+  {
+    "name": "installer-07-finish.png",
+    "size": 7255,
+    "sha256": "22f7d26974fbe5d444eea06459dc9abf7ccfdbb75ee4ba2ed6da09db680e4e8c"
+  },
+  {
+    "name": "installer-08-progress-exact-install.png",
+    "size": 6108,
+    "sha256": "0bdfee70455533d8459aac8b069e6c356df8cc805e42b52052e97f86c0816caa"
+  },
+  {
+    "name": "installer-09-finish-repair.png",
+    "size": 5357,
+    "sha256": "c0599f4fad4705c107c763c821699c61a074622ec9e546b178e4b42427a8f11f"
+  },
+  {
+    "name": "installer-10-finish-remove.png",
+    "size": 5685,
+    "sha256": "28d9152b59e7365cfe838dab7ee9583d5ccedee2a588327bdd119c3ed4222cdb"
+  },
+  {
+    "name": "installer-11-cancelled-execution-cancel.png",
+    "size": 5716,
+    "sha256": "7d28e5941d70a6f9cfbd509f2023bdf7049e79dea41cb5dc4102ac2ed27aa8e7"
+  },
+  {
+    "name": "installer-12-fatalerror-failed-upgrade.png",
+    "size": 5613,
+    "sha256": "b192bad0cc08959525ca0add1b8421737101d62a4be36c876186c9637783a052"
+  },
+  {
+    "name": "installer-13-finish-change.png",
+    "size": 5344,
+    "sha256": "1e679b4d328f6b0967e7db09d673adec244c40c80b0dab199d936fa4d770d865"
+  },
+  {
+    "name": "installer-14-finish-upgrade.png",
+    "size": 5348,
+    "sha256": "d13a374ca9350515d589e1e58875471cc6f9624e589c02702a7839ee10de400d"
+  },
+  {
+    "name": "installer-capture.json",
+    "size": 11314,
+    "sha256": "4e1ce8b30c99252eeccc3bc26471d127ea639a63189e766b380c66946c2b89d0"
+  },
+  {
+    "name": "installer-transactions-capture.json",
+    "size": 5203,
+    "sha256": "1699235b041e6374fa2f8e463e10e1489b6b2d161c31b40a488611459c5ab962"
+  }
+]

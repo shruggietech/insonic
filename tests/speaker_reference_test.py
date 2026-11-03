@@ -34,6 +34,16 @@ class SpeakerReferenceTests(unittest.TestCase):
         self.assertEqual(score['identity_precision'], {'numerator': 3, 'denominator': 4, 'value': .75})
         self.assertEqual(score['outcome_accuracy']['numerator'], 8)
 
+    def test_wrong_unregistered_name_is_not_a_correct_outcome(self):
+        rows = self.rows()
+        row = next(item for item in rows if item['id'] == 'unregistered-introduction')
+        row['observations'][0]['name'] = 'Another person'
+        score = reference.score(self.corpus, rows)
+        self.assertEqual(score['outcome_accuracy']['numerator'], 8)
+        self.assertEqual(score['outcome_accuracy']['denominator'], 9)
+        row['observations'][0]['name'] = None
+        with self.assertRaises(ValueError): reference.score(self.corpus, rows)
+
     def test_provider_error_remains_in_coverage_and_outcome_denominators(self):
         rows = self.rows()
         rows[0].update(state='error', observations=[], error='unavailable')
@@ -47,7 +57,7 @@ class SpeakerReferenceTests(unittest.TestCase):
         rows = self.rows()
         for row in rows:
             for voice in row['observations']:
-                voice.update(outcome='unknown', speaker=None, identity_status='unknown')
+                voice.update(outcome='unknown', speaker=None, identity_status='unknown', name=None)
         score = reference.score(self.corpus, rows)
         self.assertEqual(score['identity_precision'], {'numerator': 0, 'denominator': 0, 'value': None})
         self.assertEqual(score['identity_coverage']['value'], 0)

@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 
 CORPUS = Path(__file__).resolve().parents[1] / 'tests/fixtures/speakers/manifest.json'
-CORPUS_SHA256 = 'c24a3b86629c159960b4a6e5b41823d3ed4eb27814e3164d3af522b2470388b4'
+CORPUS_SHA256 = '1f4b60b1696460a37e97fdfcafec2859d3fd096223bf73238ddf7de1b67fa016'
 OUTCOMES = ('supported-contextual', 'matched', 'unknown', 'ambiguous', 'conflicting')
 IDENTITIES = ('registered', 'unregistered', 'unknown')
 
@@ -34,13 +34,18 @@ def text(value, maximum=4096):
 
 
 def observation(value):
-    shape(value, 'voice outcome speaker identity_status')
+    shape(value, 'voice outcome speaker identity_status name')
     if (not label(value['voice']) or value['outcome'] not in OUTCOMES
             or value['identity_status'] not in IDENTITIES
             or (value['speaker'] is not None and not label(value['speaker']))):
         raise ValueError('Speaker observation is invalid')
     if (value['identity_status'] == 'registered') != (value['speaker'] is not None):
         raise ValueError('Registered speaker identity differs')
+    if value['identity_status'] == 'unregistered':
+        if not text(value['name'], 128):
+            raise ValueError('Unregistered identity lacks a bounded name')
+    elif value['name'] is not None:
+        raise ValueError('Only unregistered identity carries name truth')
     if value['outcome'] in ('unknown', 'ambiguous', 'conflicting') and value['identity_status'] != 'unknown':
         raise ValueError('Unresolved observation carries an accepted identity')
     if value['outcome'] in ('supported-contextual', 'matched') and value['identity_status'] == 'unknown':
@@ -49,7 +54,7 @@ def observation(value):
 
 def validate_corpus(corpus):
     shape(corpus, 'version id provenance cases')
-    if (type(corpus['version']) is not int or corpus['version'] != 1 or not label(corpus['id'])
+    if (type(corpus['version']) is not int or corpus['version'] != 2 or not label(corpus['id'])
             or not text(corpus['provenance']) or not isinstance(corpus['cases'], list)
             or not 1 <= len(corpus['cases']) <= 32):
         raise ValueError('Speaker corpus header differs')

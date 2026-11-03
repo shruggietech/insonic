@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "id": "speaker-context-v1",
+  "version": 2,
+  "id": "speaker-context-v2",
   "provenance": "Synthetic semantic conversations with supplied local-voice truth. PCM audio is an import carrier only; it does not contain this speech. Supplied imports retain an unknown audio-stream route; contradictory names on that shared source are ambiguous, not independently conflicting.",
   "cases": [
     {
@@ -26,7 +26,8 @@
           "voice": "v1",
           "outcome": "supported-contextual",
           "speaker": "alex",
-          "identity_status": "registered"
+          "identity_status": "registered",
+          "name": null
         }
       ],
       "observations": [
@@ -64,13 +65,15 @@
           "voice": "v1",
           "outcome": "supported-contextual",
           "speaker": "alex",
-          "identity_status": "registered"
+          "identity_status": "registered",
+          "name": null
         },
         {
           "voice": "v2",
           "outcome": "supported-contextual",
           "speaker": "jordan",
-          "identity_status": "registered"
+          "identity_status": "registered",
+          "name": null
         }
       ],
       "observations": [
@@ -109,7 +112,8 @@
           "voice": "v1",
           "outcome": "ambiguous",
           "speaker": null,
-          "identity_status": "unknown"
+          "identity_status": "unknown",
+          "name": null
         }
       ],
       "observations": [
@@ -143,7 +147,8 @@
           "voice": "v1",
           "outcome": "unknown",
           "speaker": null,
-          "identity_status": "unknown"
+          "identity_status": "unknown",
+          "name": null
         }
       ],
       "observations": [
@@ -177,7 +182,8 @@
           "voice": "v1",
           "outcome": "unknown",
           "speaker": null,
-          "identity_status": "unknown"
+          "identity_status": "unknown",
+          "name": null
         }
       ],
       "observations": [
@@ -215,7 +221,8 @@
           "voice": "v1",
           "outcome": "ambiguous",
           "speaker": null,
-          "identity_status": "unknown"
+          "identity_status": "unknown",
+          "name": null
         }
       ],
       "observations": [
@@ -254,7 +261,8 @@
           "voice": "v1",
           "outcome": "supported-contextual",
           "speaker": null,
-          "identity_status": "unregistered"
+          "identity_status": "unregistered",
+          "name": "Taylor"
         }
       ],
       "observations": [
@@ -288,7 +296,8 @@
           "voice": "v1",
           "outcome": "unknown",
           "speaker": null,
-          "identity_status": "unknown"
+          "identity_status": "unknown",
+          "name": null
         }
       ],
       "observations": []

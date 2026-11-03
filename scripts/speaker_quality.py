@@ -298,7 +298,8 @@ def contextual(journey, configuration, *, controlled=None, corpus=None, checkpoi
                 if speaker is not None and speaker not in reverse:
                     raise ValueError('Decision escaped its elected roster')
                 observations.append({'voice': item['voice_id'], 'outcome': item['outcome'],
-                                     'speaker': reverse.get(speaker), 'identity_status': item['identity_status']})
+                                     'speaker': reverse.get(speaker), 'identity_status': item['identity_status'],
+                                     'name': item.get('name') if item['identity_status'] == 'unregistered' else None})
             return {'observations': observations, 'recording_id': media,
                     'work_id': queued.get('work_id', queued.get('id')), 'aggregate_sha256': value_digest(aggregate),
                     'coverage': aggregate['coverage'], 'provenance': aggregate['provenance'],

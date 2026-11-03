@@ -1,0 +1,946 @@
+{
+  "format": "insonic-s074-retained-ci-v1",
+  "identity": {
+    "repository": "shruggietech/insonic",
+    "run": "41602621847",
+    "attempt": "1",
+    "head": "ec21ca3f70ae71b4658b8a2441e54014f8584ab1",
+    "revision": "ec21ca3f70ae71b4658b8a2441e54014f8584ab1"
+  },
+  "acceptance_artifact": {
+    "id": 13216710481,
+    "name": "ci-acceptance-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+    "size": 951,
+    "sha256": "9402800add984d2f7ac4ddc388bec639106ab6f155ced7a3515e2440f32c173b"
+  },
+  "terminal": true,
+  "accepted": true,
+  "failures": [],
+  "timing": {
+    "preparation_seconds": 268,
+    "qualification_seconds": 937,
+    "combined_seconds": 1205,
+    "qualification_target_seconds": 1800,
+    "qualification_limit_seconds": 3600,
+    "target_exceeded": false,
+    "target_overrun_seconds": 0,
+    "finalization_reserve_seconds": 0,
+    "terminal": true,
+    "accepted": true,
+    "failures": [],
+    "attempt_started_at": "2026-11-03T08:21:03Z",
+    "attempt_record_created_at": null,
+    "preparation_started_at": "2026-11-03T08:21:03Z",
+    "readiness_at": "2026-11-03T08:25:31Z",
+    "evaluated_through": "2026-11-03T08:41:08.000Z",
+    "worker_terminal_at": "2026-11-03T08:41:08.000Z",
+    "metadata_updated_at": "2026-11-03T08:41:08Z",
+    "initial_queue_seconds": 0
+  },
+  "needs": {
+    "scope": {
+      "result": "success",
+      "outputs": {
+        "core": "true",
+        "cli": "true",
+        "native": "true",
+        "adapters": "true"
+      }
+    },
+    "readiness": {
+      "result": "success",
+      "outputs": {
+        "ready": "true"
+      }
+    },
+    "foundation": {
+      "result": "success",
+      "outputs": {}
+    },
+    "docs-build": {
+      "result": "success",
+      "outputs": {}
+    },
+    "docs": {
+      "result": "success",
+      "outputs": {}
+    },
+    "media-linux": {
+      "result": "success",
+      "outputs": {
+        "path": "warm",
+        "ready": "true"
+      }
+    },
+    "media-windows": {
+      "result": "success",
+      "outputs": {
+        "path": "warm",
+        "ready": "true"
+      }
+    },
+    "dependencies-windows": {
+      "result": "success",
+      "outputs": {}
+    },
+    "core": {
+      "result": "success",
+      "outputs": {}
+    },
+    "core-windows": {
+      "result": "success",
+      "outputs": {}
+    },
+    "qualify-linux": {
+      "result": "success",
+      "outputs": {}
+    },
+    "qualify-windows": {
+      "result": "success",
+      "outputs": {}
+    },
+    "package-linux": {
+      "result": "success",
+      "outputs": {}
+    },
+    "package-windows": {
+      "result": "success",
+      "outputs": {}
+    },
+    "adapters": {
+      "result": "success",
+      "outputs": {}
+    },
+    "candidate": {
+      "result": "success",
+      "outputs": {}
+    },
+    "live-site": {
+      "result": "skipped",
+      "outputs": {}
+    }
+  },
+  "speaker_workflows": [
+    {
+      "file": "answer-backends-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/answer-backends.json",
+      "location": "/speaker_workflow",
+      "receipt": {
+        "state": "passed",
+        "adapter": "owned-loopback-fixture",
+        "acoustic_quality": "not-measured",
+        "cases": [
+          "unsupported-identity",
+          "unknown",
+          "ambiguity",
+          "saved-pipeline",
+          "partial-failure-retry",
+          "contextual-enrollment",
+          "human-json",
+          "retraction",
+          "historical-fetch",
+          "cancel-retry",
+          "owner-correction-rerun"
+        ],
+        "restart": {
+          "state": "passed",
+          "work_id": "f4692fbb-1c8a-44dc-8a65-8d9895b344e2",
+          "provider_attempts": 2,
+          "runtime_session_changed": true,
+          "owned_process_cleanup": true
+        }
+      }
+    },
+    {
+      "file": "package-receipts-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-cli-receipt.json",
+      "location": "/cli_contract/actual_help_examples/speaker_workflow",
+      "receipt": {
+        "acoustic_quality": "not-measured",
+        "adapter": "owned-loopback-fixture",
+        "cases": [
+          "unsupported-identity",
+          "unknown",
+          "ambiguity",
+          "saved-pipeline",
+          "partial-failure-retry",
+          "contextual-enrollment",
+          "human-json",
+          "retraction",
+          "historical-fetch",
+          "cancel-retry",
+          "owner-correction-rerun"
+        ],
+        "restart": {
+          "owned_process_cleanup": true,
+          "provider_attempts": 2,
+          "runtime_session_changed": true,
+          "state": "passed",
+          "work_id": "76d0ba4d-b789-46ce-b8aa-0399a8607fd6"
+        },
+        "state": "passed"
+      }
+    },
+    {
+      "file": "package-receipts-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-receipt.json",
+      "location": "/cli_contract/actual_help_examples/speaker_workflow",
+      "receipt": {
+        "acoustic_quality": "not-measured",
+        "adapter": "owned-loopback-fixture",
+        "cases": [
+          "unsupported-identity",
+          "unknown",
+          "ambiguity",
+          "saved-pipeline",
+          "partial-failure-retry",
+          "contextual-enrollment",
+          "human-json",
+          "retraction",
+          "historical-fetch",
+          "cancel-retry",
+          "owner-correction-rerun"
+        ],
+        "restart": {
+          "owned_process_cleanup": true,
+          "provider_attempts": 2,
+          "runtime_session_changed": true,
+          "state": "passed",
+          "work_id": "76d0ba4d-b789-46ce-b8aa-0399a8607fd6"
+        },
+        "state": "passed"
+      }
+    },
+    {
+      "file": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-desktop-receipt.json",
+      "location": "/cli_contract/actual_help_examples/speaker_workflow",
+      "receipt": {
+        "acoustic_quality": "not-measured",
+        "adapter": "owned-loopback-fixture",
+        "cases": [
+          "unsupported-identity",
+          "unknown",
+          "ambiguity",
+          "saved-pipeline",
+          "partial-failure-retry",
+          "contextual-enrollment",
+          "human-json",
+          "retraction",
+          "historical-fetch",
+          "cancel-retry",
+          "owner-correction-rerun"
+        ],
+        "restart": {
+          "owned_process_cleanup": true,
+          "provider_attempts": 2,
+          "runtime_session_changed": true,
+          "state": "passed",
+          "work_id": "dc0e1bb8-1cf8-44a6-abbe-3ab47e8bb6e0"
+        },
+        "state": "passed"
+      }
+    },
+    {
+      "file": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-receipt.json",
+      "location": "/cli_contract/actual_help_examples/speaker_workflow",
+      "receipt": {
+        "acoustic_quality": "not-measured",
+        "adapter": "owned-loopback-fixture",
+        "cases": [
+          "unsupported-identity",
+          "unknown",
+          "ambiguity",
+          "saved-pipeline",
+          "partial-failure-retry",
+          "contextual-enrollment",
+          "human-json",
+          "retraction",
+          "historical-fetch",
+          "cancel-retry",
+          "owner-correction-rerun"
+        ],
+        "restart": {
+          "owned_process_cleanup": true,
+          "provider_attempts": 2,
+          "runtime_session_changed": true,
+          "state": "passed",
+          "work_id": "dc0e1bb8-1cf8-44a6-abbe-3ab47e8bb6e0"
+        },
+        "state": "passed"
+      }
+    },
+    {
+      "file": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-cli-receipt.json",
+      "location": "/cli_contract/actual_help_examples/speaker_workflow",
+      "receipt": {
+        "acoustic_quality": "not-measured",
+        "adapter": "owned-loopback-fixture",
+        "cases": [
+          "unsupported-identity",
+          "unknown",
+          "ambiguity",
+          "saved-pipeline",
+          "partial-failure-retry",
+          "contextual-enrollment",
+          "human-json",
+          "retraction",
+          "historical-fetch",
+          "cancel-retry",
+          "owner-correction-rerun"
+        ],
+        "restart": {
+          "owned_process_cleanup": true,
+          "provider_attempts": 2,
+          "runtime_session_changed": true,
+          "state": "passed",
+          "work_id": "02507495-904f-4849-b20d-6ba94c4167b3"
+        },
+        "state": "passed"
+      }
+    },
+    {
+      "file": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-receipt.json",
+      "location": "/cli_contract/actual_help_examples/speaker_workflow",
+      "receipt": {
+        "acoustic_quality": "not-measured",
+        "adapter": "owned-loopback-fixture",
+        "cases": [
+          "unsupported-identity",
+          "unknown",
+          "ambiguity",
+          "saved-pipeline",
+          "partial-failure-retry",
+          "contextual-enrollment",
+          "human-json",
+          "retraction",
+          "historical-fetch",
+          "cancel-retry",
+          "owner-correction-rerun"
+        ],
+        "restart": {
+          "owned_process_cleanup": true,
+          "provider_attempts": 2,
+          "runtime_session_changed": true,
+          "state": "passed",
+          "work_id": "02507495-904f-4849-b20d-6ba94c4167b3"
+        },
+        "state": "passed"
+      }
+    }
+  ],
+  "retained_json": [
+    {
+      "name": "answer-backends-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/answer-backends.json",
+      "size": 25509,
+      "sha256": "f0f20b20e225dea4e32228f4597787495ed36883c657f914f22aea9ba264cfef"
+    },
+    {
+      "name": "ci-acceptance-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/gate.json",
+      "size": 3813,
+      "sha256": "9fd7a784b03b9062bd19bd4ac1cf2f8e148c2004037618da98a1001a8e16208d"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/asset-receipt.json",
+      "size": 375,
+      "sha256": "8904b41d6829ebfa36f47b793f2a0a115d54f77a709a1b0462b982b605a344e1"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/desktop-receipt.json",
+      "size": 140,
+      "sha256": "0f67cf9265a9fc9e78928d3b468f5de5994920d7635b5eadd83a17b7cbb24c3b"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/exit-receipt.json",
+      "size": 205,
+      "sha256": "a38f1af380b666254427bbd98c10f642a0e644ee98c5d586163ef1ebf6b8c14b"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/help-webview-receipt.json",
+      "size": 133,
+      "sha256": "0d8b7508afae8374b0e1f2af5685de7692a7d220bd4ff7a2561110c9bd39734a"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-source-build-receipt.json",
+      "size": 51079,
+      "sha256": "fc1e69028e77671d7eb37470cc5c7e6655aebd3cdd723ab0cf37f3ab00e1eae3"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-tool-receipt.json",
+      "size": 784,
+      "sha256": "31ae5ceaced5d8877c5f20c8c39b7ddcce09b7ee3d684ed49096c77687998c11"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/secret-service-receipt.json",
+      "size": 162,
+      "sha256": "52fb8a914ca720301df9e7954c73fd581b6d0d37e1df6ed15a6d7d6952b25b74"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/webview-receipt.json",
+      "size": 248,
+      "sha256": "06339dcb4cfb2a5615a266ee9e1adc9ddf897b8ff6442f0578d2135ceddea3c2"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/ui-capture/application-capture.json",
+      "size": 285290,
+      "sha256": "d55a5319c04f05dd0dc86cd87a0ea29662684b02ebd4dd4f7ba911400b76e3dd"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/ui-capture/capture-diagnostics.json",
+      "size": 23665,
+      "sha256": "74cfc858d8ca4fdb3394f4619fa32fe5049dcf6456dd1b17e1a387366f65bc22"
+    },
+    {
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/ui-capture/density-capture.json",
+      "size": 586647,
+      "sha256": "86f0adba426e5a1c17493b8d94bd51142e55eb6f26979987f0e00edd9c6a439d"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/docs-ui/report.json",
+      "size": 204489,
+      "sha256": "99bf386a5f694641942c598c4f2b8e00eb980cd395115110497f8fff1db2e25b"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/asset-receipt.json",
+      "size": 390,
+      "sha256": "3e153d38f71637d2ff694c2029655d8dc99c82efd47d4d26ec9540a081f1863b"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/desktop-receipt.json",
+      "size": 141,
+      "sha256": "a2612f247f24045bbc9d1bcfc5908efcda44bd68b88b075d8f7c921d67a8d5f6"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/exit-receipt.json",
+      "size": 298,
+      "sha256": "492174a3d41c4656918f73e51f21fcb3af905a4838b9710ef22e229b565e9dea"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/help-webview-receipt.json",
+      "size": 134,
+      "sha256": "7f7b03d4f61e07607f4c204917e08bb317acf2d09d13536e0cb92ede65cdba3f"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-source-build-receipt.json",
+      "size": 47924,
+      "sha256": "9cb7d657a7c913607e77fce7a59acd56649feb9b964a0c5603c1dd53db3f3c42"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-tool-receipt.json",
+      "size": 808,
+      "sha256": "975656f952b6d1200b90f18e14e19bdd3cdb678c4ec61ac4be055b225df48dc5"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-1-receipt.json",
+      "size": 1267,
+      "sha256": "37f1ece10ccd6acf39d282ca99abdccc9d840b658e720c5b266f6510a744fe9b"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-10-receipt.json",
+      "size": 7107,
+      "sha256": "0f5c6bb24e54aa02ce121add8d901044a0ac5b039dc833f940d27f74c6293087"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-11-receipt.json",
+      "size": 6468,
+      "sha256": "96507ca78e3bcf1332e19c5a77da9a87be8e0e7c46ace74561e9507616f07dff"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-12-receipt.json",
+      "size": 6464,
+      "sha256": "5e5e38e63ff7a24ad1c26d77ba16511fbcc08634453f42bff73af2afcad0253b"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-13-receipt.json",
+      "size": 6483,
+      "sha256": "937d1375f52e2b284add3e65088b8c56f7aa3332bc857dfebc5fb47f86e53814"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-14-receipt.json",
+      "size": 6456,
+      "sha256": "8609cc3a9d74047ad81776814aeb05c57549e12e21041b87487f50edbbd16fd4"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-2-receipt.json",
+      "size": 7051,
+      "sha256": "c018a3399c7bfeb8ce6f5485e2b6fdcc7e99a0398048946ba91fc6e033cea78d"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-3-receipt.json",
+      "size": 253,
+      "sha256": "8fcf59a2e586c641223e33cd099f7af2d7c21e6f7feb3315c3eae9f9a4e0634e"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-4-receipt.json",
+      "size": 7039,
+      "sha256": "a04e7f5f533a5e22c175876df6248873b690144dd4fcb3642f8640c6e3878c3e"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-5-receipt.json",
+      "size": 6407,
+      "sha256": "20b9ce263819b339e9a7d011dedd33cd4cd0e04f78f8348dc1154089ee349930"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-6-receipt.json",
+      "size": 6402,
+      "sha256": "d765840a26be9d4923ee0bc7351398c7f4fa17bc85a28de609db3fab8bb5156f"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-7-receipt.json",
+      "size": 6406,
+      "sha256": "2da5638cd3eb316630f82dcf6d6a2beb8db0ac788c87a2d912d7d29fa1fdaf3c"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-8-receipt.json",
+      "size": 6406,
+      "sha256": "b48b8de4ee2b85cc62315f29198f1086b133ae81c1d46e0ec2608775a3a1feca"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-exit-child-1180-9-receipt.json",
+      "size": 7097,
+      "sha256": "bb9644daf3c16d3a0d40279767313cba099397f81c4e1f287aaaabe98f58a31d"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/openssl-receipt.json",
+      "size": 631,
+      "sha256": "e0768dc481ebd74d2339ebde3ff3e5c4180dcd6ddd84b0a597647b51e45349e0"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/secret-service-receipt.json",
+      "size": 165,
+      "sha256": "8d7bcd49fef0ea352ea22ace760a3f344d07abba1d634ae710a7c6ed9e869cd4"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/webview-receipt.json",
+      "size": 249,
+      "sha256": "c4e0f5e6be2c37301b1c122c2d19e03eac7de1740f14124704aa5d2d31c6311b"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/ui-capture/application-capture.json",
+      "size": 285300,
+      "sha256": "b6338cfdd24cbd3490938e438973bf25eedf9bc3db5d7aff945dd55cf5557e82"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/ui-capture/capture-diagnostics.json",
+      "size": 23760,
+      "sha256": "ed2d3272ab77d06ba1918185a85768d8a62f0e7f530bb86e0079c76800bb6ef5"
+    },
+    {
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/ui-capture/density-capture.json",
+      "size": 586709,
+      "sha256": "16b95b763d08877e8102809d250fc79ef91f858be8f4c77d0fa98a8082013ad9"
+    },
+    {
+      "name": "native-receipts-engine-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/asset-receipt.json",
+      "size": 375,
+      "sha256": "8904b41d6829ebfa36f47b793f2a0a115d54f77a709a1b0462b982b605a344e1"
+    },
+    {
+      "name": "native-receipts-engine-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/cli-receipt.json",
+      "size": 684898,
+      "sha256": "55f019b6e7ca8a871ebe338a18bef56863734c9ccc2f7c15e2bb875d9fde81d6"
+    },
+    {
+      "name": "native-receipts-engine-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-fixture-receipt.json",
+      "size": 864,
+      "sha256": "18b919f4fc03d7d774f84cd37ffb4f2480503072f1f15434522f18986ebba285"
+    },
+    {
+      "name": "native-receipts-engine-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-receipt.json",
+      "size": 812,
+      "sha256": "08b0281e576d1fded551fa7ef66c78dd5fb7095bff66f32e181d758dadd04000"
+    },
+    {
+      "name": "native-receipts-engine-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-source-build-receipt.json",
+      "size": 51079,
+      "sha256": "fc1e69028e77671d7eb37470cc5c7e6655aebd3cdd723ab0cf37f3ab00e1eae3"
+    },
+    {
+      "name": "native-receipts-engine-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-tool-receipt.json",
+      "size": 784,
+      "sha256": "31ae5ceaced5d8877c5f20c8c39b7ddcce09b7ee3d684ed49096c77687998c11"
+    },
+    {
+      "name": "native-receipts-engine-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-receipt.json",
+      "size": 274,
+      "sha256": "0d5b5b30755914e2ecc8d45464f645a4cfd003917110422d63d8b42ffd5b1952"
+    },
+    {
+      "name": "native-receipts-engine-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/asset-receipt.json",
+      "size": 390,
+      "sha256": "3e153d38f71637d2ff694c2029655d8dc99c82efd47d4d26ec9540a081f1863b"
+    },
+    {
+      "name": "native-receipts-engine-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/cli-receipt.json",
+      "size": 684836,
+      "sha256": "2316a1206dae3ef68e6111b08a66d792d1721163f37a2c75e5f59991a241c92e"
+    },
+    {
+      "name": "native-receipts-engine-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-fixture-receipt.json",
+      "size": 893,
+      "sha256": "e06399982ffcbb162644042bd8280439f47c51fa251334bf12ae452a8573b284"
+    },
+    {
+      "name": "native-receipts-engine-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-receipt.json",
+      "size": 837,
+      "sha256": "bfc1ba20610c7b968193e1b1a8d2971953189c62ecce3e782db4af8372c6b5fb"
+    },
+    {
+      "name": "native-receipts-engine-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-source-build-receipt.json",
+      "size": 47924,
+      "sha256": "9cb7d657a7c913607e77fce7a59acd56649feb9b964a0c5603c1dd53db3f3c42"
+    },
+    {
+      "name": "native-receipts-engine-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/media-tool-receipt.json",
+      "size": 808,
+      "sha256": "975656f952b6d1200b90f18e14e19bdd3cdb678c4ec61ac4be055b225df48dc5"
+    },
+    {
+      "name": "native-receipts-engine-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/native-receipt.json",
+      "size": 284,
+      "sha256": "5aa6ed4cf4cd0a934b95ef3a52c138e4f598e768b9bfdbd9c78afdce82dbf1b0"
+    },
+    {
+      "name": "native-receipts-engine-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/native/openssl-receipt.json",
+      "size": 631,
+      "sha256": "e0768dc481ebd74d2339ebde3ff3e5c4180dcd6ddd84b0a597647b51e45349e0"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/asset-receipt.json",
+      "size": 375,
+      "sha256": "8904b41d6829ebfa36f47b793f2a0a115d54f77a709a1b0462b982b605a344e1"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/media-source-build-receipt.json",
+      "size": 51079,
+      "sha256": "fc1e69028e77671d7eb37470cc5c7e6655aebd3cdd723ab0cf37f3ab00e1eae3"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/media-tool-receipt.json",
+      "size": 784,
+      "sha256": "31ae5ceaced5d8877c5f20c8c39b7ddcce09b7ee3d684ed49096c77687998c11"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-cli-receipt.json",
+      "size": 1393649,
+      "sha256": "b7d33bc8b0ccd19c644df536c16a01d9d604b4dd6eff6b1a710b976c105a321f"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-inventory.json",
+      "size": 329492,
+      "sha256": "530f18e7dbef90a7087435ff36e67e3b5fe6c01a245f02520366346a6048979e"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-receipt.json",
+      "size": 1393649,
+      "sha256": "b7d33bc8b0ccd19c644df536c16a01d9d604b4dd6eff6b1a710b976c105a321f"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/asset-receipt.json",
+      "size": 375,
+      "sha256": "8904b41d6829ebfa36f47b793f2a0a115d54f77a709a1b0462b982b605a344e1"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/media-source-build-receipt.json",
+      "size": 51079,
+      "sha256": "fc1e69028e77671d7eb37470cc5c7e6655aebd3cdd723ab0cf37f3ab00e1eae3"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/media-tool-receipt.json",
+      "size": 784,
+      "sha256": "31ae5ceaced5d8877c5f20c8c39b7ddcce09b7ee3d684ed49096c77687998c11"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-desktop-bridge-receipt.json",
+      "size": 140,
+      "sha256": "a6ac33a79f46cfdffad305e3c33a0ef5338d4add68a7c1d028385c0d845b60ad"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-desktop-receipt.json",
+      "size": 1393661,
+      "sha256": "d50f004f77ed424638dade67e67069e676a411106143cb5120b6a2870446fbeb"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-exit-receipt.json",
+      "size": 205,
+      "sha256": "a38f1af380b666254427bbd98c10f642a0e644ee98c5d586163ef1ebf6b8c14b"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-help-receipt.json",
+      "size": 4181,
+      "sha256": "9b529440fc326e6af3253ce83142b0625a845766e35d4145c16015378de38a65"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-inventory.json",
+      "size": 334396,
+      "sha256": "1193f74c529e56d0193d2410ae2228729f426b7e83005402937e52a0452672f5"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-receipt.json",
+      "size": 1393661,
+      "sha256": "d50f004f77ed424638dade67e67069e676a411106143cb5120b6a2870446fbeb"
+    },
+    {
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-webview-receipt.json",
+      "size": 248,
+      "sha256": "06339dcb4cfb2a5615a266ee9e1adc9ddf897b8ff6442f0578d2135ceddea3c2"
+    },
+    {
+      "name": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/asset-receipt.json",
+      "size": 390,
+      "sha256": "3e153d38f71637d2ff694c2029655d8dc99c82efd47d4d26ec9540a081f1863b"
+    },
+    {
+      "name": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/media-source-build-receipt.json",
+      "size": 47924,
+      "sha256": "9cb7d657a7c913607e77fce7a59acd56649feb9b964a0c5603c1dd53db3f3c42"
+    },
+    {
+      "name": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/media-tool-receipt.json",
+      "size": 808,
+      "sha256": "975656f952b6d1200b90f18e14e19bdd3cdb678c4ec61ac4be055b225df48dc5"
+    },
+    {
+      "name": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/openssl-receipt.json",
+      "size": 631,
+      "sha256": "e0768dc481ebd74d2339ebde3ff3e5c4180dcd6ddd84b0a597647b51e45349e0"
+    },
+    {
+      "name": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-cli-receipt.json",
+      "size": 1394262,
+      "sha256": "187b9bea8bab000af8df5fab75380741a61bc09692f02b690dd288147879d558"
+    },
+    {
+      "name": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-inventory.json",
+      "size": 391825,
+      "sha256": "7acf097b09d4ba3771722dced9acf6f7478ab2d16e1ad6c9a3f2c959c4a5ec5b"
+    },
+    {
+      "name": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1/package-receipt.json",
+      "size": 1394262,
+      "sha256": "187b9bea8bab000af8df5fab75380741a61bc09692f02b690dd288147879d558"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 13216710481,
+      "name": "ci-acceptance-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 951,
+      "digest": "sha256:9402800add984d2f7ac4ddc388bec639106ab6f155ced7a3515e2440f32c173b",
+      "expired": false
+    },
+    {
+      "id": 13216380492,
+      "name": "native-receipts-engine-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 29322,
+      "digest": "sha256:db4929323c5fe8dc65209c2c2818de390aa4e6adcd45dc0e42c152da919431a7",
+      "expired": false
+    },
+    {
+      "id": 13216355751,
+      "name": "installer-receipts-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 218659188,
+      "digest": "sha256:4b97776e1b0f93350d5ef2e5263b5ab878c52c15cc7cc49d121f64ccccc19801",
+      "expired": false
+    },
+    {
+      "id": 13216285410,
+      "name": "native-receipts-desktop-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 20622216,
+      "digest": "sha256:31e19ecd28bcb43d195860210a5771230cae8f65fd3b3091f29981b16d7a4fa8",
+      "expired": false
+    },
+    {
+      "id": 13216171169,
+      "name": "candidate-package-windows-2022-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 151643122,
+      "digest": "sha256:56b1c38ad297b8caf5d8410ece884231418d0aed0443143171e976f068f9dcae",
+      "expired": false
+    },
+    {
+      "id": 13216141405,
+      "name": "candidate-package-windows-2022-installer-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 321489398,
+      "digest": "sha256:20458ea43e228312751e4c9e9052359212dbf2d773a57cf4d43cd5cdd1324a7b",
+      "expired": false
+    },
+    {
+      "id": 13216075869,
+      "name": "package-receipts-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 160732,
+      "digest": "sha256:bd22682266d243bd4df6796ffc98ed5a5d39455854344f5cdbbc6ab411d3b63d",
+      "expired": false
+    },
+    {
+      "id": 13216067272,
+      "name": "candidate-package-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 120017434,
+      "digest": "sha256:6bbe80d14205e3b103d334a296ef78f66bd86c9e527af8eaa2b3a96e6b1d5f98",
+      "expired": false
+    },
+    {
+      "id": 13215996385,
+      "name": "package-receipts-windows-2022-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 170451,
+      "digest": "sha256:244390243961de9ec976f59cce54b808079bf88f1b9d936d5cfaa32c4e8ef814",
+      "expired": false
+    },
+    {
+      "id": 13215970983,
+      "name": "application-ui-capture-windows-2022-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 1290297,
+      "digest": "sha256:d7407bf57fddfe8b7ea3c96568847567e1c7765ca1b4c2fe0cf38893337b1015",
+      "expired": false
+    },
+    {
+      "id": 13215848612,
+      "name": "windows-desktop-proof-archive-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 3309467,
+      "digest": "sha256:b10a591d770edc1bd087ecef4e662f4394cf306b445c88c237f62363b3376b7f",
+      "expired": false
+    },
+    {
+      "id": 13215788931,
+      "name": "release-candidate-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 915428931,
+      "digest": "sha256:f0c94cac2e51121eecf6174f9fb1c133bcc5a416d01092ec13c6424d41fc553e",
+      "expired": false
+    },
+    {
+      "id": 13215758578,
+      "name": "windows-desktop-proof-setup-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 28032581,
+      "digest": "sha256:4f7a8df84c4e6f6578f7c8b969a546d67ac909867f644576d7c3c8d945946b84",
+      "expired": false
+    },
+    {
+      "id": 13215603626,
+      "name": "answer-backends-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 3185,
+      "digest": "sha256:2bb236fba616636d8186c7e026d196812fc456e79495575f5415ac0a20499d5f",
+      "expired": false
+    },
+    {
+      "id": 13215508254,
+      "name": "application-ui-capture-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 1532541,
+      "digest": "sha256:c584a84c33d0f4ff9ba46646a1db8b60fab9cb523bf13d13e66ecc6208977307",
+      "expired": false
+    },
+    {
+      "id": 13215456935,
+      "name": "source-toolchain-windows-2022-probe-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 1524,
+      "digest": "sha256:e17409ead7e4d4399a36879e5294ee2c9638ae8eda365bd2565f6aeefbc8b54d",
+      "expired": false
+    },
+    {
+      "id": 13215441982,
+      "name": "media-source-ubuntu-24.04-1",
+      "size": 67584757,
+      "digest": "sha256:f506ef5d7d9f5da2c5428e359a61911400fd2fa182584ca45da221d0131ce2af",
+      "expired": false
+    },
+    {
+      "id": 13215432043,
+      "name": "media-source-windows-2022-1",
+      "size": 69098473,
+      "digest": "sha256:b15693e2bd678242ccff9cac87116ff25880cf50c91b1dfc20800611aa74a5e9",
+      "expired": false
+    },
+    {
+      "id": 13215423288,
+      "name": "native-receipts-desktop-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 1544430,
+      "digest": "sha256:0ba639a932fdbe3cfbb675cda030957659566a4ab5b7460a96688b4494584378",
+      "expired": false
+    },
+    {
+      "id": 13215343217,
+      "name": "documentation-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 23372567,
+      "digest": "sha256:e6b0728dbef5467c3e6e406be22f9784b2f14f50e15b491dbef520fc3e8d7dec",
+      "expired": false
+    },
+    {
+      "id": 13215293635,
+      "name": "candidate-package-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 129545554,
+      "digest": "sha256:6157463faf927d7b3a30bd6bada9152f83ff37dfb01649b7613b74469535fce1",
+      "expired": false
+    },
+    {
+      "id": 13215279628,
+      "name": "candidate-package-ubuntu-24.04-desktop-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 159902530,
+      "digest": "sha256:00ff227e67726720d6bf79fb8b8278794f5bd4f962418b7f0c4ad0ae9460decb",
+      "expired": false
+    },
+    {
+      "id": 13215258284,
+      "name": "documentation-ui-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 20745413,
+      "digest": "sha256:9d365edea4ab29daccd90be5249185309cf93a8992ad2182c5f87f0423fbbdd5",
+      "expired": false
+    },
+    {
+      "id": 13215252967,
+      "name": "windows-desktop-input-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 470135488,
+      "digest": "sha256:0ce0f7a681244f4afb377c1604b711a27f6f3082695cb2e7b53e5c0a2d8333cf",
+      "expired": false
+    },
+    {
+      "id": 13215193843,
+      "name": "package-receipts-ubuntu-24.04-cli-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 158022,
+      "digest": "sha256:0a976fdff1ef9a3447dfeeba6f598caaa26917b255bf46eb70367280b9335dd0",
+      "expired": false
+    },
+    {
+      "id": 13215163228,
+      "name": "offline-help-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 12593912,
+      "digest": "sha256:1bc50e6192ca48bb72d4d9002a7cb1325ec54a8b533d6b5ed212179812889eb6",
+      "expired": false
+    },
+    {
+      "id": 13215084268,
+      "name": "native-receipts-engine-ubuntu-24.04-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 29010,
+      "digest": "sha256:4b9435f1fd423d4f7fb5b6b765358eb314f501c459b008310cea9670ac16cdb4",
+      "expired": false
+    },
+    {
+      "id": 13215044513,
+      "name": "windows-desktop-proof-maintenance-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 72845300,
+      "digest": "sha256:637a74f1b9ff3a25288a9882bfa9c92b47d2acd25f29a7d99b26cdf947a5ccb5",
+      "expired": false
+    },
+    {
+      "id": 13215034845,
+      "name": "windows-desktop-proof-interactive-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 112332700,
+      "digest": "sha256:906be8df71da92325921b98d50dcb752110019e37130067ede7eb26937427ed8",
+      "expired": false
+    },
+    {
+      "id": 13214902359,
+      "name": "source-toolchain-ubuntu-24.04-probe-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 12187,
+      "digest": "sha256:599e9428f03a2eebf12e7b4d19496b4865261a7de1752b8538570e589bd8d12b",
+      "expired": false
+    },
+    {
+      "id": 13214782994,
+      "name": "go-dependencies-windows-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 355378460,
+      "digest": "sha256:1c022d2cdb76b730affdc3867a23b8f61cc5e02a09c62cc1af362d0a6ddfce7c",
+      "expired": false
+    },
+    {
+      "id": 13214493854,
+      "name": "candidate-documentation-ec21ca3f70ae71b4658b8a2441e54014f8584ab1-1",
+      "size": 31988351,
+      "digest": "sha256:0080b9e352b9a63ed18e443cf868b66047e4753540f15075f21bad890bc9ef3e",
+      "expired": false
+    }
+  ]
+}

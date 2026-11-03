@@ -2,7 +2,7 @@
 
 ## Contextual corpus
 
-A bounded versioned manifest has a stable corpus ID, synthetic provenance, unique case IDs, unique scenario-local speaker keys, canonical names, voices and ordered text cues. Each voice has exactly one expected outcome and optional expected speaker key. Cases cover direct/two-voice introductions, duplicate names, quoted introductions, mentions, contradictory introductions, unregistered names and anonymous voices. Truth never enters provider input. Synthetic PCM is only an import carrier and does not represent the text acoustically.
+A bounded versioned manifest has a stable corpus ID, synthetic provenance, unique case IDs, unique scenario-local speaker keys, canonical names, voices and ordered text cues. Each voice has exactly one expected outcome and optional expected speaker key. Version 2 also requires an exact expected name for unregistered identities; all other name fields are null. Cases cover direct/two-voice introductions, duplicate names, quoted introductions, mentions, contradictory introductions, unregistered names and anonymous voices. Truth never enters provider input. Synthetic PCM is only an import carrier and does not represent the text acoustically.
 
 ## Measurements
 
