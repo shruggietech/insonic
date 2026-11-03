@@ -260,6 +260,9 @@ func (s *Store) importInitial(ctx context.Context, tx *sql.Tx, w Work) (importIn
 	return proof, digest, nil
 }
 func (s *Store) validateWorkInput(ctx context.Context, tx *sql.Tx, w Work, initialDigest string) error {
+	if err := s.validateWorkflowParent(ctx, tx, w, false); err != nil {
+		return err
+	}
 	want, _ := intent([]any{"work", w.Kind, w.Payload})
 	if want == initialDigest {
 		return nil

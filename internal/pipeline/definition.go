@@ -19,6 +19,7 @@ import (
 )
 
 type Definition struct {
+	SpeakerWorkflow *SpeakerWorkflow            `json:"speaker_workflow,omitempty"`
 	AnswerSynthesis *assistance.SynthesisConfig `json:"answer_synthesis,omitempty"`
 	Coverage        *processing.CoverageOptions `json:"coverage,omitempty"`
 	Repair          *processing.RepairPolicy    `json:"repair,omitempty"`
@@ -222,6 +223,15 @@ func Validate(preset string, d Definition) error {
 			return contracts.Fail("invalid_request")
 		}
 	}
+	if d.SpeakerWorkflow != nil {
+		v, e := NormalizeSpeakerWorkflow(*d.SpeakerWorkflow)
+		if e != nil {
+			return e
+		}
+		if preset == "local" && v.Provider.Route != "local" || preset == "connected" && v.Provider.Route != "hosted" || v.Enroll && len(d.SpeakerTraining) == 0 {
+			return contracts.Fail("invalid_request")
+		}
+	}
 	if len(d.SpeakerTraining) > 0 {
 		if voicemodels.ValidateTrainingConfiguration(d.SpeakerTraining) != nil {
 			return contracts.Fail("invalid_request")
@@ -238,7 +248,7 @@ func Validate(preset string, d Definition) error {
 			return nil
 		}
 	}
-	if d.AnswerSynthesis != nil && !HasProcessing(d) {
+	if (d.AnswerSynthesis != nil || d.SpeakerWorkflow != nil) && !HasProcessing(d) {
 		if d.Coverage != nil || d.Repair != nil || d.Windows != nil || !reflect.ValueOf(d.Quality).IsZero() {
 			return contracts.Fail("invalid_request")
 		}

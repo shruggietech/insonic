@@ -16,7 +16,7 @@ func (s *Store) selectionEpoch(ctx context.Context, tx *sql.Tx, selection Speake
 	q := "SELECT m.id,m.revision,r.id,r.revision,r.document_digest,r.source_digest FROM speaker_mapping m JOIN current_recording r ON r.workspace_id=m.workspace_id AND r.id=m.recording_id WHERE m.workspace_id=? AND m.speaker_id=? AND r.state='ready' AND m.document_digest=r.document_digest"
 	args := []any{s.workspace, selection.SpeakerID}
 	if selection.ConfirmedOnly {
-		q += " AND m.origin='manual'"
+		q += " AND m.origin IN ('manual','contextual')"
 	}
 	if selection.RecordingID != "" {
 		q += " AND r.id=?"

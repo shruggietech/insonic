@@ -41,20 +41,26 @@ func TestSpeakerDiscoveryBridgeUsesSharedValidation(t *testing.T) {
 	config.Enabled = true
 	config.Endpoint = "http://127.0.0.1:1"
 	config.Model = "fixture"
-	for _, op := range []string{"speakers.discover", "speakers.hypotheses", "speakers.resolve"} {
+	for _, op := range []string{"speakers.discover", "speakers.hypotheses", "speakers.resolve", "speakers.apply", "speakers.retract", "speakers.run"} {
 		var data json.RawMessage
 		if op == "speakers.discover" {
 			data, _ = json.Marshal(map[string]any{"configuration": config})
 		}
-		if op == "speakers.resolve" {
+		if op == "speakers.resolve" || op == "speakers.apply" {
 			data = json.RawMessage(`{"expected_revision":1}`)
+		}
+		if op == "speakers.retract" {
+			data, _ = json.Marshal(map[string]any{"expected_recording_revision": 1, "mappings": []any{map[string]any{"id": contracts.ID(), "revision": 1}}})
+		}
+		if op == "speakers.run" {
+			data, _ = json.Marshal(map[string]any{"configuration": map[string]any{"provider": config, "apply": true, "enroll": false, "select_profile": false}})
 		}
 		response := b.Operate(contracts.Request{Operation: op, ItemID: contracts.ID(), Data: data})
 		if response.Error == nil || response.Error.Code != "not_found" {
 			t.Fatal(op, response)
 		}
 	}
-	for _, op := range []string{"speakers.discover", "speakers.resolve"} {
+	for _, op := range []string{"speakers.discover", "speakers.resolve", "speakers.apply", "speakers.retract", "speakers.run"} {
 		response := b.Operate(contracts.Request{Operation: op, ItemID: contracts.ID(), Data: json.RawMessage(`{"unknown":true}`)})
 		if response.Error == nil || response.Error.Code != "invalid_request" {
 			t.Fatal(op, response)

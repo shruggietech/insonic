@@ -58,50 +58,7 @@ func speakerRuntimeRecording(t *testing.T, a *App) (catalog.Recording, string) {
 
 func TestSpeakerSharedRuntimeTrainingMatchingAndExactFetch(t *testing.T) {
 	a := configuredApp(t)
-	// The real base-acquisition protocol runs against inert pinned fixture bytes.
-	// Acoustic execution is replaced only by an explicit deterministic factory.
-	manifest := dependencyManifest(t, "speaker-runtime", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("synthetic model bytes")) }))
-	root := strings.TrimSuffix(manifest.Files[0].URL, "config.json")
-	manifest.Capabilities = []string{"diarization", "voice-matching", "speaker-model-training"}
-	manifest.Files = nil
-	for _, role := range []string{"config.yaml", "embedding/pytorch_model.bin", "segmentation/pytorch_model.bin", "plda/plda.npz", "plda/xvec_transform.npz"} {
-		manifest.Files = append(manifest.Files, models.File{Role: role, SHA256: documentHash([]byte("synthetic model bytes")), Size: 21, URL: root + role, LocalHTTP: true})
-	}
-	registerDependencyManifest(t, a, manifest)
-	baseID := models.InstallationID(manifest)
-	path := filepath.Join(t.TempDir(), "audio.wav")
-	audio := make([]byte, 32044)
-	copy(audio, "RIFF")
-	binary.LittleEndian.PutUint32(audio[4:], 32036)
-	copy(audio[8:], "WAVEfmt ")
-	binary.LittleEndian.PutUint32(audio[16:], 16)
-	binary.LittleEndian.PutUint16(audio[20:], 1)
-	binary.LittleEndian.PutUint16(audio[22:], 1)
-	binary.LittleEndian.PutUint32(audio[24:], 16000)
-	binary.LittleEndian.PutUint32(audio[28:], 32000)
-	binary.LittleEndian.PutUint16(audio[32:], 2)
-	binary.LittleEndian.PutUint16(audio[34:], 16)
-	copy(audio[36:], "data")
-	binary.LittleEndian.PutUint32(audio[40:], 32000)
-	for i := 44; i < len(audio); i += 2 {
-		binary.LittleEndian.PutUint16(audio[i:], 1000)
-	}
-	if err := os.WriteFile(path, audio, 0600); err != nil {
-		t.Fatal(err)
-	}
-	a.recordingFactory = func() (*recordingExecution, error) {
-		t.Fatal("training/matching invoked transcription or diarization")
-		return nil, nil
-	}
-	a.speakerFactory = func(service *voicemodels.Service) *voicemodels.Service {
-		service.Prepare = func(context.Context, catalog.LibraryEntry, processing.AudioOptions) (*voicemodels.Audio, error) {
-			return &voicemodels.Audio{Path: path, SourceMap: processing.SourceMap{StartNumerator: "0", StartDenominator: "1", SampleRate: 16000, SampleCount: 16000, Policy: "fixture"}, Close: func() error { return nil }}, nil
-		}
-		service.Embed = func(context.Context, string, processing.SourceMap, string, string) ([]float64, error) {
-			return []float64{1, 0}, nil
-		}
-		return service
-	}
+	baseID := configureSpeakerEnrollmentFixture(t, a)
 	training, voice := speakerRuntimeRecording(t, a)
 	target, targetVoice := speakerRuntimeRecording(t, a)
 	person, err := a.Catalog.PutSpeaker(a.ctx, contracts.ID(), 0, catalog.SpeakerIdentity{Speaker: catalog.Speaker{ID: contracts.ID(), Name: "Independent identity"}})
@@ -215,4 +172,53 @@ func TestSpeakerSharedRuntimeTrainingMatchingAndExactFetch(t *testing.T) {
 	if response := a.Dispatch(request); response.Error == nil || response.Error.Code != "conflict" {
 		t.Fatal("changed request replayed scrubbed intent", response)
 	}
+}
+
+func configureSpeakerEnrollmentFixture(t *testing.T, a *App) string {
+	t.Helper()
+	// The real base-acquisition protocol runs against inert pinned fixture bytes.
+	// Acoustic execution is replaced only by an explicit deterministic factory.
+	manifest := dependencyManifest(t, "speaker-runtime", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("synthetic model bytes")) }))
+	root := strings.TrimSuffix(manifest.Files[0].URL, "config.json")
+	manifest.Capabilities = []string{"diarization", "voice-matching", "speaker-model-training"}
+	manifest.Files = nil
+	for _, role := range []string{"config.yaml", "embedding/pytorch_model.bin", "segmentation/pytorch_model.bin", "plda/plda.npz", "plda/xvec_transform.npz"} {
+		manifest.Files = append(manifest.Files, models.File{Role: role, SHA256: documentHash([]byte("synthetic model bytes")), Size: 21, URL: root + role, LocalHTTP: true})
+	}
+	registerDependencyManifest(t, a, manifest)
+	baseID := models.InstallationID(manifest)
+	path := filepath.Join(t.TempDir(), "audio.wav")
+	audio := make([]byte, 32044)
+	copy(audio, "RIFF")
+	binary.LittleEndian.PutUint32(audio[4:], 32036)
+	copy(audio[8:], "WAVEfmt ")
+	binary.LittleEndian.PutUint32(audio[16:], 16)
+	binary.LittleEndian.PutUint16(audio[20:], 1)
+	binary.LittleEndian.PutUint16(audio[22:], 1)
+	binary.LittleEndian.PutUint32(audio[24:], 16000)
+	binary.LittleEndian.PutUint32(audio[28:], 32000)
+	binary.LittleEndian.PutUint16(audio[32:], 2)
+	binary.LittleEndian.PutUint16(audio[34:], 16)
+	copy(audio[36:], "data")
+	binary.LittleEndian.PutUint32(audio[40:], 32000)
+	for i := 44; i < len(audio); i += 2 {
+		binary.LittleEndian.PutUint16(audio[i:], 1000)
+	}
+	if err := os.WriteFile(path, audio, 0600); err != nil {
+		t.Fatal(err)
+	}
+	a.recordingFactory = func() (*recordingExecution, error) {
+		t.Fatal("training/matching invoked transcription or diarization")
+		return nil, nil
+	}
+	a.speakerFactory = func(service *voicemodels.Service) *voicemodels.Service {
+		service.Prepare = func(context.Context, catalog.LibraryEntry, processing.AudioOptions) (*voicemodels.Audio, error) {
+			return &voicemodels.Audio{Path: path, SourceMap: processing.SourceMap{StartNumerator: "0", StartDenominator: "1", SampleRate: 16000, SampleCount: 16000, Policy: "fixture"}, Close: func() error { return nil }}, nil
+		}
+		service.Embed = func(context.Context, string, processing.SourceMap, string, string) ([]float64, error) {
+			return []float64{1, 0}, nil
+		}
+		return service
+	}
+	return baseID
 }

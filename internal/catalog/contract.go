@@ -13,6 +13,10 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	YieldSpeakerWorkflow(context.Context, Work, string, json.RawMessage) (Work, error)
+	SetWorkflowSpeakerProfile(context.Context, Work, string, string, int64, string) (SpeakerProfile, error)
+	ApplySpeakerDiscovery(context.Context, string, string, int64, *Work) (SpeakerApplication, error)
+	RetractSpeakerDiscovery(context.Context, string, string, int64, []MappingRevision) (SpeakerApplication, error)
 	FreezeSpeakerDiscovery(context.Context, string, int, string) (SpeakerDiscoverySnapshot, error)
 	SpeakerDiscovery(context.Context, string) (SpeakerDiscovery, error)
 	AcceptSpeakerDiscovery(context.Context, Work, SpeakerDiscoverySnapshot, sd.Aggregate) (Work, error)
@@ -32,7 +36,7 @@ type Catalog interface {
 	MutateImportPreset(context.Context, string, string, int64, ImportPreset) (ImportPreset, error)
 	Profile(context.Context, string, int64) (Profile, error)
 	PortableWorkInput(context.Context, Work) (bool, string, error)
-	CreateSpeakerDataset(context.Context, string, string, []CurrentReference, string, json.RawMessage, json.RawMessage, string) (SpeakerDataset, error)
+	CreateSpeakerDataset(context.Context, string, string, []CurrentReference, string, json.RawMessage, json.RawMessage, string, ...Work) (SpeakerDataset, error)
 	ReplaySpeakerDataset(context.Context, string, string, json.RawMessage) (SpeakerDataset, bool, error)
 	SpeakerDataset(context.Context, string) (SpeakerDataset, error)
 	SpeakerDatasets(context.Context, string) ([]SpeakerDataset, error)

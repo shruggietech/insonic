@@ -7,6 +7,7 @@ All notable changes to this project will be documented here. The format follows 
 ### Added
 
 - 2026-11-02: Discover current speaker hypotheses through elected HTTP or Ollama providers, preserve exact cue provenance and ambiguity, and resolve manual, independent acoustic and contextual evidence into five explainable outcomes through durable CLI/runtime operations. Include bounded coverage, cancellation, current-source invalidation and portable evidence proofs without changing mappings or enrolling models.
+- 2026-11-02: Apply independently grounded contextual speaker mappings and enroll their current clips with explicit lineage and mixed-speaker exclusions. Add revision-fenced retraction and resumable configured CLI/pipeline workflows, preserving owner corrections, current profile validity and historical trained artifacts.
 
 ### Decisions
 

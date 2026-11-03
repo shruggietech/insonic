@@ -137,53 +137,11 @@ func (s *Store) freezeSpeakerDiscoveryTx(ctx context.Context, tx *sql.Tx, id str
 			out.Context.OwnerEvidence = append(out.Context.OwnerEvidence, sd.OwnerEvidence{MappingID: m.ID, Revision: m.Revision, VoiceID: m.LocalSpeakerID})
 		}
 	}
-	var doc struct {
-		Cues []struct {
-			ID      string `json:"id"`
-			Payload struct {
-				Text string `json:"plain_text"`
-			} `json:"payload"`
-			Attributions []struct {
-				ID string `json:"speaker_id"`
-			} `json:"speaker_attributions"`
-		} `json:"cues"`
-	}
-	if json.Unmarshal(r.Document, &doc) != nil {
-		return out, contracts.Fail("invalid_request")
-	}
-	out.Coverage.Total = len(doc.Cues)
-	voices := map[string]bool{}
-	cueIDs := map[string]bool{}
-	for _, cue := range doc.Cues {
-		if cue.ID == "" || cueIDs[cue.ID] {
-			return out, contracts.Fail("invalid_request")
-		}
-		cueIDs[cue.ID] = true
-		for _, a := range cue.Attributions {
-			voices[a.ID] = true
-		}
-		if len(out.Context.Cues) >= maxCues {
-			continue
-		}
-		c := sd.Cue{ID: cue.ID, Text: cue.Payload.Text, Voices: []string{}, Roots: []string{}}
-		for _, a := range cue.Attributions {
-			c.Voices = append(c.Voices, a.ID)
-		}
-		sort.Strings(c.Voices)
-		out.Context.Cues = append(out.Context.Cues, c)
-	}
-	for voice := range voices {
-		out.Context.Voices = append(out.Context.Voices, voice)
-	}
-	sort.Strings(out.Context.Voices)
-	if len(voices) > 1000 {
-		return out, contracts.Fail("input_limit")
-	}
-	if e = discoveryRoots(r, &out.Context); e != nil {
+	parsed, coverage, e := recordingDiscoveryContext(r, maxCues)
+	if e != nil {
 		return out, e
 	}
-	out.Coverage.Selected = len(out.Context.Cues)
-	out.Coverage.Omitted = out.Coverage.Total - out.Coverage.Selected
+	out.Context.Cues, out.Context.Voices, out.Coverage = parsed.Cues, parsed.Voices, coverage
 	out.Context.Acoustic, e = s.speakerDiscoveryAcousticTx(ctx, tx, id, matchID)
 	if e != nil {
 		return out, e
@@ -378,4 +336,58 @@ func (s *Store) ResolveSpeakerDiscovery(ctx context.Context, op, id string, expe
 		return SpeakerDiscovery{}, e
 	}
 	return
+}
+
+// recordingDiscoveryContext reconstructs exact bounded cue and source roots.
+func recordingDiscoveryContext(r Recording, maxCues int) (out sd.Context, coverage sd.Coverage, err error) {
+	out.Cues = []sd.Cue{}
+	out.Voices = []string{}
+	var doc struct {
+		Cues []struct {
+			ID      string `json:"id"`
+			Payload struct {
+				Text string `json:"plain_text"`
+			} `json:"payload"`
+			Attributions []struct {
+				ID string `json:"speaker_id"`
+			} `json:"speaker_attributions"`
+		} `json:"cues"`
+	}
+	if json.Unmarshal(r.Document, &doc) != nil {
+		return out, coverage, contracts.Fail("invalid_request")
+	}
+	coverage.Total = len(doc.Cues)
+	voices := map[string]bool{}
+	cueIDs := map[string]bool{}
+	for _, cue := range doc.Cues {
+		if cue.ID == "" || cueIDs[cue.ID] {
+			return out, coverage, contracts.Fail("invalid_request")
+		}
+		cueIDs[cue.ID] = true
+		for _, a := range cue.Attributions {
+			voices[a.ID] = true
+		}
+		if len(out.Cues) >= maxCues {
+			continue
+		}
+		c := sd.Cue{ID: cue.ID, Text: cue.Payload.Text, Voices: []string{}, Roots: []string{}}
+		for _, a := range cue.Attributions {
+			c.Voices = append(c.Voices, a.ID)
+		}
+		sort.Strings(c.Voices)
+		out.Cues = append(out.Cues, c)
+	}
+	for voice := range voices {
+		out.Voices = append(out.Voices, voice)
+	}
+	sort.Strings(out.Voices)
+	if len(voices) > 1000 {
+		return out, coverage, contracts.Fail("input_limit")
+	}
+	if e := discoveryRoots(r, &out); e != nil {
+		return out, coverage, e
+	}
+	coverage.Selected = len(out.Cues)
+	coverage.Omitted = coverage.Total - coverage.Selected
+	return out, coverage, nil
 }

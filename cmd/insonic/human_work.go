@@ -11,7 +11,7 @@ import (
 // Durable work has a known envelope. Show its outcome without recursively
 // dumping model/configuration internals; read-only query columns remain intact.
 func humanWorkSummary(b *humanBuffer, root map[string]any, errorShown bool) bool {
-	if !strings.HasPrefix(strings.Join(operatorContext.Path, " "), "work ") && root["kind"] != "answers.request" {
+	if !strings.HasPrefix(strings.Join(operatorContext.Path, " "), "work ") && root["kind"] != "answers.request" && root["kind"] != "speakers.run" {
 		return false
 	}
 	id, _ := root["id"].(string)
@@ -67,6 +67,9 @@ func humanWorkSummary(b *humanBuffer, root map[string]any, errorShown bool) bool
 			b.line("Error: %s: %s", failure.Code, failure.Message)
 			humanDeviceAttempt(b, failure)
 		}
+	}
+	if root["kind"] == "speakers.run" {
+		humanSpeakerWorkflow(b, result)
 	}
 	humanRepairSummary(b, result)
 	humanWorkerProbe(b, result)

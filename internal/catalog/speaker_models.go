@@ -57,6 +57,7 @@ type SpeakerMatchingSnapshot struct {
 	Mappings         []SpeakerMapping `json:"-"`
 	MappingDigest    string           `json:"mapping_digest"`
 	ManualVoices     []string         `json:"manual_voices"`
+	ContextualVoices []string         `json:"contextual_voices,omitempty"`
 	Profiles         []SpeakerProfile `json:"profiles"`
 	Outputs          []SpeakerOutput  `json:"outputs"`
 	Missing          []string         `json:"missing"`
@@ -247,7 +248,12 @@ func (s *Store) speakerDatasetTx(ctx context.Context, tx *sql.Tx, id string) (ou
 			mappings[mappingID] = mapping
 		}
 		raw, _ := canonical(r.SourceMap)
-		out.References = append(out.References, CurrentReference{RecordingID: r.ID, RecordingRevision: r.Revision, DocumentDigest: seg.DocumentDigest, CueID: seg.CueID, LocalSpeakerID: seg.LocalSpeakerID, SpeakerID: out.Dataset.SpeakerID, MappingRevision: mapping.Revision, SourceDigest: r.SourceDigest, SourceMapDigest: hash(raw)})
+		ref := CurrentReference{RecordingID: r.ID, RecordingRevision: r.Revision, DocumentDigest: seg.DocumentDigest, CueID: seg.CueID, LocalSpeakerID: seg.LocalSpeakerID, SpeakerID: out.Dataset.SpeakerID, MappingRevision: mapping.Revision, SourceDigest: r.SourceDigest, SourceMapDigest: hash(raw)}
+		if mapping.Origin == "contextual" {
+			ref.EvidenceClass = "independent-contextual"
+			ref.EvidenceDigest = hash(mapping.Provenance)
+		}
+		out.References = append(out.References, ref)
 	}
 	return
 }
@@ -313,14 +319,27 @@ func (s *Store) validateCurrentReferenceTx(ctx context.Context, tx *sql.Tx, ref 
 	if e != nil {
 		return e
 	}
-	if r.Revision != ref.RecordingRevision || r.DocumentDigest != ref.DocumentDigest || r.SourceDigest != ref.SourceDigest || hash(raw) != ref.SourceMapDigest || m.Revision != ref.MappingRevision || m.SpeakerID != ref.SpeakerID || m.DocumentDigest != ref.DocumentDigest || m.Origin != "manual" {
+	if r.Revision != ref.RecordingRevision || r.DocumentDigest != ref.DocumentDigest || r.SourceDigest != ref.SourceDigest || hash(raw) != ref.SourceMapDigest || m.Revision != ref.MappingRevision || m.SpeakerID != ref.SpeakerID || m.DocumentDigest != ref.DocumentDigest || !IndependentMapping(m) {
 		return contracts.Fail("conflict")
+	}
+	if m.Origin == "contextual" {
+		if !ok {
+			if e = s.contextualMappingCurrentTx(ctx, tx, m); e != nil {
+				return e
+			}
+		}
+		if ref.EvidenceClass != "independent-contextual" || ref.EvidenceDigest != hash(m.Provenance) {
+			return contracts.Fail("conflict")
+		}
 	}
 	_, e = s.segmentCueCached(ctx, tx, Segment{RecordingID: ref.RecordingID, DocumentDigest: ref.DocumentDigest, CueID: ref.CueID, LocalSpeakerID: ref.LocalSpeakerID}, cache)
 	return e
 }
-func (s *Store) CreateSpeakerDataset(ctx context.Context, op, speakerID string, refs []CurrentReference, epoch string, recipe, summary json.RawMessage, manifestPublicationID string) (out SpeakerDataset, e error) {
+func (s *Store) CreateSpeakerDataset(ctx context.Context, op, speakerID string, refs []CurrentReference, epoch string, recipe, summary json.RawMessage, manifestPublicationID string, claim ...Work) (out SpeakerDataset, e error) {
 	if !contracts.ValidID(op) || !contracts.ValidID(speakerID) || !contracts.ValidID(manifestPublicationID) || !digestPattern.MatchString(epoch) || len(refs) > SpeakerDatasetReferenceLimit || len(recipe) > 1<<20 || len(summary) > 16384 || !referenceOnlyOptions(recipe) || !referenceOnlyOptions(summary) {
+		return out, contracts.Fail("invalid_request")
+	}
+	if len(claim) > 1 {
 		return out, contracts.Fail("invalid_request")
 	}
 	id := SpeakerDatasetID(op, speakerID)
@@ -337,6 +356,11 @@ func (s *Store) CreateSpeakerDataset(ctx context.Context, op, speakerID string, 
 		if ok {
 			out, err = s.speakerDatasetTx(ctx, tx, id)
 			return err
+		}
+		if len(claim) == 1 {
+			if _, err = s.workAuthority(ctx, tx, claim[0]); err != nil {
+				return err
+			}
 		}
 		sp, err := s.speakerTx(ctx, tx, speakerID)
 		if err != nil {
@@ -611,7 +635,10 @@ func (s *Store) SpeakerProfile(ctx context.Context, id string) (out SpeakerProfi
 	}
 	return
 }
-func (s *Store) SetSpeakerProfile(ctx context.Context, op, speakerID string, expected int64, versionID string) (out SpeakerProfile, e error) {
+func (s *Store) SetSpeakerProfile(ctx context.Context, op, speakerID string, expected int64, versionID string) (SpeakerProfile, error) {
+	return s.setSpeakerProfile(ctx, op, speakerID, expected, versionID, nil)
+}
+func (s *Store) setSpeakerProfile(ctx context.Context, op, speakerID string, expected int64, versionID string, claim *Work) (out SpeakerProfile, e error) {
 	if !contracts.ValidID(op) || !contracts.ValidID(speakerID) || expected < 0 || versionID != "" && !contracts.ValidID(versionID) {
 		return out, contracts.Fail("invalid_request")
 	}
@@ -623,6 +650,11 @@ func (s *Store) SetSpeakerProfile(ctx context.Context, op, speakerID string, exp
 		}
 		if ok {
 			return s.domainTx(ctx, tx, "SpeakerProfiles", speakerID, &out)
+		}
+		if claim != nil {
+			if _, err = s.workAuthority(ctx, tx, *claim); err != nil {
+				return err
+			}
 		}
 		var sp Speaker
 		if err = s.domainTx(ctx, tx, "Speakers", speakerID, &sp); err != nil {
@@ -657,6 +689,14 @@ func (s *Store) SetSpeakerProfile(ctx context.Context, op, speakerID string, exp
 			}
 			if err = s.availablePublications(ctx, tx, v.PublicationIDs); err != nil {
 				return err
+			}
+			if claim != nil {
+				if !speakerOutputCurrent(v) || v.SpeakerID != speakerID {
+					return contracts.Fail("conflict")
+				}
+				if _, err = s.validCurrentDatasetTx(ctx, tx, v.DatasetID); err != nil {
+					return err
+				}
 			}
 			// Explicit profile election supplies current association authority,
 			// preserving the immutable originating speaker on the model output.
@@ -769,11 +809,15 @@ func (s *Store) freezeSpeakerMatchingTx(ctx context.Context, tx *sql.Tx, id stri
 	out.MappingDigest, _ = intent(out.Mappings)
 	out.ManualVoices = []string{}
 	for _, m := range out.Mappings {
+		if m.Origin == "contextual" {
+			out.ContextualVoices = append(out.ContextualVoices, m.LocalSpeakerID)
+		}
 		if m.Origin == "manual" {
 			out.ManualVoices = append(out.ManualVoices, m.LocalSpeakerID)
 		}
 	}
 	sort.Strings(out.ManualVoices)
+	sort.Strings(out.ContextualVoices)
 	for i := range out.Roster.Members {
 		out.Roster.Members[i].Name = ""
 	}
@@ -794,6 +838,10 @@ func (s *Store) freezeSpeakerMatchingTx(ctx context.Context, tx *sql.Tx, id stri
 		}
 		if e = s.validateProfileAssociationTx(ctx, tx, head, v); e != nil {
 			return out, e
+		}
+		if !speakerOutputCurrent(v) {
+			out.Missing = append(out.Missing, sp.ID)
+			continue
 		}
 		if err = s.availablePublications(ctx, tx, v.PublicationIDs); err != nil {
 			out.Missing = append(out.Missing, sp.ID)
@@ -858,7 +906,7 @@ func (s *Store) CommitSpeakerMatching(ctx context.Context, claim Work, frozen Sp
 		}
 		manual := map[string]bool{}
 		for _, m := range current.Mappings {
-			if m.Origin == "manual" {
+			if IndependentMapping(m) {
 				manual[m.LocalSpeakerID] = true
 			}
 		}
@@ -881,7 +929,7 @@ func (s *Store) CommitSpeakerMatching(ctx context.Context, claim Work, frozen Sp
 				if _, ok := eligible[d.SpeakerID]; !ok {
 					return contracts.Fail("invalid_request")
 				}
-			case "unknown", "ambiguous", "manual-preserved":
+			case "unknown", "ambiguous", "manual-preserved", "contextual-preserved":
 				if d.SpeakerID != "" {
 					return contracts.Fail("invalid_request")
 				}

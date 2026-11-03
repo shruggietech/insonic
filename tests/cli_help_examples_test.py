@@ -28,7 +28,7 @@ class HelpExampleTests(unittest.TestCase):
 
     def test_recording_operand_requires_current_recording_identity(self):
         identity = "10000000-0000-4000-8000-000000000002"
-        for action in ["discover", "hypotheses", "resolve"]:
+        for action in ["discover", "hypotheses", "resolve", "apply", "retract", "run"]:
             actual = ["speakers", action, "RECORDING_UUID"]
             with self.assertRaises(ValueError):
                 substitute(actual, {})

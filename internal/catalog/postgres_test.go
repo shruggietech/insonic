@@ -245,3 +245,9 @@ func TestPostgreSQLDiscoveryFencesAndInvalidation(t *testing.T) {
 func TestPostgreSQLDiscoveryMatchingCompletion(t *testing.T) {
 	discoveryMatchingCompletionSuite(t, postgresStore(t, contracts.ID()))
 }
+
+func TestPostgreSQLContextualApplication(t *testing.T) {
+	contextualApplicationSuite(t, postgresStore(t, contracts.ID()))
+	contextualInvalidationSuite(t, func() *Store { return postgresStore(t, contracts.ID()) })
+	speakerWorkflowSuite(t, postgresStore(t, contracts.ID()))
+}

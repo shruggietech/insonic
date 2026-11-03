@@ -34,6 +34,11 @@ class TerminalFailureEvidenceTests(unittest.TestCase):
             evidence = FailureEvidence('a' * 64, {'GITHUB_ACTIONS': 'true', 'GITHUB_WORKSPACE': root}, platform='windows')
             (directory / 'process-startup-43-1-receipt.json').write_text(json.dumps(native), encoding='utf-8')
             (directory / 'process-startup-44-1-receipt.json').write_text(json.dumps({**native, 'pid': 44}), encoding='utf-8')
+            # Pin freshness explicitly: Windows filesystem and wall-clock reads
+            # can straddle different timestamp granularities under suite load.
+            for pid in (43, 44):
+                os.utime(directory / f'process-startup-{pid}-1-receipt.json',
+                         ns=(evidence.started + 1000000, evidence.started + 1000000))
             evidence.identities.update(startup_id=startup, workspace_id=workspace, runtime_session_id=session, work_id=work)
             live = {'before_cleanup': True}
             def poll_owner():

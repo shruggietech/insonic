@@ -211,6 +211,9 @@ func (s *Store) workAuthority(ctx context.Context, tx *sql.Tx, claim Work) (Work
 	if w.State != "running" || w.Owner != claim.Owner || w.Generation != claim.Generation || w.LeaseUntil <= now {
 		return w, contracts.Fail("conflict")
 	}
+	if e = s.workflowParentCurrent(ctx, tx, w); e != nil {
+		return w, e
+	}
 	return w, nil
 }
 func workJournalDigest(w Work) string {
@@ -249,6 +252,9 @@ func (s *Store) ClaimWork(ctx context.Context, id, owner string, ttl time.Durati
 		}
 		if w.Generation == math.MaxInt64 {
 			return contracts.Fail("conflict")
+		}
+		if e = s.workflowParentCurrent(ctx, tx, w); e != nil {
+			return e
 		}
 		w.Owner = owner
 		w.Generation++
@@ -366,6 +372,12 @@ func (s *Store) transitionWork(ctx context.Context, op, id string, retry bool) (
 				if dependency.Kind != "models.acquire" {
 					return contracts.Fail("invalid_request")
 				}
+				// Portable capture excludes source-host acquisition routes. Keep
+				// that receipt intact: consumers may use retained verified bytes,
+				// but retry cannot turn the marker into an executable request.
+				if dependency.Phase == "portable-source-required" {
+					continue
+				}
 				if dependency.State == "failed" || dependency.State == "cancelled" || dependency.State == "interrupted" || dependency.State == "succeeded" {
 					dependency.State = "pending"
 					dependency.Owner = ""
@@ -380,13 +392,18 @@ func (s *Store) transitionWork(ctx context.Context, op, id string, retry bool) (
 				}
 			}
 			w.State = "pending"
-			w.Result = json.RawMessage(`null`)
+			if w.Kind != "speakers.run" {
+				w.Result = json.RawMessage(`null`)
+			}
 			w.Error = ""
 		} else {
 			if w.State == "succeeded" || w.State == "failed" {
 				return contracts.Fail("conflict")
 			}
 			w.State = "cancelled"
+		}
+		if e = s.transitionWorkflowChildren(ctx, tx, w, retry, &rev); e != nil {
+			return e
 		}
 		w.LeaseUntil = 0
 		w.Owner = ""
@@ -407,6 +424,20 @@ func (s *Store) RetryWork(ctx context.Context, op, id string) (Work, error) {
 }
 
 func (s *Store) EnqueueChildWork(ctx context.Context, parent Work, op, kind string, payload json.RawMessage) (Work, error) {
+	if parent.Kind == "speakers.run" {
+		var fields map[string]json.RawMessage
+		if strict(payload, &fields) != nil || fields == nil {
+			return Work{}, contracts.Fail("invalid_request")
+		}
+		if previous, ok := fields["parent_work_id"]; ok {
+			var id string
+			if json.Unmarshal(previous, &id) != nil || id != parent.ID {
+				return Work{}, contracts.Fail("invalid_request")
+			}
+		}
+		fields["parent_work_id"], _ = json.Marshal(parent.ID)
+		payload, _ = json.Marshal(fields)
+	}
 	w := Work{JournalReceiptID: op, ID: op, Kind: kind, Payload: payload, State: "pending", Result: json.RawMessage(`null`)}
 	if !validWork(w) {
 		return w, contracts.Fail("invalid_request")

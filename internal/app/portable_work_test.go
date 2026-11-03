@@ -251,6 +251,72 @@ func TestPortableCustomTrainingPinsBindExactlyAndPreserveParameters(t *testing.T
 	}
 }
 
+func TestPortableSpeakerWorkflowBindsNestedTrainingWithoutSourcePaths(t *testing.T) {
+	source := portableWorkFixture(t)
+	executable, support := []byte("workflow trainer"), []byte("workflow support")
+	adapter := voicemodels.Adapter{ID: "insonic-speaker", ContractVersion: "1", Mode: "local", Architecture: "fixture",
+		OutputKinds: []string{"weights"}, Consumers: []string{},
+		Executable:   library.PinnedFile{Path: "C:/source-private/trainer.exe", SHA256: documentHash(executable)},
+		SupportFiles: []library.PinnedFile{{Path: "C:/source-private/config.json", SHA256: documentHash(support)}},
+		Arguments:    []string{"--config=C:/source-private/config.json"}}
+	old := ProcessingTools{Kind: "processing-tools", Version: contracts.Version,
+		Cueson: subtitles.Tool{Executable: "C:/source-private/cueson.exe", ExecutableSHA256: strings.Repeat("2", 64)}}
+	tools, _ := json.Marshal(old)
+	original := speakerWorkflowPayload{Training: voicemodels.TrainPayload{ProcessingTools: tools,
+		Options: voicemodels.TrainOptions{Adapter: adapter, Parameters: json.RawMessage(`{"steps":9007199254740993}`)}}}
+	raw, _ := json.Marshal(original)
+	w, err := source.Catalog.EnqueueWork(source.ctx, contracts.ID(), "speakers.run", raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := portableWorkTarget(t, source)
+	stored, err := target.Catalog.Work(target.ctx, w.ID)
+	if err != nil || strings.Contains(string(stored.Payload), "source-private") {
+		t.Fatal("retained source paths", err)
+	}
+	if proven, _, err := target.Catalog.PortableWorkInput(target.ctx, stored); err != nil || !proven {
+		t.Fatal("missing parent transformation proof", err)
+	}
+	config := portableDestinationConfig(t, target)
+	savePortableConfig(t, target, config)
+	if _, err = target.portableInvocation(stored); err == nil {
+		t.Fatal("unconfigured custom trainer accepted")
+	}
+	for _, body := range [][]byte{executable, support} {
+		path := filepath.Join(t.TempDir(), "destination-file")
+		if err = os.WriteFile(path, body, 0600); err != nil {
+			t.Fatal(err)
+		}
+		config.PortableFiles = append(config.PortableFiles, library.PinnedFile{Path: path, SHA256: documentHash(body)})
+	}
+	savePortableConfig(t, target, config)
+	invocation, err := target.portableInvocation(stored)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bound speakerWorkflowPayload
+	if strictPayload(invocation, &bound) != nil {
+		t.Fatal("invalid bound parent")
+	}
+	var selected ProcessingTools
+	if strictPayload(bound.Training.ProcessingTools, &selected) != nil || selected.Cueson != config.Cueson ||
+		bound.Training.Options.Adapter.Executable != config.PortableFiles[0] ||
+		bound.Training.Options.Adapter.Arguments[0] != "--config="+config.PortableFiles[1].Path ||
+		string(bound.Training.Options.Parameters) != string(original.Training.Options.Parameters) {
+		t.Fatal("nested training election or exact parameter changed")
+	}
+	unchanged, _ := source.Catalog.Work(source.ctx, w.ID)
+	if string(unchanged.Payload) != string(raw) {
+		t.Fatal("source work was changed")
+	}
+	if err = os.WriteFile(config.PortableFiles[0].Path, []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = target.portableInvocation(stored); err == nil {
+		t.Fatal("changed custom trainer accepted")
+	}
+}
+
 func TestPortableSavedTrainingPipelineUsesDestinationPinsForFutureElection(t *testing.T) {
 	source := portableWorkFixture(t)
 	body := []byte("configured adapter")

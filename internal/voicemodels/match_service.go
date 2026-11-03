@@ -153,11 +153,15 @@ func (s *Service) ExecuteMatch(ctx context.Context, claim catalog.Work) (any, er
 	reports := []Decision{}
 	var executions []processing.DeviceExecution
 	for _, local := range names {
-		manual := contains(payload.Snapshot.ManualVoices, local)
+		contextual := contains(payload.Snapshot.ContextualVoices, local)
+		manual := contains(payload.Snapshot.ManualVoices, local) || contextual
 		report := Decision{LocalSpeakerID: local, State: "unknown", EvidenceUS: observedVoiceDuration(voices[local])}
 		noVector := false
 		if manual {
 			report.State = "manual-preserved"
+			if contextual {
+				report.State = "contextual-preserved"
+			}
 		} else if len(candidates) > 0 {
 			vector, duration, observed, err := s.voiceEmbeddingBySource(ctx, recording, entry, local, voices[local], options, directory, audioCache)
 			if err != nil {
@@ -195,7 +199,7 @@ func (s *Service) ExecuteMatch(ctx context.Context, claim catalog.Work) (any, er
 			}
 		}
 		acceptedSpeaker := report.SpeakerID
-		if report.State == "manual-preserved" {
+		if report.State == "manual-preserved" || report.State == "contextual-preserved" {
 			acceptedSpeaker = ""
 		}
 		decisions = append(decisions, catalog.SpeakerMatchDecision{LocalSpeakerID: local, SpeakerID: acceptedSpeaker, State: report.State, Score: report.Score, RunnerUpScore: report.RunnerUpScore, CueIDs: cueIDs[local], Diagnostics: diagnostics})

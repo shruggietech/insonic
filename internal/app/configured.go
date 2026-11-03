@@ -161,6 +161,9 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 			}
 			ready, e := a.readinessDefinition(a.ctx, ReadinessInput{PipelineID: p.ID, PipelineRevision: p.Revision}, &d)
 			caps := []string{}
+			if d.SpeakerWorkflow != nil {
+				caps = append(caps, "speaker-workflow")
+			}
 			if len(d.SpeakerTraining) > 0 {
 				caps = append(caps, "speaker-model-training")
 			}
@@ -324,6 +327,9 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 func configurationBytes(value any) json.RawMessage { raw, _ := json.Marshal(value); return raw }
 
 func appendAnswerCapability(capabilities []pipeline.Capability, d pipeline.Definition) []pipeline.Capability {
+	if d.SpeakerWorkflow != nil {
+		capabilities = append(capabilities, pipeline.Capability{Adapter: d.SpeakerWorkflow.Provider.Adapter, Version: d.SpeakerWorkflow.Provider.ContractVersion, Operations: []string{"speaker-workflow"}})
+	}
 	if d.AnswerSynthesis != nil {
 		capabilities = append(capabilities, pipeline.Capability{Adapter: d.AnswerSynthesis.Provider.Adapter, Version: d.AnswerSynthesis.Provider.ContractVersion, Operations: []string{"answer-synthesis"}})
 	}

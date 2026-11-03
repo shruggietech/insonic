@@ -309,7 +309,8 @@
                           "matched",
                           "ambiguous",
                           "unknown",
-                          "manual-preserved"
+                          "manual-preserved",
+                          "contextual-preserved"
                         ]
                       },
                       "score": {
@@ -846,7 +847,8 @@
                       "matched",
                       "ambiguous",
                       "unknown",
-                      "manual-preserved"
+                      "manual-preserved",
+                      "contextual-preserved"
                     ]
                   },
                   "score": {

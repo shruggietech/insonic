@@ -23,6 +23,7 @@ type DiscoveryResolutionInput struct {
 	Policy           sd.Policy `json:"policy,omitempty"`
 }
 type discoveryPayload struct {
+	ParentWorkID     string            `json:"parent_work_id,omitempty"`
 	RecordingID      string            `json:"recording_id"`
 	SourceEpoch      string            `json:"source_epoch"`
 	MaxCues          int               `json:"max_cues"`
@@ -35,10 +36,30 @@ type discoveryPayload struct {
 }
 
 func speakerDiscoveryOperation(op string) bool {
-	return op == "speakers.discover" || op == "speakers.hypotheses" || op == "speakers.resolve"
+	return op == "speakers.discover" || op == "speakers.hypotheses" || op == "speakers.resolve" || op == "speakers.apply" || op == "speakers.retract" || op == "speakers.run"
 }
 func (a *App) speakerDiscoveryDispatch(ctx context.Context, req contracts.Request) (any, error) {
 	switch req.Operation {
+	case "speakers.run":
+		w, e := a.requestSpeakerWorkflow(ctx, req)
+		return workView(w), e
+	case "speakers.apply":
+		var in struct {
+			ExpectedRevision int64 `json:"expected_revision"`
+		}
+		if strictPayload(req.Data, &in) != nil {
+			return nil, contracts.Fail("invalid_request")
+		}
+		return a.Catalog.ApplySpeakerDiscovery(ctx, req.RequestID, req.ItemID, in.ExpectedRevision, nil)
+	case "speakers.retract":
+		var in struct {
+			ExpectedRecordingRevision int64                     `json:"expected_recording_revision"`
+			Mappings                  []catalog.MappingRevision `json:"mappings"`
+		}
+		if strictPayload(req.Data, &in) != nil {
+			return nil, contracts.Fail("invalid_request")
+		}
+		return a.Catalog.RetractSpeakerDiscovery(ctx, req.RequestID, req.ItemID, in.ExpectedRecordingRevision, in.Mappings)
 	case "speakers.discover":
 		w, e := a.requestSpeakerDiscovery(ctx, req)
 		return workView(w), e

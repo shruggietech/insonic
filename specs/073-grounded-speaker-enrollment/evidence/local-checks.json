@@ -1,0 +1,515 @@
+{
+  "format": "insonic-s073-local-checks-v1",
+  "preparation_started": "2026-11-03T01:55:53.168Z",
+  "qualification_started": "2026-11-03T01:55:53.169Z",
+  "observed": "2026-11-03T02:25:38.339Z",
+  "preparation_seconds": 0.001,
+  "qualification_seconds": 1747.131,
+  "combined_seconds": 1747.132,
+  "target_seconds": 1800,
+  "hard_limit_seconds": 3600,
+  "checks": [
+    {
+      "label": "python-tests",
+      "started": "2026-11-03T01:55:53.196Z",
+      "finished": "2026-11-03T01:55:53.294Z",
+      "seconds": 0.098,
+      "exit": 5,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "b0281afc5a8f851fedc2bba09c88d720f4dcc47a2a487e40928c779cb967ff8c"
+    },
+    {
+      "label": "root-check",
+      "started": "2026-11-03T01:55:53.169Z",
+      "finished": "2026-11-03T01:55:56.163Z",
+      "seconds": 2.994,
+      "exit": 0,
+      "stdout_sha256": "c9ba856f2a69538d933d44aee3202a546b33f7bd9a12a49d991080a403643479",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "cli-build",
+      "started": "2026-11-03T01:55:53.205Z",
+      "finished": "2026-11-03T01:55:56.354Z",
+      "seconds": 3.149,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "root-tests",
+      "started": "2026-11-03T01:55:53.179Z",
+      "finished": "2026-11-03T01:56:04.041Z",
+      "seconds": 10.862,
+      "exit": 1,
+      "stdout_sha256": "ba165e3c952dc391d7e8decf5223e29179a029889c08ecc229fde27ce7d2679b",
+      "stderr_sha256": "cebc3f178e7f5372dee3b5bb4819416b134be32c450c550b624c13b0286141e4"
+    },
+    {
+      "label": "go-tests",
+      "started": "2026-11-03T01:55:53.190Z",
+      "finished": "2026-11-03T01:57:56.398Z",
+      "seconds": 123.208,
+      "exit": 0,
+      "stdout_sha256": "43f2dc76043c7671e289468f0504d27149fc95495ea2371292e383fe0fac1488",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "frontend-check",
+      "started": "2026-11-03T02:07:56.559Z",
+      "finished": "2026-11-03T02:07:58.805Z",
+      "seconds": 2.246,
+      "exit": 0,
+      "stdout_sha256": "42118135dbcc8bc95d75d60ca04993807a727903414577aaea9d27e5f5893e73",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "cli-build-final",
+      "started": "2026-11-03T02:07:56.551Z",
+      "finished": "2026-11-03T02:08:02.731Z",
+      "seconds": 6.18,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "go-authority-final",
+      "started": "2026-11-03T02:07:56.545Z",
+      "finished": "2026-11-03T02:08:02.899Z",
+      "seconds": 6.354,
+      "exit": 1,
+      "stdout_sha256": "45ae054ce33f57ef78b123f0c2d34e3fe8e59e0ea8e4cf8cc5208b6327281a8c",
+      "stderr_sha256": "07716739ca00d5cdad169abb8104e986d69424aa403be283ebebd8c9ad9e4769"
+    },
+    {
+      "label": "site-tests",
+      "started": "2026-11-03T02:07:56.589Z",
+      "finished": "2026-11-03T02:08:09.639Z",
+      "seconds": 13.05,
+      "exit": 0,
+      "stdout_sha256": "e14072525c78664007810b278ca3bf0c606e1f3e9837a7e9a57f24ff8191ba37",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "root-tests-final",
+      "started": "2026-11-03T02:07:56.519Z",
+      "finished": "2026-11-03T02:08:11.830Z",
+      "seconds": 15.311,
+      "exit": 0,
+      "stdout_sha256": "4995108cd09adb19f3a29e008f6a201785cd7ddbc5198567e1c84d791f64f5e0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "frontend-tests",
+      "started": "2026-11-03T02:07:56.575Z",
+      "finished": "2026-11-03T02:08:15.527Z",
+      "seconds": 18.952,
+      "exit": 0,
+      "stdout_sha256": "e9bdea65572c69ac5115e638b456c75e50470129023f27d1050d62ac40c4b073",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "python-tests-final",
+      "started": "2026-11-03T02:07:56.530Z",
+      "finished": "2026-11-03T02:09:35.629Z",
+      "seconds": 99.099,
+      "exit": 1,
+      "stdout_sha256": "23cabbd0ccb62deb02e748b3244f27595eeae17966f9bc2fbf1d125c2a860a8a",
+      "stderr_sha256": "fde4fa7a454b741ce322ce5541113c95debbeeaa4422d46120f31052879cf084"
+    },
+    {
+      "label": "python-regressions",
+      "started": "2026-11-03T02:10:40.115Z",
+      "finished": "2026-11-03T02:10:40.235Z",
+      "seconds": 0.12,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "f4490c69cca664bf7e44360e4841270ccdd6e4dc8f634ce36976178fdf048b72"
+    },
+    {
+      "label": "bridge-final",
+      "started": "2026-11-03T02:10:40.110Z",
+      "finished": "2026-11-03T02:10:42.609Z",
+      "seconds": 2.499,
+      "exit": 1,
+      "stdout_sha256": "f211a077a2db43a0e3c90b25c182ec3662b6be5cc04a9d8bbc4c65ac0837407b",
+      "stderr_sha256": "7ba60ec445970fc181a563d989143d5d3175f43df632fa8e1578080d89dcd3cf"
+    },
+    {
+      "label": "python-setup",
+      "started": "2026-11-03T02:10:40.125Z",
+      "finished": "2026-11-03T02:10:51.122Z",
+      "seconds": 10.997,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "04344752998025c57e811de993634c637a05b1b50e26cf3fb315359c4dd2fa01"
+    },
+    {
+      "label": "installed-workflow",
+      "started": "2026-11-03T02:10:40.105Z",
+      "finished": "2026-11-03T02:10:52.516Z",
+      "seconds": 12.411,
+      "exit": 1,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "5b17915c3695aa6940a79fe22d72532a494ecf1f5cb1e1e62270b7caebd7736d"
+    },
+    {
+      "label": "site-build",
+      "started": "2026-11-03T02:10:40.130Z",
+      "finished": "2026-11-03T02:10:54.869Z",
+      "seconds": 14.739,
+      "exit": 0,
+      "stdout_sha256": "00f35e974e46f2615455081b0fe777b0fe1460924cb2fe8acd6b870f30a80cfb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "python-release",
+      "started": "2026-11-03T02:10:40.120Z",
+      "finished": "2026-11-03T02:11:22.732Z",
+      "seconds": 42.612,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "31da685447ce67464f170b0463b38f0cbe4430dff6353ba68681ad4a3136d44c"
+    },
+    {
+      "label": "bridge-final-2",
+      "started": "2026-11-03T02:14:04.304Z",
+      "finished": "2026-11-03T02:14:06.502Z",
+      "seconds": 2.198,
+      "exit": 0,
+      "stdout_sha256": "33b1c2e31a709cdcbb401db64e10e5e8709342cbfc8e9e8512eefcc90e454759",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "root-check-final",
+      "started": "2026-11-03T02:14:04.306Z",
+      "finished": "2026-11-03T02:14:06.995Z",
+      "seconds": 2.689,
+      "exit": 0,
+      "stdout_sha256": "c9ba856f2a69538d933d44aee3202a546b33f7bd9a12a49d991080a403643479",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "installed-workflow-2",
+      "started": "2026-11-03T02:14:04.301Z",
+      "finished": "2026-11-03T02:14:41.354Z",
+      "seconds": 37.053,
+      "exit": 0,
+      "stdout_sha256": "379c3feff9f707193e5ab53aa17580fb10766a9249ae24fe21744a183bc01994",
+      "stderr_sha256": "54aa6c75f36f557f002cf05344affa7106a07b3d58714cdec3e9778c47ea03e1"
+    },
+    {
+      "label": "go-vet",
+      "started": "2026-11-03T02:15:33.763Z",
+      "finished": "2026-11-03T02:15:52.610Z",
+      "seconds": 18.847,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "installed-workflow-final",
+      "started": "2026-11-03T02:15:33.769Z",
+      "finished": "2026-11-03T02:16:12.651Z",
+      "seconds": 38.882,
+      "exit": 0,
+      "stdout_sha256": "6fc428d2d8a5d458ecca8f0595cb680204ba63ddecd607483500e2971ac0327d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "go-tests-final",
+      "started": "2026-11-03T02:15:33.756Z",
+      "finished": "2026-11-03T02:17:10.517Z",
+      "seconds": 96.761,
+      "exit": 1,
+      "stdout_sha256": "a48f214b460fc56eda74ebc3620eed91587190dc85f6e8c3249abb51eb293e1a",
+      "stderr_sha256": "1146577e8f9abcf35068da6879a34aca37343117f7c7599300d27c92b409ca89"
+    },
+    {
+      "label": "python-tests-complete",
+      "started": "2026-11-03T02:15:33.767Z",
+      "finished": "2026-11-03T02:17:18.138Z",
+      "seconds": 104.371,
+      "exit": 1,
+      "stdout_sha256": "23cabbd0ccb62deb02e748b3244f27595eeae17966f9bc2fbf1d125c2a860a8a",
+      "stderr_sha256": "be210808c0aa589f51380a4285b1df3905b9cfc367939dd10fba6aaf5635fe5b"
+    },
+    {
+      "label": "go-catalog-final",
+      "started": "2026-11-03T02:20:03.697Z",
+      "finished": "2026-11-03T02:20:07.059Z",
+      "seconds": 3.362,
+      "exit": 1,
+      "stdout_sha256": "d0420d00efcb86304350b0c41eb85cbc4d7238a4432cf063cd5e8ca156a647a3",
+      "stderr_sha256": "ccf12ec7b9f5f31325c9b931df1da7c7c269dbd8f8ca885f9dd3bd8f67f6bfbf"
+    },
+    {
+      "label": "go-catalog-qualified",
+      "started": "2026-11-03T02:21:19.119Z",
+      "finished": "2026-11-03T02:21:25.301Z",
+      "seconds": 6.182,
+      "exit": 1,
+      "stdout_sha256": "4f114aa235d9648f447ab6efcf6bc17faa68685967fc22d6ec2047e90dc4a978",
+      "stderr_sha256": "ccf12ec7b9f5f31325c9b931df1da7c7c269dbd8f8ca885f9dd3bd8f67f6bfbf"
+    },
+    {
+      "label": "go-catalog-qualified-2",
+      "started": "2026-11-03T02:21:58.158Z",
+      "finished": "2026-11-03T02:22:05.659Z",
+      "seconds": 7.501,
+      "exit": 1,
+      "stdout_sha256": "a7b7e8f1d6f5eac12a2ddfd7be1ba45d7f3bad4a176d3339e0b54c46d1aca6fa",
+      "stderr_sha256": "ccf12ec7b9f5f31325c9b931df1da7c7c269dbd8f8ca885f9dd3bd8f67f6bfbf"
+    },
+    {
+      "label": "backend-harness-local",
+      "started": "2026-11-03T02:21:39.535Z",
+      "finished": "2026-11-03T02:22:36.427Z",
+      "seconds": 56.892,
+      "exit": 0,
+      "stdout_sha256": "29d0a47636cd7d9ed518a85b55932495f7797160c0dc20b1265746d3f10305c0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "go-catalog-qualified-3",
+      "started": "2026-11-03T02:22:43.094Z",
+      "finished": "2026-11-03T02:22:52.734Z",
+      "seconds": 9.64,
+      "exit": 0,
+      "stdout_sha256": "388dcc0b9e253f360f77b85ef13d184cdfc8995294078646ccbd372aa67bee6a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "python-tests-qualified",
+      "started": "2026-11-03T02:20:03.701Z",
+      "finished": "2026-11-03T02:22:58.699Z",
+      "seconds": 174.998,
+      "exit": 0,
+      "stdout_sha256": "23cabbd0ccb62deb02e748b3244f27595eeae17966f9bc2fbf1d125c2a860a8a",
+      "stderr_sha256": "b867d76a7030443d64817e78935f554e1d7bdfb120067ee7c07fcfc9cb35f403"
+    },
+    {
+      "label": "go-tests-qualified",
+      "started": "2026-11-03T02:23:31.825Z",
+      "finished": "2026-11-03T02:24:29.386Z",
+      "seconds": 57.561,
+      "exit": 0,
+      "stdout_sha256": "15f59dba55634e8259a89af1781b3bfef70f0aad7811c53e81a5435797ee850b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "staged-root-check",
+      "started": "2026-11-03T02:24:44.141Z",
+      "finished": "2026-11-03T02:24:48.723Z",
+      "seconds": 4.582,
+      "exit": 0,
+      "stdout_sha256": "862d1309913b8ae4902b92e554a07743d76213c00bb45a7845381649c7382306",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "staged-root-tests",
+      "started": "2026-11-03T02:24:44.248Z",
+      "finished": "2026-11-03T02:25:00.300Z",
+      "seconds": 16.052,
+      "exit": 0,
+      "stdout_sha256": "336e9869cddd6ea6f7aca5dd487afac5b5c8852cd73d2d2efd91ada7d7d31ddf",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "qualification_finished": "2026-11-03T02:25:00.300Z",
+  "state": "passed-after-recorded-corrections",
+  "target_exceeded": false,
+  "hard_limit_exceeded": false,
+  "final_checks": [
+    "go-tests-qualified",
+    "go-vet",
+    "python-tests-qualified",
+    "staged-root-check",
+    "staged-root-tests",
+    "frontend-check",
+    "frontend-tests",
+    "site-tests",
+    "site-build",
+    "installed-workflow-final",
+    "backend-harness-local"
+  ],
+  "review_correction_checks": [
+    {
+      "label": "review-portable-regressions",
+      "started": "2026-11-03T02:35:57.262Z",
+      "finished": "2026-11-03T02:38:27.321Z",
+      "seconds": 150.059,
+      "exit": 1,
+      "stdout_sha256": "ff715f1ac79b6bed9f574077ecfb2fd2390c745c143fdce5cd51cbdfebe8cb6a",
+      "stderr_sha256": "cef0548ce8530b5dbc6181111a9ef0a577808108332e9b4e2bad1bf7143c5d07"
+    },
+    {
+      "label": "review-portable-diagnostic",
+      "started": "2026-11-03T02:38:43.324Z",
+      "finished": "2026-11-03T02:39:51.745Z",
+      "seconds": 68.421,
+      "exit": 1,
+      "stdout_sha256": "11d469bfe610567f16dd58ea695d25197b54df0f1f41f71cf92fe37d1f5ccf7c",
+      "stderr_sha256": "255ed3e2d965842df2072699c0b8aab96a3f5ad0d351142dfbc81958334b73a0"
+    },
+    {
+      "label": "review-portable-pins",
+      "started": "2026-11-03T02:38:43.451Z",
+      "finished": "2026-11-03T02:38:51.898Z",
+      "seconds": 8.447,
+      "exit": 0,
+      "stdout_sha256": "bff78595b7507e4507bf26c493e61e607b68f36cb70a6cf8b26528a4f3ad370e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-portable-regressions-final",
+      "started": "2026-11-03T02:39:46.341Z",
+      "finished": "2026-11-03T02:40:14.394Z",
+      "seconds": 28.053,
+      "exit": 1,
+      "stdout_sha256": "d92e42564eb43f192ef14777e440f1207b3f1545b65ecc64ba67a07dead207a4",
+      "stderr_sha256": "cef0548ce8530b5dbc6181111a9ef0a577808108332e9b4e2bad1bf7143c5d07"
+    },
+    {
+      "label": "review-portable-resume-detail",
+      "started": "2026-11-03T02:40:41.504Z",
+      "finished": "2026-11-03T02:40:54.584Z",
+      "seconds": 13.08,
+      "exit": 1,
+      "stdout_sha256": "196c861932a76a9084bb1c602c8e25f599b124ad8fd8753d59f7ed048c9881e8",
+      "stderr_sha256": "10371006429372533b4ef433d7ea7b422cfd02531a63b8e91b7a2e29832cd577"
+    },
+    {
+      "label": "review-portable-dependency-detail",
+      "started": "2026-11-03T02:41:39.408Z",
+      "finished": "2026-11-03T02:41:53.762Z",
+      "seconds": 14.354,
+      "exit": 1,
+      "stdout_sha256": "f271f202f81393dcda66923dd9abe1e85873dcd8c39f4e946bfd21688c191c62",
+      "stderr_sha256": "10371006429372533b4ef433d7ea7b422cfd02531a63b8e91b7a2e29832cd577"
+    },
+    {
+      "label": "review-portable-resume",
+      "started": "2026-11-03T02:47:28.242Z",
+      "finished": "2026-11-03T02:47:55.805Z",
+      "seconds": 27.563,
+      "exit": 0,
+      "stdout_sha256": "bae951a19de4b6f49f27f86ae0328f3f38cfa392f12b01abfd992dfc1bdcdd59",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-root-check",
+      "started": "2026-11-03T02:48:51.261Z",
+      "finished": "2026-11-03T02:48:55.425Z",
+      "seconds": 4.164,
+      "exit": 0,
+      "stdout_sha256": "862d1309913b8ae4902b92e554a07743d76213c00bb45a7845381649c7382306",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-root-tests",
+      "started": "2026-11-03T02:48:55.426Z",
+      "finished": "2026-11-03T02:49:12.284Z",
+      "seconds": 16.858,
+      "exit": 0,
+      "stdout_sha256": "06ada5642052fad792dd7f386685d70d5b86f306207b2f7a2d3a7723b62cd83a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-go-tests",
+      "started": "2026-11-03T02:50:49.311Z",
+      "finished": "2026-11-03T02:53:43.926Z",
+      "seconds": 174.615,
+      "exit": 0,
+      "stdout_sha256": "42550d5b63ab672330abbbf25634100a47fe1854e458d25f2dc188cf31f5b81d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-go-vet",
+      "started": "2026-11-03T02:50:49.404Z",
+      "finished": "2026-11-03T02:51:16.403Z",
+      "seconds": 26.999,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-python-tests",
+      "started": "2026-11-03T02:50:49.552Z",
+      "finished": "2026-11-03T02:54:41.400Z",
+      "seconds": 231.848,
+      "exit": 1,
+      "stdout_sha256": "23cabbd0ccb62deb02e748b3244f27595eeae17966f9bc2fbf1d125c2a860a8a",
+      "stderr_sha256": "444655b0ef4d67ea512e47ea5e8a92cfc867cf27565cd6d4fffe802576c1c5cb"
+    },
+    {
+      "label": "review-python-http-isolated",
+      "started": "2026-11-03T02:55:04.777Z",
+      "finished": "2026-11-03T02:55:05.362Z",
+      "seconds": 0.585,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "a8c0a984eef15a3a90826ab707c248f39e114f460da1751f9fdcfa09faa78cc3"
+    }
+  ],
+  "review_correction_notes": [
+    "A tool-session timeout interrupted one Go/Python verification invocation before durable terminal results; no result is claimed for that invocation.",
+    "The completed Python suite had one 1-second HTTP worker timing assertion at 1.468 seconds while Go compilation was concurrent; all 11 HTTP tests passed in an isolated repeat. Injected failure clocks are unchanged."
+  ],
+  "backend_correction_checks": [
+    {
+      "label": "backend-harness-local",
+      "started": "2026-11-03T02:21:39.535Z",
+      "finished": "2026-11-03T02:22:36.427Z",
+      "seconds": 56.892,
+      "exit": 0,
+      "stdout_sha256": "29d0a47636cd7d9ed518a85b55932495f7797160c0dc20b1265746d3f10305c0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "backend-namespace-regression",
+      "started": "2026-11-03T03:09:22.576Z",
+      "finished": "2026-11-03T03:09:22.994Z",
+      "seconds": 0.418,
+      "exit": 1,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "f62a63ea7fdc2385bba8106c91ef1c1e940b276a5fe9fa1df4d0f076cc7e6f09"
+    },
+    {
+      "label": "backend-namespace-regression-final",
+      "started": "2026-11-03T03:09:28.891Z",
+      "finished": "2026-11-03T03:09:29.307Z",
+      "seconds": 0.416,
+      "exit": 0,
+      "stdout_sha256": "c8805467fbecbf908d285390422f26b3ceb002d9caf3ae7e31ff8da089ffcc8e",
+      "stderr_sha256": "d3a2e930be1dbd65139e3bd72d672cf608f7606e9c02e1b615015ed4e556f0ac"
+    },
+    {
+      "label": "backend-root-check",
+      "started": "2026-11-03T03:09:55.853Z",
+      "finished": "2026-11-03T03:09:59.809Z",
+      "seconds": 3.956,
+      "exit": 0,
+      "stdout_sha256": "862d1309913b8ae4902b92e554a07743d76213c00bb45a7845381649c7382306",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "backend-root-tests",
+      "started": "2026-11-03T03:09:59.809Z",
+      "finished": "2026-11-03T03:10:17.813Z",
+      "seconds": 18.004,
+      "exit": 0,
+      "stdout_sha256": "43854d7e3074e6583588f4f2ff2b811c6e760985dbef0cb99335c03a42867ed2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "backend-python-full",
+      "started": "2026-11-03T03:10:17.814Z",
+      "finished": "2026-11-03T03:13:38.135Z",
+      "seconds": 200.321,
+      "exit": 0,
+      "stdout_sha256": "56698d7635720bae56ad12db0c2405078e65a0ffc93a5157d67ea0b17442fd60",
+      "stderr_sha256": "0dc9c1830a5cde29115812cbae286c3d40e6bf8ace4a1b93ba01ab0f3a5c71d1"
+    }
+  ]
+}

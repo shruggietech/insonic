@@ -129,6 +129,11 @@ func (a *App) readinessDefinition(ctx context.Context, input ReadinessInput, d *
 	}
 	if d != nil && d.AnswerSynthesis != nil {
 		r.Tasks["answer-synthesis"] = composeTask([]Prerequisite{{Name: "elected synthesis provider", State: "configured_not_probed", Correction: "The saved route is configured; answer execution will resolve its credentials and contact that route.", Identity: synthesisProvider(*d.AnswerSynthesis)}})
+	}
+	if d != nil && d.SpeakerWorkflow != nil {
+		r.Tasks["speaker-workflow"] = composeTask([]Prerequisite{{Name: "elected speaker discovery provider", State: "configured_not_probed", Correction: "Execution uses the saved provider route and credentials; no provider request has been made."}})
+	}
+	if d != nil && (d.AnswerSynthesis != nil || d.SpeakerWorkflow != nil) {
 		if !pipeline.HasProcessing(*d) && len(d.SpeakerTraining) == 0 {
 			r.Verification = "configuration_only; provider_not_contacted"
 			r.PipelineUsable = electedPipelineUsable(d, r.Tasks)
@@ -306,6 +311,10 @@ func electedPipelineUsable(d *pipeline.Definition, tasks map[string]TaskReadines
 	if d.AnswerSynthesis != nil {
 		elected = true
 		usable = tasks["answer-synthesis"].Usable
+	}
+	if d.SpeakerWorkflow != nil {
+		elected = true
+		usable = usable && tasks["speaker-workflow"].Usable
 	}
 	if pipeline.HasProcessing(*d) {
 		elected = true

@@ -176,7 +176,10 @@
         "answers.retry",
         "speakers.discover",
         "speakers.hypotheses",
-        "speakers.resolve"
+        "speakers.resolve",
+        "speakers.apply",
+        "speakers.retract",
+        "speakers.run"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -6900,6 +6903,337 @@
             "required": [
               "expected_revision"
             ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "speakers.apply",
+            "description": "Current speaker discovery operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Observed current revision."
+              }
+            },
+            "required": [
+              "expected_revision"
+            ],
+            "description": "Exact discovery revision to apply."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "speakers.retract",
+            "description": "Current speaker discovery operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_recording_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Observed current revision."
+              },
+              "mappings": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1000,
+                "description": "Exact contextual mapping revisions to retract.",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Stable identifier."
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Observed current revision."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revision"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "expected_recording_revision",
+              "mappings"
+            ],
+            "description": "Atomic contextual mapping retraction."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "speakers.run",
+            "description": "Current speaker discovery operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "configuration": {
+                "$ref": "pipeline-config.schema.json#/$defs/speakerWorkflow",
+                "description": "Inline workflow election."
+              },
+              "training": {
+                "$ref": "pipeline-config.schema.json#/$defs/configuration/properties/speaker_training",
+                "description": "Inline enrollment adapter election."
+              },
+              "pipeline_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable identifier."
+              },
+              "pipeline_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Observed current revision."
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "configuration"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "pipeline_id"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "pipeline_revision"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "pipeline_id",
+                  "pipeline_revision"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "configuration"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "training"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ],
+            "description": "Submit inline elections or one exact saved pipeline revision."
           }
         }
       }

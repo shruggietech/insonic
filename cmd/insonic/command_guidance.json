@@ -178,7 +178,10 @@
     "answers retry": "Create a linked attempt for failed, cancelled or interrupted answer work, preserving the original route and prior attempt.",
     "speakers discover": "Discover evidence-cited speaker candidates from one recording through an elected provider.",
     "speakers hypotheses": "Inspect current speaker hypotheses, coverage and source provenance for one recording.",
-    "speakers resolve": "Resolve current recording hypotheses with explicit support thresholds, preserving accepted mappings."
+    "speakers resolve": "Resolve current recording hypotheses with explicit support thresholds, preserving accepted mappings.",
+    "speakers apply": "Apply independently grounded contextual identities while preserving owner corrections.",
+    "speakers retract": "Retract exact contextual mapping revisions and invalidate their dependent evidence.",
+    "speakers run": "Run configured discovery, contextual application and optional enrollment as resumable durable work."
   },
   "groups": {
     "": "Choose a library, admit media, process recordings and inspect retained evidence.",
