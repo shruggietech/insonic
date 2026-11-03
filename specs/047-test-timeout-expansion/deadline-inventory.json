@@ -554,6 +554,18 @@
         "internal/catalog/speaker_discovery_acoustic_test.go",
         "internal/catalog/speaker_discovery_test.go"
       ]
+    },
+    {
+      "id": "speaker-quality-evaluation",
+      "disposition": "new-bounded-qualification",
+      "origin": "verified prerequisite readiness followed by one monotonic qualification start",
+      "parent": "original shared qualification limit with separate finalization reserve",
+      "effective": "shared 1800s advisory / 3600s hard / 60s reserve policy; existing command/readiness/cleanup allowances; 10s local metadata observations; unchanged product provider and acoustic deadlines",
+      "files": [
+        "scripts/qualify-speakers.py",
+        "scripts/speaker_quality.py",
+        "tests/speaker_quality_test.py"
+      ]
     }
   ],
   "workflow_owners": {

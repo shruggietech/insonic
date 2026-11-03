@@ -11,7 +11,7 @@ import (
 
 func TestAnswerCLIInputsAndHumanLimitations(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "question.json")
-	if err := os.WriteFile(file, []byte(`{"version":"1.2.0","question":"What changed?"}`), 0600); err != nil {
+	if err := os.WriteFile(file, []byte(`{"version":"1.3.0","question":"What changed?"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	inv, err := parseInvocation([]string{"answers", "prepare", "--input", file})
