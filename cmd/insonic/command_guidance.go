@@ -95,7 +95,7 @@ func commandExample(c commandDefinition) []string {
 	if c.Min > 0 {
 		operands := map[string][]string{
 			"DIRECTORY": {"DIRECTORY"}, "ABSOLUTE_DIRECTORY": {"ABSOLUTE_DIRECTORY"}, "FILE": {"FILE"},
-			"UUID": {"UUID"}, "UUID_OR_EXACT_NAME": {"UUID"}, "MEDIA_UUID": {"MEDIA_UUID"},
+			"RECORDING_UUID": {"RECORDING_UUID"}, "UUID": {"UUID"}, "UUID_OR_EXACT_NAME": {"UUID"}, "MEDIA_UUID": {"MEDIA_UUID"},
 			"JOB_UUID": {"JOB_UUID"}, "JOB_UUID [AFTER_GENERATION]": {"JOB_UUID"},
 			"MILLISECONDS (1..600000)": {"1"}, "PUBLICATION_UUID": {"PUBLICATION_UUID"},
 			"FILE KIND": {"FILE", "derived"}, "PUBLICATION_UUID [MAX_BYTES]": {"PUBLICATION_UUID"},

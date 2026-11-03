@@ -515,7 +515,7 @@ func renderHuman(response contracts.Response) (string, error) {
 	compactWork := false
 	if !operatorContext.Quiet || response.Error != nil {
 		if root, ok := v.(map[string]any); ok {
-			compactWork = humanWorkSummary(b, root, response.Error != nil) || humanAnswerSummary(b, root)
+			compactWork = humanWorkSummary(b, root, response.Error != nil) || humanAnswerSummary(b, root) || humanDiscoverySummary(b, root)
 		}
 		if !compactWork {
 			humanSummary(b, v, 0)
@@ -572,4 +572,32 @@ func renderHuman(response contracts.Response) (string, error) {
 		b.WriteString("Warning: Display limit reached. Use the complete JSON command above for full detail.\n")
 	}
 	return b.String(), nil
+}
+
+// humanDiscoverySummary keeps decision classes distinct from accepted mappings.
+func humanDiscoverySummary(b *humanBuffer, root map[string]any) bool {
+	op := strings.Join(operatorContext.Path, " ")
+	if op != "speakers hypotheses" && op != "speakers resolve" {
+		return false
+	}
+	aggregate, ok := root["aggregate"].(map[string]any)
+	if !ok {
+		return false
+	}
+	coverage, _ := aggregate["coverage"].(map[string]any)
+	b.line("Recording: %s; discovery revision: %s.", humanValue(root["id"]), humanValue(root["revision"]))
+	b.line("Coverage: %s of %s cues; %s omitted.", humanValue(coverage["selected_cues"]), humanValue(coverage["total_cues"]), humanValue(coverage["omitted_cues"]))
+	if rows, ok := aggregate["hypotheses"].([]any); ok {
+		b.line("Hypotheses: %d.", len(rows))
+	}
+	if rows, ok := aggregate["decisions"].([]any); ok {
+		for _, raw := range rows {
+			if d, ok := raw.(map[string]any); ok {
+				b.line("Voice %s: %s; %s (%s).", humanValue(d["voice_id"]), humanValue(d["outcome"]), humanValue(d["name"]), humanValue(d["identity_status"]))
+			}
+		}
+	}
+	b.line("Accepted speaker mappings and profiles are unchanged.")
+	b.line("Full evidence, alternatives and reasons: use --json.")
+	return true
 }

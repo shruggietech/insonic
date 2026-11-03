@@ -176,6 +176,7 @@ type ModelAssociation struct {
 	Reason    string `json:"reason"`
 }
 type Records struct {
+	Discoveries           []SpeakerDiscovery           `json:"speaker_discoveries,omitempty"`
 	ProcessingPlans       []ProcessingPlan             `json:"processing_plans,omitempty"`
 	ProcessingCheckpoints []ProcessingWindowCheckpoint `json:"processing_checkpoints,omitempty"`
 	SpeakerOutputs        []SpeakerOutput              `json:"speaker_outputs,omitempty"`

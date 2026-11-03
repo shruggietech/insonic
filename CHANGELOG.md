@@ -4,6 +4,14 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Added
+
+- 2026-11-02: Discover current speaker hypotheses through elected HTTP or Ollama providers, preserve exact cue provenance and ambiguity, and resolve manual, independent acoustic and contextual evidence into five explainable outcomes through durable CLI/runtime operations. Include bounded coverage, cancellation, current-source invalidation and portable evidence proofs without changing mappings or enrolling models.
+
+### Decisions
+
+- 2026-11-02: Keep contextual discovery reference-only in catalog schema 12. Authenticate acoustic evidence against accepted matching receipts and current independent enrollment lineage; collapse overlapping source roots, preserve duplicate aliases and unregistered names, and share one extraction deadline across all chunks and acceptance. Dedicated desktop controls follow the shared runtime/CLI contract.
+
 ### Changed
 
 - Published v1.2.0 on 2026-11-02 and independently verified all ten original release files, matching live documentation and desktop/mobile light/dark landing views.

@@ -293,7 +293,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         target = self.root / 'summary-candidate'
         summary = release.collect(source, target, REVISION, self.root, verify_fixture, runner, summary=True)
         full = release.read_json(target / 'release-manifest.json')
-        self.assertEqual(full['capabilities']['advanced_cli'], ['backup', 'recordings coverage', 'recordings repair', 'answers'])
+        self.assertEqual(full['capabilities']['advanced_cli'], ['backup', 'recordings coverage', 'recordings repair', 'answers', 'speakers discover', 'speakers hypotheses', 'speakers resolve'])
         self.assertEqual(summary['kind'], 'release-candidate-summary')
         self.assertEqual(summary['manifest'], release.file_entry(target / 'release-manifest.json'))
         self.assertEqual(summary['package_count'], 4)

@@ -27,7 +27,7 @@ func historicalEvidenceMigrationSuite(t *testing.T, s *Store) {
 	}
 	// Remove newer dependents before their historical parents. PostgreSQL enforces
 	// these foreign keys even when the dependent tables contain no rows.
-	for _, table := range []string{"speaker_output", "speaker_profile", "speaker_checkpoint", "graph_layout", "saved_query", "current_extraction", "model_artifact", "model_version", "training_run", "dataset_member", "training_dataset", "speaker_segment", "speaker_mapping", "current_recording", "library_cleanup"} {
+	for _, table := range []string{"current_speaker_discovery", "speaker_output", "speaker_profile", "speaker_checkpoint", "graph_layout", "saved_query", "current_extraction", "model_artifact", "model_version", "training_run", "dataset_member", "training_dataset", "speaker_segment", "speaker_mapping", "current_recording", "library_cleanup"} {
 		if _, e = s.db.Exec("DROP TABLE " + table); e != nil {
 			t.Fatal(e)
 		}

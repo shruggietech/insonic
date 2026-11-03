@@ -175,7 +175,10 @@
     "answers export": "Return the complete retained evidence package or grounded answer with live freshness; use --json and redirection.",
     "answers validate": "Validate answer claims and quotes against a retained package and current source authority; this does not evaluate semantic entailment.",
     "answers request": "Request durable grounded synthesis using an explicit or saved route. Use work wait/show/results/cancel for progress, then answers show/export for the retained result.",
-    "answers retry": "Create a linked attempt for failed, cancelled or interrupted answer work, preserving the original route and prior attempt."
+    "answers retry": "Create a linked attempt for failed, cancelled or interrupted answer work, preserving the original route and prior attempt.",
+    "speakers discover": "Discover evidence-cited speaker candidates from one recording through an elected provider.",
+    "speakers hypotheses": "Inspect current speaker hypotheses, coverage and source provenance for one recording.",
+    "speakers resolve": "Resolve current recording hypotheses with explicit support thresholds, preserving accepted mappings."
   },
   "groups": {
     "": "Choose a library, admit media, process recordings and inspect retained evidence.",

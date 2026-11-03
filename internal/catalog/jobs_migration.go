@@ -18,7 +18,7 @@ func (s *Store) finishMigration(ctx context.Context, tx *sql.Tx) error {
 }
 
 func (s *Store) finishProcessingMigration(ctx context.Context, tx *sql.Tx) error {
-	for _, field := range []string{"ProcessingPlans", "ProcessingCheckpoints"} {
+	for _, field := range []string{"ProcessingPlans", "ProcessingCheckpoints", "Discoveries"} {
 		if _, err := tx.ExecContext(ctx, domainNamed(field).ddl()); err != nil {
 			return sanitize(err)
 		}

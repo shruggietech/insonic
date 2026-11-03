@@ -26,6 +26,14 @@ class HelpExampleTests(unittest.TestCase):
                 substitute(actual, {})
             self.assertEqual(substitute(actual, {"PACKAGE_UUID": identity}), ["answers", action, identity])
 
+    def test_recording_operand_requires_current_recording_identity(self):
+        identity = "10000000-0000-4000-8000-000000000002"
+        for action in ["discover", "hypotheses", "resolve"]:
+            actual = ["speakers", action, "RECORDING_UUID"]
+            with self.assertRaises(ValueError):
+                substitute(actual, {})
+            self.assertEqual(substitute(actual, {"RECORDING_UUID": identity}), ["speakers", action, identity])
+
     def test_only_documented_substitutions_change_actual_argv(self):
         actual = ['query', 'native', '--dialect', 'ladybug-cypher', '--file', 'FILE']
         self.assertEqual(substitute(actual, {'FILE': '/tmp/owned query.cypher'}),
@@ -34,6 +42,34 @@ class HelpExampleTests(unittest.TestCase):
             substitute(['work', 'show', 'WORK_UUID'], {})
         with self.assertRaises(ValueError):
             substitute(actual, {'--dialect': 'arcade-sql', 'FILE': '/tmp/query.cypher'})
+
+
+class DiscoveryFixtureTests(unittest.TestCase):
+    def test_owned_provider_runtime_is_isolated_from_ci_runtime(self):
+        from cli_help_examples import discovery_fixture
+        from tempfile import TemporaryDirectory
+        calls = []
+        environment = {'CI': 'true', 'GITHUB_ACTIONS': 'true', 'TF_BUILD': '1',
+                       'BUILD_BUILDID': '1', 'JENKINS_URL': 'fixture', 'PATH': 'owned-path'}
+        original = dict(environment)
+        def invoke(args, **kwargs):
+            calls.append((args, kwargs))
+            self.assertEqual(kwargs['execution_environment'], {'PATH': 'owned-path'})
+            if args[:2] == ['media', 'import'] or args[:2] == ['transcript', 'import']:
+                return {'result': {'work_id': 'owned-work'}}
+            if args[:2] == ['work', 'wait']:
+                return {'result': {'result': {'items': [{'media_id': 'owned-recording'}]}}}
+            return {'result': {}}
+        with TemporaryDirectory() as temp:
+            directory = Path(temp)
+            fixture = discovery_fixture(invoke, directory, environment, directory / 'audio.wav', directory / 'source.vtt')
+            self.assertEqual(fixture['recording_id'], 'owned-recording')
+            fixture['call'](['speakers', 'hypotheses', fixture['recording_id']])
+            self.assertTrue(all(k['workspace_path'] == fixture['library'] for _, k in calls[1:]))
+        self.assertEqual(environment, original)
+        self.assertEqual(calls[0][0][:2], ['workspace', 'init'])
+        self.assertFalse(calls[0][1]['scoped'])
+        self.assertEqual(sum(a[:2] == ['work', 'wait'] for a, _ in calls), 2)
 
 
 class ParallelRegressionTests(unittest.TestCase):

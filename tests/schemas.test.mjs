@@ -47,8 +47,8 @@ test('generated asset errors and local readiness facts remain bounded through th
 });
 
 test('all documented contracts and local references validate through the release master', () => {
-  assert.equal(catalog.contracts.length, 28);
-  assert.equal(examples, 36);
+  assert.equal(catalog.contracts.length, 29);
+  assert.equal(examples, 37);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 

@@ -11,6 +11,8 @@ import (
 // selected storage and tools while retaining each caller's ordinary timeout.
 func OperationTimeout(operation string, ordinary time.Duration) time.Duration {
 	switch operation {
+	case "speakers.discover", "speakers.hypotheses", "speakers.resolve":
+		return 65 * time.Second
 	case "answers.prepare":
 		// Preserve the elected maximum of sixty seconds plus response cleanup.
 		return 65 * time.Second

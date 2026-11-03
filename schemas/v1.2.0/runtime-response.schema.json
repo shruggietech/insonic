@@ -85,6 +85,10 @@
         "upstream_authorization": {
           "const": "not_checked",
           "description": "Preview does not contact upstream services to test authentication or gated access."
+        },
+        "aggregate": {
+          "description": "Current discovery evidence and deterministic decisions, never accepted speaker assignments.",
+          "$ref": "speaker-discovery.schema.json#/$defs/aggregate"
         }
       }
     },

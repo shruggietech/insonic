@@ -218,7 +218,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	defer a.wg.Done()
 	var result any
 	var e error
-	if claim.Kind == "answers.request" {
+	if claim.Kind == "speakers.discover" {
+		result, e = a.processSpeakerDiscovery(ctx, claim)
+	} else if claim.Kind == "answers.request" {
 		result, e = a.processAnswer(ctx, claim)
 	} else if claim.Kind == "workers.setup" {
 		result, e = a.executeWorkerSetup(ctx, claim)

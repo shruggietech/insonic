@@ -125,6 +125,9 @@ var commandDefinitions = func() []commandDefinition {
 		}
 		add("backup "+a, operand, 1, 1, opts, "")
 	}
+	add("speakers discover", "RECORDING_UUID", 1, 1, "--input", "--input")
+	add("speakers hypotheses", "RECORDING_UUID", 1, 1, "", "")
+	add("speakers resolve", "RECORDING_UUID", 1, 1, "--input", "--input")
 	for _, g := range strings.Fields("pipelines speakers terms") {
 		actions := "list show set"
 		if g == "pipelines" {

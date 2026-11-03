@@ -173,7 +173,10 @@
         "answers.export",
         "answers.validate",
         "answers.request",
-        "answers.retry"
+        "answers.retry",
+        "speakers.discover",
+        "speakers.hypotheses",
+        "speakers.resolve"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -3862,7 +3865,7 @@
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 512,
-                        "pattern": "[^\t-\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]",
+                        "pattern": "[^\t-\r    -     　]",
                         "description": "Required title with at least one non-whitespace character."
                       }
                     }
@@ -6565,6 +6568,339 @@
           "required": [
             "data"
           ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "speakers.discover",
+            "description": "Current speaker discovery operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "description": "Elected provider and bounded discovery policy.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "configuration": {
+                "description": "Explicit provider election; omission uses saved assistance configuration.",
+                "$ref": "query-assistance.schema.json#/$defs/configuration"
+              },
+              "limits": {
+                "description": "Elected discovery admission bounds; omitted fields use documented defaults.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "max_cues": {
+                    "description": "Maximum admitted current cues (default 100).",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 500
+                  },
+                  "max_calls": {
+                    "description": "Maximum provider calls sharing one deadline (default 4).",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20
+                  },
+                  "max_observations": {
+                    "description": "Maximum observations across all calls (default 128).",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 512
+                  }
+                },
+                "required": []
+              },
+              "policy": {
+                "description": "Deterministic configurable support thresholds.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "minimum_contextual_roots": {
+                    "description": "Minimum distinct source roots for contextual support.",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "minimum_acoustic_score": {
+                    "description": "Minimum cosine match score.",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "minimum_acoustic_margin": {
+                    "description": "Minimum winner versus runner-up margin.",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "required": []
+              },
+              "matching_work_id": {
+                "description": "Optional exact accepted matching work to inspect.",
+                "$ref": "common.schema.json#/$defs/uuid"
+              }
+            },
+            "required": []
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "speakers.hypotheses",
+            "description": "Current speaker discovery operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "speakers.resolve",
+            "description": "Current speaker discovery operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "description": "Current aggregate revision and deterministic resolution policy.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "description": "Observed discovery aggregate revision.",
+                "type": "integer",
+                "minimum": 1
+              },
+              "policy": {
+                "description": "Deterministic configurable support thresholds.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "minimum_contextual_roots": {
+                    "description": "Minimum distinct source roots for contextual support.",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "minimum_acoustic_score": {
+                    "description": "Minimum cosine match score.",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "minimum_acoustic_margin": {
+                    "description": "Minimum winner versus runner-up margin.",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "required": []
+              }
+            },
+            "required": [
+              "expected_revision"
+            ]
+          }
         }
       }
     }

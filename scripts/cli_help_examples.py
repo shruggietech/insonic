@@ -8,6 +8,7 @@ successful semantic qualification.
 """
 import hashlib
 import json
+import os
 from cli_corpus import example_outcome, finish_server
 from pathlib import Path
 import re
@@ -16,7 +17,7 @@ import time
 import uuid
 
 PLACEHOLDERS = {'UUID', 'MEDIA_UUID', 'JOB_UUID', 'PUBLICATION_UUID', 'REFERENCE_UUID',
-                'WORK_UUID', 'MODEL_UUID', 'SOURCE_UUID', 'VERSION_UUID', 'SPEAKER_UUID',
+                'WORK_UUID', 'MODEL_UUID', 'SOURCE_UUID', 'VERSION_UUID', 'SPEAKER_UUID', 'RECORDING_UUID',
                 'PACKAGE_UUID', 'QUERY_UUID', 'VIEW_UUID', 'CURRENT_REVISION', 'REFERENCE', 'FILE',
                 'INPUT_FILE', 'MANIFEST_FILE', 'DIRECTORY', 'ABSOLUTE_DIRECTORY'}
 TEMPLATE_MARKER = 'JSON file template (replace illustrative IDs/revisions with current records):\n'
@@ -51,6 +52,22 @@ def template(text):
     if TEMPLATE_MARKER not in text:
         return None
     return json.JSONDecoder().raw_decode(text.split(TEMPLATE_MARKER, 1)[1])[0]
+
+
+def discovery_fixture(invoke, directory, environment, audio, subtitle):
+    """Own a loopback-provider runtime without changing the CI-marked runtime."""
+    library = directory / 'isolated discovery library'
+    selected = dict(environment if environment is not None else os.environ)
+    for marker in ['CI', 'GITHUB_ACTIONS', 'TF_BUILD', 'BUILD_BUILDID', 'JENKINS_URL']:
+        selected.pop(marker, None)
+    invoke(['workspace', 'init', library], scoped=False, execution_environment=selected)
+    def call(args, **kwargs):
+        return invoke(args, workspace_path=library, execution_environment=selected, **kwargs)
+    queued = call(['media', 'import', audio, '--no-pipeline'])['result']
+    recording = call(['work', 'wait', queued['work_id']])['result']['result']['items'][0]['media_id']
+    queued = call(['transcript', 'import', subtitle, '--record', recording])['result']
+    call(['work', 'wait', queued['work_id']])
+    return {'library': library, 'environment': selected, 'recording_id': recording, 'call': call}
 
 
 def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None, environment=None, process_factory=None):
@@ -95,14 +112,22 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
     body = b'actual emitted model example bytes'
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
-            if self.path != '/answer':
+            if self.path not in ['/answer', '/speaker-discovery']:
                 self.send_error(404); return
             length = int(self.headers.get('Content-Length', '0'))
             if not 0 < length <= 128 * 1024:
                 self.send_error(413); return
             from cli_answer_synthesis_qualification import fixture_reply
             request = json.loads(self.rfile.read(length))
-            data = json.dumps(fixture_reply(request['context'])).encode()
+            if self.path == '/speaker-discovery':
+                if request.get('operation') != 'speaker-discovery' or not request.get('context', {}).get('cues'):
+                    self.send_error(400); return
+                # The owned subtitle has no identity claim. Successful abstention
+                # still creates a current aggregate for the read/resolve examples.
+                reply = {'version': 1, 'observations': []}
+            else:
+                reply = fixture_reply(request['context'])
+            data = json.dumps(reply).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(data)))
@@ -139,6 +164,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
         ids['MEDIA_UUID'] = media['media_id']
         wait(call(['transcript', 'import', subtitle, '--record', ids['MEDIA_UUID']])['result'])
         record = call(['recordings', 'show', ids['MEDIA_UUID']])['result']['recording']
+        discovery = discovery_fixture(invoke, directory, environment, audio, subtitle)
+        ids['RECORDING_UUID'] = discovery['recording_id']
         speaker_input = template(by_path[('speakers', 'set')])
         speaker_input['speaker']['id'] = ids['SPEAKER_UUID']
         input_call(['speakers', 'set', ids['SPEAKER_UUID']], speaker_input)
@@ -243,6 +270,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             replacements = {k: v for k, v in ids.items()}
             kwargs = {'expected': (0, 1, 2, 4)}
             value = selected_input(name, help_text)
+            if name in ['speakers discover', 'speakers hypotheses', 'speakers resolve']:
+                kwargs.update(workspace_path=discovery['library'], execution_environment=discovery['environment'])
             if name == 'answers request':
                 value['configuration']['provider']['endpoint'] = f'http://127.0.0.1:{server.server_port}/answer'
             if value is not None:
@@ -321,6 +350,17 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                 replacements['CURRENT_REVISION'] = current_media()
             elif name.startswith('recordings roster ') and command[-1] != 'show':
                 replacements['CURRENT_REVISION'] = call(['recordings', 'roster', 'show', ids['MEDIA_UUID']])['result']['revision']
+            elif name == 'speakers discover':
+                value['configuration'] = {
+                    'enabled': True, 'adapter': 'insonic-http', 'route': 'local',
+                    'endpoint': f'http://127.0.0.1:{server.server_port}/speaker-discovery',
+                    'model': 'owned-help-fixture',
+                }
+                write('input.json', value)
+            elif name == 'speakers resolve':
+                current = discovery['call'](['speakers', 'hypotheses', ids['RECORDING_UUID']])['result']
+                value['expected_revision'] = current['revision']
+                write('input.json', value)
             elif name in ['speakers set', 'speakers show', 'speakers aliases', 'speakers select', 'speakers diagnostics']:
                 replacements['UUID'] = ids['SPEAKER_UUID']
                 if name == 'speakers set':
@@ -450,7 +490,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             if not error and result is None:
                 raise ValueError('Emitted example returned no established result: ' + name)
             if not error and isinstance(result, dict) and result.get('work_id'):
-                completed = call(['work', 'wait', result['work_id']], expected=(0, 1, 4))
+                completion_call = discovery['call'] if name in ['speakers discover', 'speakers hypotheses', 'speakers resolve'] else call
+                completed = completion_call(['work', 'wait', result['work_id']], expected=(0, 1, 4))
                 failure = completed.get('error')
                 if failure and failure['code'] not in expected.get(name, set()):
                     raise ValueError('Unexpected emitted-example completion failure: ' + name + ': ' + json.dumps(failure))

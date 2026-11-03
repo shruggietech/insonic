@@ -537,6 +537,20 @@
         "scripts/qualify-answers.py",
         "scripts/qualify-answer-backends.py"
       ]
+    },
+    {
+      "id": "speaker-discovery-workflow",
+      "disposition": "new-bounded-product-contract",
+      "origin": "one durable discovery execution",
+      "parent": "earlier caller cancellation or elected provider deadline",
+      "effective": "30s default and60s maximum shared across all chunks, source checks and acceptance;65s enclosing discovery RPC;readiness uses maintained shared allowance;100ms injected deadline failure;1-minute catalog lease fixtures",
+      "files": [
+        "desktop/speaker_discovery_test.go",
+        "internal/app/speaker_discovery.go",
+        "internal/app/speaker_discovery_test.go",
+        "internal/catalog/speaker_discovery_acoustic_test.go",
+        "internal/catalog/speaker_discovery_test.go"
+      ]
     }
   ],
   "workflow_owners": {
@@ -669,6 +683,12 @@
       "symbol": "materialization release cleanup",
       "seconds": 10,
       "reason": "New recovery cleanup follows the existing product candidate-cleanup bound; this is not a test execution allowance."
+    },
+    {
+      "file": "internal/app/speaker_discovery_test.go",
+      "symbol": "c.Limits.TimeoutMS = 100",
+      "seconds": 0.1,
+      "reason": "Deliberate provider deadline expiry exercises atomic failure; successful readiness uses the maintained qualification allowance."
     }
   ],
   "notes": [
