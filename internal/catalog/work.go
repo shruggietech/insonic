@@ -372,6 +372,12 @@ func (s *Store) transitionWork(ctx context.Context, op, id string, retry bool) (
 				if dependency.Kind != "models.acquire" {
 					return contracts.Fail("invalid_request")
 				}
+				// Portable capture excludes source-host acquisition routes. Keep
+				// that receipt intact: consumers may use retained verified bytes,
+				// but retry cannot turn the marker into an executable request.
+				if dependency.Phase == "portable-source-required" {
+					continue
+				}
 				if dependency.State == "failed" || dependency.State == "cancelled" || dependency.State == "interrupted" || dependency.State == "succeeded" {
 					dependency.State = "pending"
 					dependency.Owner = ""

@@ -50,8 +50,9 @@ func TestSpeakerWorkflowAppliesAndReplays(t *testing.T) {
 }
 
 func TestSpeakerWorkflowSavedEnrollmentRetryAndProfileFence(t *testing.T) {
-	for _, correction := range []bool{false, true} {
-		t.Run(map[bool]string{false: "retry", true: "owner-profile-correction"}[correction], func(t *testing.T) {
+	for _, mode := range []string{"retry", "owner-profile-correction", "portable-retry"} {
+		t.Run(mode, func(t *testing.T) {
+			correction := mode == "owner-profile-correction"
 			a := configuredApp(t)
 			base := configureSpeakerEnrollmentFixture(t, a)
 			r, _ := speakerRuntimeRecording(t, a)
@@ -93,6 +94,12 @@ func TestSpeakerWorkflowSavedEnrollmentRetryAndProfileFence(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
+			var sourceTools ProcessingTools
+			if mode == "portable-retry" {
+				sourceTools = portableDestinationConfig(t, a)
+				tools, _ := json.Marshal(sourceTools)
+				a.Catalog = workflowToolFixture{Catalog: a.Catalog, tools: tools}
+			}
 			response := realRequest(a, "speakers.run", r.ID, SpeakerWorkflowInput{PipelineID: saved.ID, PipelineRevision: saved.Revision})
 			view := configuredResult(t, response)
 			id := view["work_id"].(string)
@@ -116,6 +123,37 @@ func TestSpeakerWorkflowSavedEnrollmentRetryAndProfileFence(t *testing.T) {
 					t.Fatal(e)
 				}
 			}
+			if mode == "portable-retry" {
+				target := portableWorkTarget(t, a)
+				config := portableDestinationConfig(t, target)
+				savePortableConfig(t, target, config)
+				target.speakerFactory = original
+				target.DiscoveryFixture = func(context.Context, assistance.Request, assistance.Config) (assistance.Generated, error) {
+					t.Error("portable retry repeated discovery")
+					return assistance.Generated{}, contracts.Fail("unavailable")
+				}
+				stored, err := target.Catalog.Work(target.ctx, id)
+				if err != nil || strings.Contains(string(stored.Payload), sourceTools.Cueson.Executable) {
+					t.Fatal("parent retained source path", err)
+				}
+				a.Close()
+				a = target
+				// This portable catalog fixture has no App.New maintenance loop.
+				target.wg.Add(1)
+				go func() {
+					defer target.wg.Done()
+					tick := time.NewTicker(time.Second)
+					defer tick.Stop()
+					for {
+						select {
+						case <-target.ctx.Done():
+							return
+						case <-tick.C:
+							target.recoverWork()
+						}
+					}
+				}()
+			}
 			fail.Store(false)
 			if _, e = a.Catalog.RetryWork(a.ctx, contracts.ID(), id); e != nil {
 				t.Fatal(e)
@@ -127,10 +165,32 @@ func TestSpeakerWorkflowSavedEnrollmentRetryAndProfileFence(t *testing.T) {
 				want = "failed"
 			}
 			if done.State != want {
-				t.Fatal(done.State, string(done.Result))
+				child, _ := a.Catalog.Work(a.ctx, progress.Awaiting)
+				all, _ := a.Catalog.Works(a.ctx)
+				for _, dep := range all {
+					if dep.Kind == "models.acquire" {
+						t.Log(dep.ID, dep.State, dep.Phase, string(dep.Result))
+					}
+				}
+				t.Fatal(done.State, string(done.Result), "child", child.State, string(child.Result))
 			}
 			if calls.Load() != 1 {
 				t.Fatal("discovery repeated", calls.Load())
+			}
+			if mode == "portable-retry" {
+				var completed speakerWorkflowResult
+				json.Unmarshal(done.Result, &completed)
+				if len(completed.Enrollments) != 1 || completed.Enrollments[0].WorkID != progress.Awaiting {
+					t.Fatal("portable retry replaced accepted enrollment child", string(done.Result))
+				}
+				all, _ := a.Catalog.Works(a.ctx)
+				for _, dependency := range all {
+					if dependency.Kind == "models.acquire" {
+						if _, retained := sourceRequiredWork(dependency); !retained {
+							t.Fatal("retry erased portable acquisition route receipt", dependency)
+						}
+					}
+				}
 			}
 			ms, _ = a.Catalog.SpeakerMappings(a.ctx, r.ID)
 			if len(ms) != 1 || ms[0].Revision != mappingRevision {
@@ -222,4 +282,22 @@ func TestSpeakerWorkflowCancellationAndRestart(t *testing.T) {
 	if done.State != "succeeded" {
 		t.Fatal(done.State, string(done.Result))
 	}
+}
+
+// Inject an authenticated frozen tool election while retaining deterministic acoustic execution.
+type workflowToolFixture struct {
+	catalog.Catalog
+	tools json.RawMessage
+}
+
+func (s workflowToolFixture) EnqueueWork(ctx context.Context, id, kind string, payload json.RawMessage) (catalog.Work, error) {
+	if kind == "speakers.run" {
+		var p speakerWorkflowPayload
+		if err := json.Unmarshal(payload, &p); err != nil {
+			return catalog.Work{}, err
+		}
+		p.Training.ProcessingTools = s.tools
+		payload, _ = json.Marshal(p)
+	}
+	return s.Catalog.EnqueueWork(ctx, id, kind, payload)
 }

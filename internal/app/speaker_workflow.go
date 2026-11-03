@@ -277,7 +277,19 @@ func (a *App) processSpeakerWorkflow(ctx context.Context, claim catalog.Work) (a
 			return r, e
 		}
 		raw, _ := json.Marshal(payload)
-		child, e := a.Catalog.EnqueueChildWork(ctx, claim, workflowID(claim.ID, "enroll", person), "models.train", raw)
+		childID := workflowID(claim.ID, "enroll", person)
+		child, e := a.Catalog.Work(ctx, childID)
+		if e == nil {
+			// A portable restore changes host paths, not the accepted child election.
+			// Reuse its authenticated parent/dataset linkage and let that child bind
+			// its own destination invocation from its retained transformation proof.
+			var accepted voicemodels.TrainPayload
+			if child.Kind != "models.train" || strictPayload(child.Payload, &accepted) != nil || accepted.ParentWorkID != claim.ID || accepted.Options.DatasetID != ds.Dataset.ID {
+				return r, contracts.Fail("conflict")
+			}
+		} else if contracts.SafeError(e).Code == "not_found" {
+			child, e = a.Catalog.EnqueueChildWork(ctx, claim, childID, "models.train", raw)
+		}
 		if e != nil {
 			return r, e
 		}

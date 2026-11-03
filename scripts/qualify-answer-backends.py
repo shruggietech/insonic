@@ -58,29 +58,36 @@ def main():
                     'database': pg.path.lstrip('/'), 'schema': schema, 'tls_mode': 'local', 'credential_id': session_id}},
                 'graph': {'adapter_id': 'arcadedb', 'configuration': {'endpoint': selected['INSONIC_FIXTURE_ARCADE'],
                     'database': database, 'credential_id': graph_id, 'preferred_dialect': 'arcade-opencypher'}}}}
-        plan_path = folder / 'plan.json'
-        plan_path.write_text(json.dumps(plan) + '\n', encoding='utf-8', newline='\n')
-        stdout, stderr, code, _ = capture_invocation(ProcessTree,
-            [str(executable), '--json', 'workspace', 'provision', str(workspace), '--input', str(plan_path),
-             '--credential-backend', 'session'], cwd=root, env=env, scoped=False,
-            input=None, timeout_seconds=bounds.SERVICE_SECONDS)
-        if code: raise ValueError('Alternative answer workspace provisioning failed: ' + stderr.decode()[:2000])
+        def provision(path, election):
+            plan_path = folder / 'plan.json'
+            plan_path.write_text(json.dumps(election) + '\n', encoding='utf-8', newline='\n')
+            stdout, stderr, code, _ = capture_invocation(ProcessTree,
+                [str(executable), '--json', 'workspace', 'provision', str(path), '--input', str(plan_path),
+                 '--credential-backend', 'session'], cwd=root, env=env, scoped=False,
+                input=None, timeout_seconds=bounds.SERVICE_SECONDS)
+            if code: raise ValueError('Alternative workspace provisioning failed: ' + stderr.decode()[:2000])
+        provision(workspace, plan)
         cueson = Path(env['CUESON_EXECUTABLE'])
         processing = folder / 'processing.json'
         with cueson.open('rb') as source: cueson_hash = hashlib.file_digest(source, 'sha256').hexdigest()
         processing.write_text(json.dumps({'kind': 'processing-tools', 'schema_version': plan['schema_version'],
             'cueson': {'executable': str(cueson), 'executable_sha256': cueson_hash}, 'processing': {}}) + '\n',
             encoding='utf-8', newline='\n')
-        # Exact prepared tools are selected before the explicitly owned runtime
-        # starts; no local or default catalog replaces the elected backend plan.
-        (workspace / '.insonic/media-tools.json').write_bytes((root / 'build/native/media-tools.json').read_bytes())
-        (workspace / '.insonic/processing-tools.json').write_bytes(processing.read_bytes())
-        from cli_speaker_workflow_qualification import qualify_backend
-        speaker = qualify_backend(executable, workspace, folder, env, plan['schema_version'])
         spec = importlib.util.spec_from_file_location('answer_campaign', root / 'scripts/qualify-answers.py')
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
         receipt = module.campaign(executable, workspace, args.output, existing=True, environment=env,
             media_tools=root / 'build/native/media-tools.json', processing_tools=processing)
+        # The answer evaluation requires an empty library. Keep the speaker
+        # restart campaign in its own catalog/workspace on these owned services.
+        speaker_workspace = folder / 'speaker library'
+        plan['profiles']['catalog']['configuration']['schema'] = schema + '_speakers'
+        provision(speaker_workspace, plan)
+        # Exact prepared tools are selected before the explicitly owned runtime
+        # starts; no local or default catalog replaces the elected backend plan.
+        (speaker_workspace / '.insonic/media-tools.json').write_bytes((root / 'build/native/media-tools.json').read_bytes())
+        (speaker_workspace / '.insonic/processing-tools.json').write_bytes(processing.read_bytes())
+        from cli_speaker_workflow_qualification import qualify_backend
+        speaker = qualify_backend(executable, speaker_workspace, folder, env, plan['schema_version'])
         receipt['backends'] = {'catalog': 'postgresql', 'storage': 's3', 'graph': 'arcadedb'}
         receipt['speaker_workflow'] = speaker
         args.output.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8', newline='\n')

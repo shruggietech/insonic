@@ -18,9 +18,17 @@ Spec Kit convergence checked 12 functional requirements, five success criteria, 
 
 Local qualification began 2026-11-03T01:55:53.169Z and ended 2026-11-03T02:25:00.300Z. The recorded preparation interval was 0.001 seconds after cached prerequisites had already been examined; environment corrections during the campaign remain charged to qualification. Qualification took 1747.131 seconds and combined campaign time was 1747.132 seconds. This remained within the 1800-second target and 3600-second hard limit. Earlier implementation-level tests are separate from this qualification campaign.
 
-## CI and review handoff
+## 2026-11-03 first CI and review corrections
 
-Pending publication and exact-branch-head CI. The automatic first external review and at most one requested second round are authorized. Every actionable finding must be addressed and every review thread resolved before handoff. Owner performs final review and merge.
+Official PR #251 publishes the slice and closes the three existing issues on merge. Initial branch head 36a2096420267e29a8c44bb2758c2643f11da4d3 was exercised by PR run 41566121581 and exact-head dispatch 41566130142. Both failed the alternative-backend campaign because the added speaker fixture populated the workspace before an answer evaluation that requires an empty library. The campaigns now provision distinct workspaces and PostgreSQL schemas on the same owned disposable services. The PR run also failed a Linux density setup observation; the identical branch head passed that native desktop lane. Final acceptance requires a successful corrected-head run, not an inference from the other run.
+
+Before another full CI execution, compact acceptance archives were downloaded, checked against GitHub SHA-256 digests, compared with their extracted gate bytes and audited with scripts/ci-acceptance.mjs against terminal attempt/job metadata. evidence/initial-ci-retention.json.gz retains both failed decisions, artifact inventories and separate preparation/qualification/combined timing. Raw native and package receipt artifacts are retained outside Actions under .local/s073/initial-head/ and .local/s073/initial-pr/. The head run took 265/843/1108 seconds; the PR run took 219/930/1149 seconds. These are failed functional campaigns within the timing limits.
+
+The first Codex review identified missing portable normalization for speakers.run. The correction normalizes the frozen parent training tools and custom adapter pins, binds standard roles to destination tools, and requires exact digest matches for custom executable/support files. A restored parent reuses its already accepted training child. Retry preserves excluded source-route acquisition receipts so retained verified model bytes can satisfy the dependency without executing a source-required marker. Regressions cover missing/tampered destination pins, exact large JSON numbers, source-payload immutability and restored failed-enrollment resume with no repeated discovery, mapping acceptance or child creation.
+
+Corrective verification passes full Go tests, go vet, npm run check and npm test. Python discovery completed 754 tests with five environment-specific skips and one tight HTTP worker timing assertion at 1.468 seconds against a one-second test bound while Go compilation ran concurrently. All 11 HTTP tests pass in an isolated repeat; the intentionally short failure clocks remain unchanged. The revised backend harness also passes Python compilation. evidence/local-checks.json records these results and exploratory failed regression attempts separately from the initial qualification campaign.
+
+The automatic first review is complete with this finding. The single authorized second request follows the correction. Corrected-head CI, alternative-backend receipts and the final external review remain pending. Owner performs final review and merge.
 
 ## Evidence limits
 

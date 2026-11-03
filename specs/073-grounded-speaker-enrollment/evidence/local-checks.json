@@ -332,5 +332,128 @@
     "site-build",
     "installed-workflow-final",
     "backend-harness-local"
+  ],
+  "review_correction_checks": [
+    {
+      "label": "review-portable-regressions",
+      "started": "2026-11-03T02:35:57.262Z",
+      "finished": "2026-11-03T02:38:27.321Z",
+      "seconds": 150.059,
+      "exit": 1,
+      "stdout_sha256": "ff715f1ac79b6bed9f574077ecfb2fd2390c745c143fdce5cd51cbdfebe8cb6a",
+      "stderr_sha256": "cef0548ce8530b5dbc6181111a9ef0a577808108332e9b4e2bad1bf7143c5d07"
+    },
+    {
+      "label": "review-portable-diagnostic",
+      "started": "2026-11-03T02:38:43.324Z",
+      "finished": "2026-11-03T02:39:51.745Z",
+      "seconds": 68.421,
+      "exit": 1,
+      "stdout_sha256": "11d469bfe610567f16dd58ea695d25197b54df0f1f41f71cf92fe37d1f5ccf7c",
+      "stderr_sha256": "255ed3e2d965842df2072699c0b8aab96a3f5ad0d351142dfbc81958334b73a0"
+    },
+    {
+      "label": "review-portable-pins",
+      "started": "2026-11-03T02:38:43.451Z",
+      "finished": "2026-11-03T02:38:51.898Z",
+      "seconds": 8.447,
+      "exit": 0,
+      "stdout_sha256": "bff78595b7507e4507bf26c493e61e607b68f36cb70a6cf8b26528a4f3ad370e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-portable-regressions-final",
+      "started": "2026-11-03T02:39:46.341Z",
+      "finished": "2026-11-03T02:40:14.394Z",
+      "seconds": 28.053,
+      "exit": 1,
+      "stdout_sha256": "d92e42564eb43f192ef14777e440f1207b3f1545b65ecc64ba67a07dead207a4",
+      "stderr_sha256": "cef0548ce8530b5dbc6181111a9ef0a577808108332e9b4e2bad1bf7143c5d07"
+    },
+    {
+      "label": "review-portable-resume-detail",
+      "started": "2026-11-03T02:40:41.504Z",
+      "finished": "2026-11-03T02:40:54.584Z",
+      "seconds": 13.08,
+      "exit": 1,
+      "stdout_sha256": "196c861932a76a9084bb1c602c8e25f599b124ad8fd8753d59f7ed048c9881e8",
+      "stderr_sha256": "10371006429372533b4ef433d7ea7b422cfd02531a63b8e91b7a2e29832cd577"
+    },
+    {
+      "label": "review-portable-dependency-detail",
+      "started": "2026-11-03T02:41:39.408Z",
+      "finished": "2026-11-03T02:41:53.762Z",
+      "seconds": 14.354,
+      "exit": 1,
+      "stdout_sha256": "f271f202f81393dcda66923dd9abe1e85873dcd8c39f4e946bfd21688c191c62",
+      "stderr_sha256": "10371006429372533b4ef433d7ea7b422cfd02531a63b8e91b7a2e29832cd577"
+    },
+    {
+      "label": "review-portable-resume",
+      "started": "2026-11-03T02:47:28.242Z",
+      "finished": "2026-11-03T02:47:55.805Z",
+      "seconds": 27.563,
+      "exit": 0,
+      "stdout_sha256": "bae951a19de4b6f49f27f86ae0328f3f38cfa392f12b01abfd992dfc1bdcdd59",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-root-check",
+      "started": "2026-11-03T02:48:51.261Z",
+      "finished": "2026-11-03T02:48:55.425Z",
+      "seconds": 4.164,
+      "exit": 0,
+      "stdout_sha256": "862d1309913b8ae4902b92e554a07743d76213c00bb45a7845381649c7382306",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-root-tests",
+      "started": "2026-11-03T02:48:55.426Z",
+      "finished": "2026-11-03T02:49:12.284Z",
+      "seconds": 16.858,
+      "exit": 0,
+      "stdout_sha256": "06ada5642052fad792dd7f386685d70d5b86f306207b2f7a2d3a7723b62cd83a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-go-tests",
+      "started": "2026-11-03T02:50:49.311Z",
+      "finished": "2026-11-03T02:53:43.926Z",
+      "seconds": 174.615,
+      "exit": 0,
+      "stdout_sha256": "42550d5b63ab672330abbbf25634100a47fe1854e458d25f2dc188cf31f5b81d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-go-vet",
+      "started": "2026-11-03T02:50:49.404Z",
+      "finished": "2026-11-03T02:51:16.403Z",
+      "seconds": 26.999,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "review-python-tests",
+      "started": "2026-11-03T02:50:49.552Z",
+      "finished": "2026-11-03T02:54:41.400Z",
+      "seconds": 231.848,
+      "exit": 1,
+      "stdout_sha256": "23cabbd0ccb62deb02e748b3244f27595eeae17966f9bc2fbf1d125c2a860a8a",
+      "stderr_sha256": "444655b0ef4d67ea512e47ea5e8a92cfc867cf27565cd6d4fffe802576c1c5cb"
+    },
+    {
+      "label": "review-python-http-isolated",
+      "started": "2026-11-03T02:55:04.777Z",
+      "finished": "2026-11-03T02:55:05.362Z",
+      "seconds": 0.585,
+      "exit": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "a8c0a984eef15a3a90826ab707c248f39e114f460da1751f9fdcfa09faa78cc3"
+    }
+  ],
+  "review_correction_notes": [
+    "A tool-session timeout interrupted one Go/Python verification invocation before durable terminal results; no result is claimed for that invocation.",
+    "The completed Python suite had one 1-second HTTP worker timing assertion at 1.468 seconds while Go compilation was concurrent; all 11 HTTP tests passed in an isolated repeat. Injected failure clocks are unchanged."
   ]
 }

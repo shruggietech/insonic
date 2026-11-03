@@ -188,7 +188,26 @@ func (a *App) portableInvocation(w catalog.Work) (json.RawMessage, error) {
 	if e != nil || !portable {
 		return w.Payload, e
 	}
-	raw, e := a.bindPortableConfiguration(w.Payload)
+	input := w.Payload
+	if w.Kind == "speakers.run" {
+		var p speakerWorkflowPayload
+		if strictPayload(input, &p) != nil {
+			return nil, contracts.Fail("invalid_request")
+		}
+		training, err := json.Marshal(p.Training)
+		if err != nil {
+			return nil, err
+		}
+		training, err = a.bindPortableConfiguration(training)
+		if err != nil {
+			return nil, err
+		}
+		if strictPayload(training, &p.Training) != nil {
+			return nil, contracts.Fail("invalid_request")
+		}
+		input, _ = json.Marshal(p)
+	}
+	raw, e := a.bindPortableConfiguration(input)
 	if e != nil {
 		return nil, e
 	}
