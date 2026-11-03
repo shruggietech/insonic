@@ -1,0 +1,27 @@
+# S073 verification
+
+## 2026-11-02 implementation and local qualification
+
+Scope: existing issues #230, #231 and #232. Branch codex/073-grounded-speaker-enrollment, based on main c55d5e2eede2b9a004dad53e91b6eec235aecd5c. No tracking issue, release or merge is part of this slice.
+
+Implemented independent contextual mapping proofs, atomic application/retraction, current corpus/profile invalidation, mixed-speaker exclusion and durable saved/inline speaker workflows. Matching preserves independently grounded mappings. Unknown or ambiguous new evidence preserves accepted mappings; contradictory independent support retracts applicable contextual authority. Manual corrections remain authoritative. Historical model artifacts remain retrievable after current evidence is retired.
+
+Local checks include npm run check, npm test (223 tests), full Go tests and vet, Python unittest discovery (754 tests, five environment-specific skips), frontend type checking and tests (109), site tests (18) and a production site build (229 pages and link validation). Detailed terminal states and timing are retained in evidence/local-checks.json; local raw command logs remain under .local/s073/.
+
+Installed headless Windows CLI journeys use an owned loopback discovery/training adapter and native Cueson/media tools. They cover unsupported identities, unknown/ambiguous evidence with accepted mapping preservation, saved pipeline application/enrollment, training failure and retry, human/JSON output, retraction, historical exact-artifact retrieval, cancellation/retry, owner correction, and restart of an explicitly owned runtime. The alternate-backend harness also passes locally against a fresh default workspace; actual PostgreSQL/S3/ArcadeDB execution remains a CI obligation.
+
+Targeted regressions cover circular/acoustic-only exclusion, CPU/auto/CUDA enrollment policy, route-aware mixed-speaker exclusion, mapping receipt replay, stale correction/retraction, independent contradiction, identity/source/recording-revision invalidation, portable proof tampering, current profile election fences and four simultaneous parent workflows without scheduler starvation. Existing backend, cleanup, publication, graph delivery and failure suites remain part of required CI.
+
+Initial failures were retained and corrected: historical schema migration needed an origin-column guard; final contextual reconciliation proofs needed to supersede earlier mapping digests; new command expectations needed updating; a supplied-label fixture needed explicit known timing; and a pre-existing Windows diagnostic test needed an explicit freshness timestamp instead of filesystem clock granularity. The selected Go compiler path was corrected for setup reconstruction checks. Failed exploratory fixture and invocation attempts remain in the local ledger rather than being reported as passing qualification.
+
+Spec Kit convergence checked 12 functional requirements, five success criteria, ten acceptance scenarios, eight plan decisions and five constitution principles. Its first pass appended T022 for installed alternative-backend coverage; that journey now shares the exact default-backend workflow and owns its restart process. The second convergence pass found no remaining buildable gaps and left tasks.md byte-for-byte unchanged (SHA-256 35a752af534072b7433000e265af4eae22e1e13777bcddfe5bf1b504fdc2adc2). CI execution and external review remain pending.
+
+Local qualification began 2026-11-03T01:55:53.169Z and ended 2026-11-03T02:25:00.300Z. The recorded preparation interval was 0.001 seconds after cached prerequisites had already been examined; environment corrections during the campaign remain charged to qualification. Qualification took 1747.131 seconds and combined campaign time was 1747.132 seconds. This remained within the 1800-second target and 3600-second hard limit. Earlier implementation-level tests are separate from this qualification campaign.
+
+## CI and review handoff
+
+Pending publication and exact-branch-head CI. The automatic first external review and at most one requested second round are authorized. Every actionable finding must be addressed and every review thread resolved before handoff. Owner performs final review and merge.
+
+## Evidence limits
+
+These fixtures establish protocol, authority, recovery, backend and device-election behavior. They do not measure acoustic model accuracy or qualify a real known-truth corpus. Full acoustic quality and release readiness remain #233. No release, tag, merge or attended local desktop acceptance was performed. A separate security-review receipt is only claimed if an actual external result is observed.

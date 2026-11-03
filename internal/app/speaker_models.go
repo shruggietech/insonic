@@ -141,7 +141,7 @@ func (a *App) speakerWorkDispatch(req contracts.Request) (any, error) {
 			if err != nil {
 				return nil, err
 			}
-			view["profile"] = profile
+			view["profile"] = a.speakerProfileView(profile)
 		}
 		return view, nil
 	case "models.dataset.create":
@@ -165,9 +165,9 @@ func (a *App) speakerWorkDispatch(req contracts.Request) (any, error) {
 			return nil, err
 		}
 		if len(output.Metadata) > 512<<10 {
-			return map[string]any{"output": speakerOutputSummary(output), "profile": profile, "metadata_inline": false, "metadata_bytes": len(output.Metadata)}, nil
+			return map[string]any{"output": speakerOutputSummary(output), "profile": a.speakerProfileView(profile), "metadata_inline": false, "metadata_bytes": len(output.Metadata)}, nil
 		}
-		return map[string]any{"output": output, "profile": profile, "metadata_inline": true}, nil
+		return map[string]any{"output": output, "profile": a.speakerProfileView(profile), "metadata_inline": true}, nil
 	case "models.speaker.fetch":
 		var input struct {
 			Destination string `json:"destination"`

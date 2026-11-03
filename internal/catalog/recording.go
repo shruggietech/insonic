@@ -60,7 +60,7 @@ func validRecording(r Recording) bool {
 	return subtitles.ValidateDocument(r.Document) == nil
 }
 func validSpeakerMapping(m SpeakerMapping) bool {
-	return contracts.ValidID(m.ID) && contracts.ValidID(m.RecordingID) && contracts.ValidLocalSpeakerID(m.LocalSpeakerID) && contracts.ValidID(m.SpeakerID) && digestPattern.MatchString(m.DocumentDigest) && m.Revision > 0 && (m.Origin == "manual" || m.Origin == "automatic") && len(m.Provenance) <= 16384 && referenceOnlyOptions(m.Provenance)
+	return contracts.ValidID(m.ID) && contracts.ValidID(m.RecordingID) && contracts.ValidLocalSpeakerID(m.LocalSpeakerID) && contracts.ValidID(m.SpeakerID) && digestPattern.MatchString(m.DocumentDigest) && m.Revision > 0 && (m.Origin == "manual" || m.Origin == "automatic" || m.Origin == "contextual") && len(m.Provenance) <= 16384 && referenceOnlyOptions(m.Provenance)
 }
 func recordingDigest(r Recording) string { r.Revision = 0; d, _ := intent(r); return d }
 func (s *Store) Recording(ctx context.Context, id string) (Recording, error) {
@@ -226,7 +226,7 @@ func (s *Store) saveRecording(ctx context.Context, tx *sql.Tx, expected int64, r
 	}
 	present := documentSpeakers(r.Document)
 	for _, m := range mappings {
-		if !present[m.LocalSpeakerID] || m.Origin == "automatic" && (old.DocumentDigest != r.DocumentDigest || old.SourceDigest != r.SourceDigest || old.SourceRevision != r.SourceRevision || !bytes.Equal(old.SourceMap, r.SourceMap)) {
+		if !present[m.LocalSpeakerID] || (m.Origin == "automatic" || m.Origin == "contextual") && (old.DocumentDigest != r.DocumentDigest || old.SourceDigest != r.SourceDigest || old.SourceRevision != r.SourceRevision || !bytes.Equal(old.SourceMap, r.SourceMap)) {
 			if _, e = s.exec(ctx, tx, "DELETE FROM speaker_mapping WHERE workspace_id=? AND id=?", s.workspace, m.ID); e != nil {
 				return e
 			}
@@ -384,11 +384,12 @@ func (s *Store) validateRecordingState(ctx context.Context, tx *sql.Tx, records 
 			return e
 		}
 		var p struct {
-			RecordingID        string `json:"recording_id"`
-			MappingRecordingID string `json:"mapping_recording_id"`
-			RecordDigest       string `json:"record_digest"`
-			RecordingDigest    string `json:"recording_digest"`
-			MappingDigest      string `json:"mapping_digest"`
+			RecordingID        string            `json:"recording_id"`
+			MappingRecordingID string            `json:"mapping_recording_id"`
+			RecordDigest       string            `json:"record_digest"`
+			RecordingDigest    string            `json:"recording_digest"`
+			MappingDigest      string            `json:"mapping_digest"`
+			ContextualProofs   map[string]string `json:"contextual_mapping_proofs"`
 		}
 		if json.Unmarshal([]byte(result), &p) != nil {
 			rows.Close()
@@ -411,6 +412,14 @@ func (s *Store) validateRecordingState(ctx context.Context, tx *sql.Tx, records 
 				return contracts.Fail("invalid_request")
 			}
 			mappingProofs[p.MappingRecordingID] = p.MappingDigest
+		}
+		// Reconciliation runs after the primary mutation and owns the final mapping state.
+		for id, digest := range p.ContextualProofs {
+			if !contracts.ValidID(id) || !digestPattern.MatchString(digest) {
+				rows.Close()
+				return contracts.Fail("invalid_request")
+			}
+			mappingProofs[id] = digest
 		}
 	}
 	e = rows.Err()
@@ -438,6 +447,14 @@ func (s *Store) validateRecordingState(ctx context.Context, tx *sql.Tx, records 
 		delete(mappingProofs, r.ID)
 		present := documentSpeakers(r.Document)
 		for _, m := range mappings {
+			if m.Origin == "contextual" {
+				if e = s.contextualMappingCurrentTx(ctx, tx, m); e != nil {
+					return e
+				}
+				if e = s.validateContextualReceiptTx(ctx, tx, m); e != nil {
+					return e
+				}
+			}
 			if !validSpeakerMapping(m) || m.DocumentDigest != r.DocumentDigest || !present[m.LocalSpeakerID] {
 				return contracts.Fail("invalid_request")
 			}

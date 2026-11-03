@@ -55,6 +55,8 @@ type SpeakerSelection struct {
 	Limit         int    `json:"limit,omitempty"`
 }
 type CurrentReference struct {
+	EvidenceClass     string `json:"evidence_class,omitempty"`
+	EvidenceDigest    string `json:"evidence_digest,omitempty"`
 	RecordingID       string `json:"recording_id"`
 	RecordingRevision int64  `json:"recording_revision"`
 	DocumentDigest    string `json:"document_digest"`

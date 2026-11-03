@@ -166,6 +166,9 @@ func (a *App) recoverWork() {
 		if item.State != "pending" && item.State != "interrupted" && item.State != "running" {
 			continue
 		}
+		if !a.speakerWorkflowReady(item) {
+			continue
+		}
 		acceptedRepair := false
 		if item.Kind == "recordings.repair" {
 			var p recordingPayload
@@ -218,7 +221,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	defer a.wg.Done()
 	var result any
 	var e error
-	if claim.Kind == "speakers.discover" {
+	if claim.Kind == "speakers.run" {
+		result, e = a.processSpeakerWorkflow(ctx, claim)
+	} else if claim.Kind == "speakers.discover" {
 		result, e = a.processSpeakerDiscovery(ctx, claim)
 	} else if claim.Kind == "answers.request" {
 		result, e = a.processAnswer(ctx, claim)
@@ -289,7 +294,7 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	}
 	defer delete(a.workers, claim.ID)
 	defer worker.cancel()
-	if ctx.Err() != nil {
+	if ctx.Err() != nil || errors.Is(e, errSpeakerWorkflowYield) {
 		return
 	}
 	state := "succeeded"
@@ -317,7 +322,7 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 		}
 		cause = code
 		failure := map[string]any{"state": "failed", "error": code, "cause": contracts.SafeError(e)}
-		if claim.Kind == "answers.request" {
+		if claim.Kind == "answers.request" || claim.Kind == "speakers.run" {
 			raw, _ := json.Marshal(result)
 			var detail map[string]any
 			if json.Unmarshal(raw, &detail) == nil {

@@ -38,6 +38,9 @@ func (s *Store) explorationMutation(ctx context.Context, tx *sql.Tx, op string, 
 	if strict(data, &result) != nil {
 		return data, nil
 	}
+	if e := s.reconcileContextualMappings(ctx, tx, op, revision, result); e != nil {
+		return nil, e
+	}
 	if e := s.reconcileSpeakerOutputLineage(ctx, tx, result); e != nil {
 		return nil, e
 	}

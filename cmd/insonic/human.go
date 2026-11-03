@@ -515,7 +515,7 @@ func renderHuman(response contracts.Response) (string, error) {
 	compactWork := false
 	if !operatorContext.Quiet || response.Error != nil {
 		if root, ok := v.(map[string]any); ok {
-			compactWork = humanWorkSummary(b, root, response.Error != nil) || humanAnswerSummary(b, root) || humanDiscoverySummary(b, root)
+			compactWork = humanWorkSummary(b, root, response.Error != nil) || humanAnswerSummary(b, root) || humanDiscoverySummary(b, root) || humanSpeakerApplication(b, root)
 		}
 		if !compactWork {
 			humanSummary(b, v, 0)

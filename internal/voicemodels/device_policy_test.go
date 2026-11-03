@@ -17,7 +17,7 @@ func TestSpeakerEnrollmentAndMatchingRetainDeviceExecution(t *testing.T) {
 		t.Run(policy, func(t *testing.T) {
 			s, db := fixture(t)
 			ctx := context.Background()
-			dataset, speaker := datasetFixture(t, s, db, 65)
+			dataset, speaker := contextualDatasetFixture(t, s, db, 65)
 			base, digest := contracts.ID(), strings.Repeat("b", 64)
 			want := policy
 			if want == "" {

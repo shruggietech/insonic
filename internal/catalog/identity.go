@@ -40,6 +40,13 @@ func validPipeline(p Pipeline) bool {
 		return false
 	}
 	var config struct {
+		SpeakerWorkflow struct {
+			Provider struct {
+				Route        string `json:"route"`
+				Endpoint     string `json:"endpoint"`
+				CredentialID string `json:"credential_id"`
+			} `json:"provider"`
+		} `json:"speaker_workflow"`
 		Recognition struct {
 			Mode         string `json:"mode"`
 			Endpoint     string `json:"endpoint"`
@@ -61,7 +68,7 @@ func validPipeline(p Pipeline) bool {
 	if json.Unmarshal(p.Configuration, &config) != nil {
 		return false
 	}
-	for _, stage := range []struct{ endpoint, credential string }{{config.Recognition.Endpoint, config.Recognition.CredentialID}, {config.Diarization.Endpoint, config.Diarization.CredentialID}, {config.SpeakerTraining.Adapter.Endpoint, config.SpeakerTraining.Adapter.CredentialID}} {
+	for _, stage := range []struct{ endpoint, credential string }{{config.SpeakerWorkflow.Provider.Endpoint, config.SpeakerWorkflow.Provider.CredentialID}, {config.Recognition.Endpoint, config.Recognition.CredentialID}, {config.Diarization.Endpoint, config.Diarization.CredentialID}, {config.SpeakerTraining.Adapter.Endpoint, config.SpeakerTraining.Adapter.CredentialID}} {
 		if stage.endpoint == "" {
 			continue
 		}
@@ -78,7 +85,8 @@ func validPipeline(p Pipeline) bool {
 	}
 	processing := config.Recognition.Mode != "" || config.Diarization.Mode != ""
 	training := config.SpeakerTraining.Adapter.Mode
-	return p.Preset == "custom" || p.Preset == "local" && (!processing || config.Recognition.Mode == "local" && config.Diarization.Mode == "local") && (training == "" || training == "local" || training == "embedding") || p.Preset == "connected" && (!processing || config.Recognition.Mode == "hosted" && config.Diarization.Mode == "hosted") && (training == "" || training == "hosted")
+	route := config.SpeakerWorkflow.Provider.Route
+	return p.Preset == "custom" || p.Preset == "local" && (route == "" || route == "local") && (!processing || config.Recognition.Mode == "local" && config.Diarization.Mode == "local") && (training == "" || training == "local" || training == "embedding") || p.Preset == "connected" && (route == "" || route == "hosted") && (!processing || config.Recognition.Mode == "hosted" && config.Diarization.Mode == "hosted") && (training == "" || training == "hosted")
 }
 func defaultRaw(raw json.RawMessage, value string) json.RawMessage {
 	if len(raw) == 0 {

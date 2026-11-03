@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Actual CLI answer journey on explicitly supplied disposable alternative services."""
+"""Actual CLI answer and speaker journeys on disposable alternative services."""
 import argparse
 import base64
 import hashlib
@@ -71,11 +71,18 @@ def main():
         processing.write_text(json.dumps({'kind': 'processing-tools', 'schema_version': plan['schema_version'],
             'cueson': {'executable': str(cueson), 'executable_sha256': cueson_hash}, 'processing': {}}) + '\n',
             encoding='utf-8', newline='\n')
+        # Exact prepared tools are selected before the explicitly owned runtime
+        # starts; no local or default catalog replaces the elected backend plan.
+        (workspace / '.insonic/media-tools.json').write_bytes((root / 'build/native/media-tools.json').read_bytes())
+        (workspace / '.insonic/processing-tools.json').write_bytes(processing.read_bytes())
+        from cli_speaker_workflow_qualification import qualify_backend
+        speaker = qualify_backend(executable, workspace, folder, env, plan['schema_version'])
         spec = importlib.util.spec_from_file_location('answer_campaign', root / 'scripts/qualify-answers.py')
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
         receipt = module.campaign(executable, workspace, args.output, existing=True, environment=env,
             media_tools=root / 'build/native/media-tools.json', processing_tools=processing)
         receipt['backends'] = {'catalog': 'postgresql', 'storage': 's3', 'graph': 'arcadedb'}
+        receipt['speaker_workflow'] = speaker
         args.output.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8', newline='\n')
         if not receipt['passed']: raise ValueError('Alternative-backend answer evaluation failed')
     print(json.dumps({'passed': True, 'backends': receipt['backends'], 'model_quality': receipt['model_quality']}))

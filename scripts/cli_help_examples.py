@@ -122,9 +122,10 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             if self.path == '/speaker-discovery':
                 if request.get('operation') != 'speaker-discovery' or not request.get('context', {}).get('cues'):
                     self.send_error(400); return
-                # The owned subtitle has no identity claim. Successful abstention
-                # still creates a current aggregate for the read/resolve examples.
-                reply = {'version': 1, 'observations': []}
+                reply = {'version': 1, 'observations': [
+                    {'class': 'self-identification', 'name': 'Alex', 'voice_id': cue['voices'][0],
+                     'references': [{'cue_id': cue['id'], 'quote': cue['text']}], 'uncertain': False}
+                    for cue in request['context']['cues'] if cue.get('voices')]}
             else:
                 reply = fixture_reply(request['context'])
             data = json.dumps(reply).encode()
@@ -159,13 +160,18 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
         from cli_media_qualification import pcm_fixture
         audio, subtitle = directory / 'source.wav', directory / 'source.vtt'
         pcm_fixture(audio, 1)
-        subtitle.write_text('WEBVTT\n\n00:00:00.000 --> 00:00:00.500\n<v Alex>fixture résumé 文 😀\n\n', encoding='utf-8', newline='\n')
+        subtitle.write_text('WEBVTT\n\n00:00:00.000 --> 00:00:00.500\n<v Alex>I am Alex. fixture résumé 文 😀\n\n', encoding='utf-8', newline='\n')
         media = wait(call(['media', 'import', audio, '--no-pipeline'])['result'])['result']['items'][0]
         ids['MEDIA_UUID'] = media['media_id']
         wait(call(['transcript', 'import', subtitle, '--record', ids['MEDIA_UUID']])['result'])
         record = call(['recordings', 'show', ids['MEDIA_UUID']])['result']['recording']
         discovery = discovery_fixture(invoke, directory, environment, audio, subtitle)
         ids['RECORDING_UUID'] = discovery['recording_id']
+        discovery_provider = {'enabled': True, 'adapter': 'insonic-http', 'route': 'local',
+            'endpoint': f'http://127.0.0.1:{server.server_port}/speaker-discovery', 'model': 'owned-help-fixture'}
+        discovery_speaker = str(uuid.uuid4())
+        discovery['call'](['speakers', 'set', discovery_speaker, '--input', write('discovery-identity.json', {
+            'expected_revision': 0, 'speaker': {'id': discovery_speaker, 'name': 'Alex', 'state': 'active'}, 'aliases': []})])
         speaker_input = template(by_path[('speakers', 'set')])
         speaker_input['speaker']['id'] = ids['SPEAKER_UUID']
         input_call(['speakers', 'set', ids['SPEAKER_UUID']], speaker_input)
@@ -270,7 +276,7 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             replacements = {k: v for k, v in ids.items()}
             kwargs = {'expected': (0, 1, 2, 4)}
             value = selected_input(name, help_text)
-            if name in ['speakers discover', 'speakers hypotheses', 'speakers resolve']:
+            if name in ['speakers discover', 'speakers hypotheses', 'speakers resolve', 'speakers apply', 'speakers retract', 'speakers run']:
                 kwargs.update(workspace_path=discovery['library'], execution_environment=discovery['environment'])
             if name == 'answers request':
                 value['configuration']['provider']['endpoint'] = f'http://127.0.0.1:{server.server_port}/answer'
@@ -350,6 +356,23 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                 replacements['CURRENT_REVISION'] = current_media()
             elif name.startswith('recordings roster ') and command[-1] != 'show':
                 replacements['CURRENT_REVISION'] = call(['recordings', 'roster', 'show', ids['MEDIA_UUID']])['result']['revision']
+            elif name == 'speakers apply':
+                queued = discovery['call'](['speakers', 'discover', ids['RECORDING_UUID'], '--input', write('discover-before-apply.json', {'configuration': discovery_provider})])['result']
+                discovery['call'](['work', 'wait', queued['work_id']])
+                current = discovery['call'](['speakers', 'hypotheses', ids['RECORDING_UUID']])['result']
+                value = {'expected_revision': current['revision']}
+                write('input.json', value)
+            elif name == 'speakers retract':
+                current = discovery['call'](['recordings', 'show', ids['RECORDING_UUID']])['result']['recording']
+                mappings = discovery['call'](['recordings', 'mappings', ids['RECORDING_UUID']])['result']['items']
+                value = {'expected_recording_revision': current['revision'], 'mappings': [
+                    {'id': row['id'], 'revision': row['revision']} for row in mappings if row['origin'] == 'contextual']}
+                if not value['mappings']:
+                    raise ValueError('Help application produced no contextual mapping')
+                write('input.json', value)
+            elif name == 'speakers run':
+                value = {'configuration': {'provider': discovery_provider, 'apply': True, 'enroll': False, 'select_profile': False}}
+                write('input.json', value)
             elif name == 'speakers discover':
                 value['configuration'] = {
                     'enabled': True, 'adapter': 'insonic-http', 'route': 'local',
@@ -490,7 +513,7 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             if not error and result is None:
                 raise ValueError('Emitted example returned no established result: ' + name)
             if not error and isinstance(result, dict) and result.get('work_id'):
-                completion_call = discovery['call'] if name in ['speakers discover', 'speakers hypotheses', 'speakers resolve'] else call
+                completion_call = discovery['call'] if name in ['speakers discover', 'speakers hypotheses', 'speakers resolve', 'speakers apply', 'speakers retract', 'speakers run'] else call
                 completed = completion_call(['work', 'wait', result['work_id']], expected=(0, 1, 4))
                 failure = completed.get('error')
                 if failure and failure['code'] not in expected.get(name, set()):
@@ -535,6 +558,9 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             write('example-progress.json', ledger)
         if len(ledger) != len(help_pages) or {e['command'] for e in ledger} != set(help_pages):
             raise ValueError('Actual example ledger does not cover every registered command')
-        return {'state': 'passed', 'executed': len(ledger), 'elapsed_seconds': round(time.monotonic() - started, 3), 'ledger': ledger}
+        from cli_speaker_workflow_qualification import qualify as qualify_speaker_workflow, qualify_restart
+        speaker_workflow = qualify_speaker_workflow(discovery['call'], write, ids['RECORDING_UUID'], discovery_speaker, directory, version)
+        speaker_workflow['restart'] = qualify_restart(invoke, directory, discovery['environment'], audio, subtitle, executable=executable, process_factory=process_factory)
+        return {'state': 'passed', 'speaker_workflow': speaker_workflow, 'executed': len(ledger), 'elapsed_seconds': round(time.monotonic() - started, 3), 'ledger': ledger}
     finally:
         finish_server(server, thread)

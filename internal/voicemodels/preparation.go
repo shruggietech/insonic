@@ -23,6 +23,7 @@ import (
 	"github.com/shruggietech/insonic/internal/workspace"
 )
 
+func ValidateRecipe(r Recipe) error { return validateRecipe(r) }
 func validateRecipe(r Recipe) error {
 	if r.RecordingID != "" && !contracts.ValidID(r.RecordingID) || len(r.RecordingIDs) > 1000 || len(r.Languages) > 64 || len(r.ExcludedReferences) > 10000 || r.Channel != nil && (*r.Channel < 0 || *r.Channel > 63) || r.MinDurationUS < 0 || r.MaxDurationUS < 0 || r.MaxDurationUS > 0 && r.MaxDurationUS < r.MinDurationUS {
 		return contracts.Fail("invalid_request")
@@ -65,6 +66,7 @@ func (s *Service) resolve(ctx context.Context, refs []catalog.CurrentReference, 
 	summary := Summary{References: len(refs), Diagnostics: []processing.Diagnostic{}}
 	counts := map[string]int64{}
 	filter := catalog.SpeakerSelection{SpeakerID: speakerID, ConfirmedOnly: true}
+	mixedByRecording := map[string]map[string]bool{}
 	for start := 0; start < len(refs); start += 100 {
 		end := start + 100
 		if end > len(refs) {
@@ -101,6 +103,25 @@ func (s *Service) resolve(ctx context.Context, refs []catalog.CurrentReference, 
 					counts["language_filter_excluded"]++
 					continue
 				}
+			}
+			mixed, ok := mixedByRecording[ref.RecordingID]
+			if !ok {
+				r, err := s.Catalog.Recording(ctx, ref.RecordingID)
+				if err != nil {
+					return nil, summary, err
+				}
+				if r.Revision != ref.RecordingRevision {
+					return nil, summary, contracts.Fail("conflict")
+				}
+				mixed, err = catalog.MixedSpeakerEvidence(r)
+				if err != nil {
+					return nil, summary, err
+				}
+				mixedByRecording[ref.RecordingID] = mixed
+			}
+			if mixed[ref.CueID+"/"+ref.LocalSpeakerID] {
+				counts["mixed_speaker_excluded"]++
+				continue
 			}
 			batch = append(batch, resolved)
 		}
@@ -167,7 +188,7 @@ func (s *Service) resolve(ctx context.Context, refs []catalog.CurrentReference, 
 	}
 	return out, summary, nil
 }
-func (s *Service) CreateDataset(ctx context.Context, op string, options DatasetOptions) (catalog.SpeakerDataset, error) {
+func (s *Service) CreateDataset(ctx context.Context, op string, options DatasetOptions, claim ...catalog.Work) (catalog.SpeakerDataset, error) {
 	var empty catalog.SpeakerDataset
 	if !contracts.ValidID(op) || !contracts.ValidID(options.SpeakerID) || validateRecipe(options.Recipe) != nil {
 		return empty, contracts.Fail("invalid_request")
@@ -224,7 +245,7 @@ func (s *Service) CreateDataset(ctx context.Context, op string, options DatasetO
 		return empty, err
 	}
 	summaryRaw, _ := json.Marshal(summary)
-	got, err := s.Catalog.CreateSpeakerDataset(ctx, op, options.SpeakerID, included, epoch, recipeRaw, summaryRaw, publication.ID)
+	got, err := s.Catalog.CreateSpeakerDataset(ctx, op, options.SpeakerID, included, epoch, recipeRaw, summaryRaw, publication.ID, claim...)
 	if err != nil {
 		s.retire([]string{publication.ID}, op)
 	}

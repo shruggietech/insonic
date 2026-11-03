@@ -70,10 +70,10 @@ func (s *Store) CurrentSpeakerReferences(ctx context.Context, selection SpeakerS
 		cueOrdinal = "(c.ordinality-1)"
 		match = "EXISTS(SELECT 1 FROM jsonb_array_elements(c.value->'speaker_attributions') a(value) WHERE a.value->>'speaker_id'=m.local_speaker_id)"
 	}
-	q := "SELECT r.id,r.revision,r.document_digest," + cueID + "," + cueOrdinal + ",m.local_speaker_id,m.revision,r.source_digest,r.source_map FROM speaker_mapping m JOIN current_recording r ON r.workspace_id=m.workspace_id AND r.id=m.recording_id " + expand + " WHERE m.workspace_id=? AND m.speaker_id=? AND r.state='ready' AND m.document_digest=r.document_digest AND " + match
+	q := "SELECT r.id,r.revision,r.document_digest," + cueID + "," + cueOrdinal + ",m.local_speaker_id,m.revision,r.source_digest,r.source_map,m.origin,m.provenance FROM speaker_mapping m JOIN current_recording r ON r.workspace_id=m.workspace_id AND r.id=m.recording_id " + expand + " WHERE m.workspace_id=? AND m.speaker_id=? AND r.state='ready' AND m.document_digest=r.document_digest AND " + match
 	args := []any{s.workspace, selection.SpeakerID}
 	if selection.ConfirmedOnly {
-		q += " AND m.origin='manual'"
+		q += " AND m.origin IN ('manual','contextual')"
 	}
 	if selection.RecordingID != "" {
 		q += " AND r.id=?"
@@ -92,9 +92,9 @@ func (s *Store) CurrentSpeakerReferences(ctx context.Context, selection SpeakerS
 	}
 	for rows.Next() {
 		ref := CurrentReference{SpeakerID: selection.SpeakerID}
-		var raw string
+		var raw, origin, provenance string
 		var ordinal int64
-		if e = rows.Scan(&ref.RecordingID, &ref.RecordingRevision, &ref.DocumentDigest, &ref.CueID, &ordinal, &ref.LocalSpeakerID, &ref.MappingRevision, &ref.SourceDigest, &raw); e != nil {
+		if e = rows.Scan(&ref.RecordingID, &ref.RecordingRevision, &ref.DocumentDigest, &ref.CueID, &ordinal, &ref.LocalSpeakerID, &ref.MappingRevision, &ref.SourceDigest, &raw, &origin, &provenance); e != nil {
 			break
 		}
 		canonicalMap, err := canonical([]byte(raw))
@@ -103,6 +103,10 @@ func (s *Store) CurrentSpeakerReferences(ctx context.Context, selection SpeakerS
 			break
 		}
 		ref.SourceMapDigest = hash(canonicalMap)
+		if origin == "contextual" {
+			ref.EvidenceClass = "independent-contextual"
+			ref.EvidenceDigest = hash([]byte(provenance))
+		}
 		out.References = append(out.References, ref)
 		if len(out.References) <= selection.Limit {
 			lastOrdinal = ordinal
@@ -157,6 +161,14 @@ func (s *Store) ResolveEvidence(ctx context.Context, ref CurrentReference) (out 
 	out.Cue, e = s.segmentCue(ctx, tx, Segment{RecordingID: ref.RecordingID, DocumentDigest: ref.DocumentDigest, CueID: ref.CueID, LocalSpeakerID: ref.LocalSpeakerID})
 	if e != nil {
 		return out, e
+	}
+	if out.Mapping.Origin == "contextual" {
+		if e = s.contextualMappingCurrentTx(ctx, tx, out.Mapping); e != nil {
+			return out, sanitize(e)
+		}
+		if ref.EvidenceClass != "independent-contextual" || ref.EvidenceDigest != hash(out.Mapping.Provenance) {
+			return out, contracts.Fail("conflict")
+		}
 	}
 	out.Reference = ref
 	out.SourceMap, e = ResolveEvidenceSourceMap(r.SourceMap, r.Provenance, ref.CueID, ref.LocalSpeakerID)

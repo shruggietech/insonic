@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -35,6 +36,7 @@ func portableArtifact(p catalog.Publication) map[string]any {
 func BuildDatasetManifest(workspaceID, datasetID string, speaker catalog.Speaker, revision int64, recipe Recipe, refs []catalog.CurrentReference, summary Summary) (json.RawMessage, error) {
 	members := []any{}
 	sources := map[string]bool{}
+	bases := map[string]bool{}
 	for i, ref := range refs {
 		member := map[string]any{"ordinal": i, "segment_id": catalog.SpeakerDatasetSegmentID(datasetID, ref), "segment_revision": ref.RecordingRevision, "recording_id": ref.RecordingID, "document_digest": ref.DocumentDigest, "cue_id": ref.CueID, "local_speaker_id": ref.LocalSpeakerID}
 		if ref.SourceDigest != "" {
@@ -46,9 +48,21 @@ func BuildDatasetManifest(workspaceID, datasetID string, speaker catalog.Speaker
 		if ref.MappingRevision > 0 {
 			member["mapping_revision"] = ref.MappingRevision
 		}
+		basis := "manual"
+		if ref.EvidenceClass != "" {
+			basis = ref.EvidenceClass
+			member["evidence_class"] = ref.EvidenceClass
+			member["evidence_digest"] = ref.EvidenceDigest
+		}
+		bases[basis] = true
 		members = append(members, member)
 		sources[ref.RecordingID] = true
 	}
+	attributionBases := []string{}
+	for b := range bases {
+		attributionBases = append(attributionBases, b)
+	}
+	sort.Strings(attributionBases)
 	languages := append([]string{}, recipe.Languages...)
 	var maxDuration any
 	if recipe.MaxDurationUS > 0 {
@@ -65,7 +79,7 @@ func BuildDatasetManifest(workspaceID, datasetID string, speaker catalog.Speaker
 	manifest := map[string]any{
 		"schema_version": contracts.Version, "kind": "speaker-dataset", "workspace_id": workspaceID, "dataset_snapshot_id": datasetID,
 		"speaker_id": speaker.ID, "speaker_identity_revision": speaker.Revision, "catalog_revision": revision, "created_at": portableInstant(time.Now()), "manifest_sha256": "", "state": "current",
-		"selection":   map[string]any{"recipe_id": models.StableID("speaker-recipe:" + portableDigest(recipe)), "recipe_revision": 1, "preset": "current-independent", "preset_version": "1", "attribution_bases": []string{"manual"}, "source_asset_ids": []string{}, "languages": languages, "minimum_duration_us": recipe.MinDurationUS, "maximum_duration_us": maxDuration, "explicitly_excluded_segment_ids": []string{}, "options": recipe},
+		"selection":   map[string]any{"recipe_id": models.StableID("speaker-recipe:" + portableDigest(recipe)), "recipe_revision": 1, "preset": "current-independent", "preset_version": "1", "attribution_bases": attributionBases, "source_asset_ids": []string{}, "languages": languages, "minimum_duration_us": recipe.MinDurationUS, "maximum_duration_us": maxDuration, "explicitly_excluded_segment_ids": []string{}, "options": recipe},
 		"preparation": nil, "members": members, "exclusions": []any{},
 		"summary": map[string]any{"segment_count": len(refs), "source_asset_count": len(sources), "original_duration_us": summary.DurationUS, "prepared_duration_us": nil, "excluded_segment_count": summary.Excluded, "diagnostic_counts": counts, "languages": languages},
 	}

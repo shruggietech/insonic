@@ -197,7 +197,8 @@
         "origin": {
           "enum": [
             "manual",
-            "automatic"
+            "automatic",
+            "contextual"
           ],
           "description": "Manual correction or automatic acoustic match; historical absence means manual."
         },

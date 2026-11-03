@@ -277,12 +277,12 @@ func (s *Store) speakerDiscoveryAcousticTx(ctx context.Context, tx *sql.Tx, id, 
 					value.Independent = false
 				}
 			}
-		case "unknown", "manual-preserved":
+		case "unknown", "manual-preserved", "contextual-preserved":
 		default:
 			return stale()
 		}
 		if value.Independent {
-			value.Reason = "current_manual_enrollment_without_source_overlap"
+			value.Reason = "current_independent_enrollment_without_source_overlap"
 		}
 		out.Decisions = append(out.Decisions, value)
 	}

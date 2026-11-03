@@ -89,6 +89,7 @@ type MatchOptions struct {
 	MinEvidenceUS int64   `json:"min_evidence_us"`
 }
 type TrainPayload struct {
+	ParentWorkID      string              `json:"parent_work_id,omitempty"`
 	ProcessingTools   json.RawMessage     `json:"processing_tools,omitempty"`
 	RequestDigest     string              `json:"request_digest,omitempty"`
 	Options           TrainOptions        `json:"options"`
