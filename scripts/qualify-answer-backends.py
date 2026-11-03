@@ -32,13 +32,6 @@ def main():
     session_id, graph_id = str(uuid.uuid4()), str(uuid.uuid4())
     schema, database, bucket = 'answer_' + uuid.uuid4().hex, 'answer' + uuid.uuid4().hex, 'answer-' + uuid.uuid4().hex
     s3 = 'http://' + selected['INSONIC_FIXTURE_S3']
-    with urllib.request.urlopen(urllib.request.Request(s3 + '/' + bucket, data=b'', method='PUT'), timeout=bounds.REQUEST_SECONDS) as response:
-        if response.status not in (200, 201): raise ValueError('Owned fixture bucket was not created')
-    graph_request = urllib.request.Request(selected['INSONIC_FIXTURE_ARCADE'] + '/api/v1/server',
-        data=json.dumps({'command': 'create database ' + database}).encode(),
-        headers={'Content-Type': 'application/json', 'Authorization': 'Basic ' + base64.b64encode(b'root:fixture-only-password').decode()})
-    with urllib.request.urlopen(graph_request, timeout=bounds.REQUEST_SECONDS) as response:
-        if response.status not in (200, 201): raise ValueError('Owned graph database was not created')
     # These uniquely named resources belong to the elected disposable service
     # campaign; its container teardown removes them together after diagnostics.
     values = {session_id: {'username': pg.username, 'password': pg.password},
@@ -59,6 +52,16 @@ def main():
                 'graph': {'adapter_id': 'arcadedb', 'configuration': {'endpoint': selected['INSONIC_FIXTURE_ARCADE'],
                     'database': database, 'credential_id': graph_id, 'preferred_dialect': 'arcade-opencypher'}}}}
         def provision(path, election):
+            storage = election['profiles']['storage']['configuration']
+            graph = election['profiles']['graph']['configuration']
+            with urllib.request.urlopen(urllib.request.Request(storage['endpoint'] + '/' + storage['bucket'],
+                    data=b'', method='PUT'), timeout=bounds.REQUEST_SECONDS) as response:
+                if response.status not in (200, 201): raise ValueError('Owned fixture bucket was not created')
+            graph_request = urllib.request.Request(graph['endpoint'] + '/api/v1/server',
+                data=json.dumps({'command': 'create database ' + graph['database']}).encode(),
+                headers={'Content-Type': 'application/json', 'Authorization': 'Basic ' + base64.b64encode(b'root:fixture-only-password').decode()})
+            with urllib.request.urlopen(graph_request, timeout=bounds.REQUEST_SECONDS) as response:
+                if response.status not in (200, 201): raise ValueError('Owned graph database was not created')
             plan_path = folder / 'plan.json'
             plan_path.write_text(json.dumps(election) + '\n', encoding='utf-8', newline='\n')
             stdout, stderr, code, _ = capture_invocation(ProcessTree,
@@ -78,9 +81,12 @@ def main():
         receipt = module.campaign(executable, workspace, args.output, existing=True, environment=env,
             media_tools=root / 'build/native/media-tools.json', processing_tools=processing)
         # The answer evaluation requires an empty library. Keep the speaker
-        # restart campaign in its own catalog/workspace on these owned services.
+        # restart campaign in its own workspace and backend namespaces so graph
+        # ownership and qualification state cannot cross campaigns.
         speaker_workspace = folder / 'speaker library'
         plan['profiles']['catalog']['configuration']['schema'] = schema + '_speakers'
+        plan['profiles']['storage']['configuration']['bucket'] = bucket + '-speakers'
+        plan['profiles']['graph']['configuration']['database'] = database + '_speakers'
         provision(speaker_workspace, plan)
         # Exact prepared tools are selected before the explicitly owned runtime
         # starts; no local or default catalog replaces the elected backend plan.

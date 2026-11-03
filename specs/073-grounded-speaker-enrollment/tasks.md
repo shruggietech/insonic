@@ -29,7 +29,7 @@ Independent test: correction/retraction and lost commit replay preserve newest m
 - [x] T009 [US2] Add failure/concurrency/retraction/snapshot-tampering tests in internal/catalog/speaker_application_test.go and internal/voicemodels/contextual_test.go (FR-005, FR-006, FR-007).
 - [x] T010 [US2] Implement revision-fenced retraction, contradictory rerun and source/identity invalidation before output/work reconciliation in internal/catalog/{speaker_application,recording,exploration_outbox}.go (FR-005, FR-006).
 - [x] T011 [US2] Preserve contextual mappings during matching and expose current profile usability while retaining historical outputs in internal/catalog/{speaker_models,speaker_models_state,speaker_output_reconciliation}.go (FR-003, FR-006).
-- [ ] T012 [US2] Verify portable mapping/lineage proof, cleanup/outbox recovery and SQLite/PostgreSQL parity through internal/catalog/*_test.go and internal/app/*_test.go (FR-007, FR-011).
+- [x] T012 [US2] Verify portable mapping/lineage proof, cleanup/outbox recovery and SQLite/PostgreSQL parity through internal/catalog/*_test.go and internal/app/*_test.go (FR-007, FR-011).
 
 ## Phase 5: US3 - Unattended workflow (Priority P2)
 

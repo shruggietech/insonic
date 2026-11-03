@@ -455,5 +455,61 @@
   "review_correction_notes": [
     "A tool-session timeout interrupted one Go/Python verification invocation before durable terminal results; no result is claimed for that invocation.",
     "The completed Python suite had one 1-second HTTP worker timing assertion at 1.468 seconds while Go compilation was concurrent; all 11 HTTP tests passed in an isolated repeat. Injected failure clocks are unchanged."
+  ],
+  "backend_correction_checks": [
+    {
+      "label": "backend-harness-local",
+      "started": "2026-11-03T02:21:39.535Z",
+      "finished": "2026-11-03T02:22:36.427Z",
+      "seconds": 56.892,
+      "exit": 0,
+      "stdout_sha256": "29d0a47636cd7d9ed518a85b55932495f7797160c0dc20b1265746d3f10305c0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "backend-namespace-regression",
+      "started": "2026-11-03T03:09:22.576Z",
+      "finished": "2026-11-03T03:09:22.994Z",
+      "seconds": 0.418,
+      "exit": 1,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "f62a63ea7fdc2385bba8106c91ef1c1e940b276a5fe9fa1df4d0f076cc7e6f09"
+    },
+    {
+      "label": "backend-namespace-regression-final",
+      "started": "2026-11-03T03:09:28.891Z",
+      "finished": "2026-11-03T03:09:29.307Z",
+      "seconds": 0.416,
+      "exit": 0,
+      "stdout_sha256": "c8805467fbecbf908d285390422f26b3ceb002d9caf3ae7e31ff8da089ffcc8e",
+      "stderr_sha256": "d3a2e930be1dbd65139e3bd72d672cf608f7606e9c02e1b615015ed4e556f0ac"
+    },
+    {
+      "label": "backend-root-check",
+      "started": "2026-11-03T03:09:55.853Z",
+      "finished": "2026-11-03T03:09:59.809Z",
+      "seconds": 3.956,
+      "exit": 0,
+      "stdout_sha256": "862d1309913b8ae4902b92e554a07743d76213c00bb45a7845381649c7382306",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "backend-root-tests",
+      "started": "2026-11-03T03:09:59.809Z",
+      "finished": "2026-11-03T03:10:17.813Z",
+      "seconds": 18.004,
+      "exit": 0,
+      "stdout_sha256": "43854d7e3074e6583588f4f2ff2b811c6e760985dbef0cb99335c03a42867ed2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "backend-python-full",
+      "started": "2026-11-03T03:10:17.814Z",
+      "finished": "2026-11-03T03:13:38.135Z",
+      "seconds": 200.321,
+      "exit": 0,
+      "stdout_sha256": "56698d7635720bae56ad12db0c2405078e65a0ffc93a5157d67ea0b17442fd60",
+      "stderr_sha256": "0dc9c1830a5cde29115812cbae286c3d40e6bf8ace4a1b93ba01ab0f3a5c71d1"
+    }
   ]
 }
