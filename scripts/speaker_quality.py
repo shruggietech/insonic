@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Installed speaker evaluation with separate semantic and acoustic truth."""
 import base64
+import copy
 from contextlib import contextmanager
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -28,6 +29,50 @@ ADAPTER = {'id': 'pyannote-profile', 'contract_version': '1', 'mode': 'local', '
 
 def value_digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
+def worker_environment(setup, python_sha256):
+    pinned = setup['environment_receipt']
+    path = Path(pinned['path'])
+    if path.is_symlink() or not path.is_file():
+        raise ValueError('Worker environment receipt is not an original file')
+    with path.open('rb') as source:
+        raw = source.read((16 << 20) + 1)
+    if len(raw) > 16 << 20 or hashlib.sha256(raw).hexdigest() != pinned['sha256']:
+        raise ValueError('Worker environment receipt identity differs')
+    receipt = json.loads(raw, object_pairs_hook=reference.unique_object)
+    inspected = receipt['inspection']
+    if (setup.get('role') != 'diarization' or inspected.get('role') != 'diarization'
+            or setup.get('verification') != 'dependency_bytes_and_library_probe' or setup.get('inference') != 'not_run'
+            or receipt.get('mode') != 'reuse' or inspected['python']['sha256'] != python_sha256
+            or inspected.get('compatible') is not True or inspected.get('engine_available') is not True
+            or not inspected.get('packages') or not reference.text(inspected.get('python_version'), 128)):
+        raise ValueError('Selected acoustic environment was not verified')
+    return {'role': 'diarization', 'state': 'verified', 'environment_receipt_sha256': pinned['sha256'],
+            'python_sha256': python_sha256, 'python_version': inspected['python_version'],
+            'packages': inspected['packages'], 'cpus': inspected['cpus'],
+            'devices': {device: {key: value for key, value in observed.items()
+                                if key in ('available', 'hardware_count', 'dependency_state')}
+                        for device, observed in inspected['devices'].items()},
+            'processing_tools_revision': setup['processing_tools_revision'], 'includes_inference': False}
+
+
+def historical_outputs(before_files, after_files, before_manifest, after_manifest):
+    if (set(before_files) != set(after_files) or 'manifest.json' not in before_files
+            or len(before_files) < 2 or before_manifest.get('state') != 'current'):
+        raise ValueError('Historical output inventory differs')
+    immutable = {name: digest for name, digest in before_files.items() if name != 'manifest.json'}
+    if any(after_files[name] != digest for name, digest in immutable.items()):
+        raise ValueError('Correction changed immutable model bytes')
+    expected = copy.deepcopy(before_manifest)
+    expected.update(state='invalidated', manifest_sha256=None)
+    if 'manifest_artifact' in expected: expected['manifest_artifact'] = None
+    expected['training']['preparation'] = None
+    expected['training']['dataset'].update(state='invalidated', manifest_sha256=None)
+    if after_manifest != expected:
+        raise ValueError('Corrected manifest changed historical origin or retained obsolete lineage')
+    return {'immutable_files': immutable, 'manifest_before_sha256': before_files['manifest.json'],
+            'manifest_after_sha256': after_files['manifest.json'], 'manifest_lineage_invalidated': True}
 
 
 def local_endpoint(endpoint):
@@ -222,10 +267,15 @@ def identity(journey, name):
     return speaker
 
 
-def contextual(journey, configuration, *, controlled=None, corpus=None):
+def contextual(journey, configuration, *, controlled=None, corpus=None, checkpoint=lambda: None):
     corpus, digest = reference.load_corpus() if corpus is None else (corpus, reference.CORPUS_SHA256)
-    rows = []
-    for case in corpus['cases']:
+    rows = [{'id': case['id'], 'state': 'error', 'observations': [], 'error': 'not-executed'}
+            for case in corpus['cases']]
+    result = {'corpus_sha256': digest, 'model_quality': controlled is None,
+              'audio_content_not_evaluated': True, 'cases': rows, 'metrics': reference.score(corpus, rows)}
+    journey.receipt['contextual'] = result
+    checkpoint()
+    for index, case in enumerate(corpus['cases']):
         created = {}
         def action():
             for item in case['identities']:
@@ -254,15 +304,16 @@ def contextual(journey, configuration, *, controlled=None, corpus=None):
                     'coverage': aggregate['coverage'], 'provenance': aggregate['provenance'],
                     'hypotheses': aggregate['hypotheses'], 'decisions': aggregate['decisions']}
         try:
-            rows.append(case_result(case, action))
+            rows[index] = case_result(case, action)
+            result['metrics'] = reference.score(corpus, rows)
+            checkpoint()
         finally:
             for speaker in created.values():
                 saved = journey.command('speakers', 'show', speaker)
                 saved['speaker']['state'] = 'inactive'
                 journey.input('speakers', 'set', speaker, value={'expected_revision': saved['speaker']['revision'],
                               'speaker': saved['speaker'], 'aliases': []})
-    return {'corpus_sha256': digest, 'model_quality': controlled is None,
-            'audio_content_not_evaluated': True, 'cases': rows, 'metrics': reference.score(corpus, rows)}
+    return result
 
 
 def acoustic(journey, corpus, model_id, *, checkpoint=lambda: None):
@@ -352,6 +403,8 @@ def acoustic(journey, corpus, model_id, *, checkpoint=lambda: None):
 def integrated(journey, configuration, corpus, model_id, speakers, recordings):
     """Real configured discovery enrolls only independently mapped licensed audio."""
     from journey_cpu import fetched_files
+    receipt = {'state': 'running'}
+    journey.receipt['integrated'] = receipt
     clip = next(clip for clip in corpus['clips'] if clip['role'] == 'enrollment')
     reader, source = clip['speaker'], recordings[clip['id']]
     audio = journey.base / 'integrated-context.wav'
@@ -372,6 +425,10 @@ def integrated(journey, configuration, corpus, model_id, speakers, recordings):
     training = journey.command('work', 'show', enrollment['work_id'])['result']
     observed = device_receipt(training['device_executions'], 'cuda')
     before = fetched_files(journey, enrollment['version_id'], journey.base / 'integrated-before')
+    before_manifest = json.loads((journey.base / 'integrated-before/manifest.json').read_text(encoding='utf-8'),
+                                 object_pairs_hook=reference.unique_object)
+    receipt.update(work_id=queued.get('work_id', queued.get('id')), version_id=enrollment['version_id'],
+                   device_executions=observed, independently_enrolled=True)
     selected = journey.command('models', 'speaker', 'show', enrollment['version_id'])['profile']
     if selected['usable'] is not True: raise ValueError('Fresh integrated profile is unavailable')
     current = journey.command('recordings', 'show', source)['recording']
@@ -384,10 +441,12 @@ def integrated(journey, configuration, corpus, model_id, speakers, recordings):
     after = journey.command('models', 'speaker', 'show', enrollment['version_id'])['profile']
     if after['usable'] or after['usability'] != 'evidence-invalidated':
         raise ValueError('Supporting correction left the profile usable')
+    receipt['correction_invalidates_current_profile'] = True
     retained = fetched_files(journey, enrollment['version_id'], journey.base / 'integrated-after')
-    if retained != before: raise ValueError('Correction changed immutable historical model outputs')
-    return {'state': 'completed', 'work_id': queued.get('work_id', queued.get('id')),
-            'context_source': 'synthetic semantic carrier, excluded from the training recipe',
-            'enrollment_source_sha256': clip['sha256'], 'independent_manual_enrollment': True,
-            'device_executions': observed, 'version_id': enrollment['version_id'], 'files': before,
-            'correction_invalidates_current_profile': True, 'historical_files_unchanged': True}
+    after_manifest = json.loads((journey.base / 'integrated-after/manifest.json').read_text(encoding='utf-8'),
+                                object_pairs_hook=reference.unique_object)
+    integrity = historical_outputs(before, retained, before_manifest, after_manifest)
+    receipt.update(state='completed', context_source='synthetic semantic carrier, excluded from the training recipe',
+                   enrollment_source_sha256=clip['sha256'], independent_manual_enrollment=True,
+                   historical_model_bytes_unchanged=True, **integrity)
+    return receipt

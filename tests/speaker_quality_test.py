@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
+import hashlib
+import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -10,6 +13,47 @@ import speaker_quality as quality
 
 
 class SpeakerQualityTests(unittest.TestCase):
+    def test_correction_retains_weights_but_invalidates_only_current_manifest_lineage(self):
+        before = {'state': 'current', 'manifest_sha256': 'a' * 64, 'model_version_id': 'retained',
+                  'training': {'dataset': {'state': 'current', 'manifest_sha256': 'b' * 64},
+                               'preparation': {'artifact': 'old'}, 'provider': {'model': 'fixed'}},
+                  'outputs': [{'sha256': 'c' * 64}]}
+        after = copy.deepcopy(before)
+        after.update(state='invalidated', manifest_sha256=None)
+        after['training']['preparation'] = None
+        after['training']['dataset'].update(state='invalidated', manifest_sha256=None)
+        files = {'manifest.json': 'd' * 64, 'profile.json': 'c' * 64}
+        retained = dict(files, **{'manifest.json': 'e' * 64})
+        result = quality.historical_outputs(files, retained, before, after)
+        self.assertEqual(result['immutable_files'], {'profile.json': 'c' * 64})
+        for mutation in ('weights', 'origin', 'lineage', 'inventory'):
+            broken, changed = copy.deepcopy(after), dict(retained)
+            if mutation == 'weights': changed['profile.json'] = 'f' * 64
+            elif mutation == 'origin': broken['model_version_id'] = 'other'
+            elif mutation == 'lineage': broken['training']['preparation'] = {'artifact': 'old'}
+            else: changed['extra.json'] = 'f' * 64
+            with self.assertRaises(ValueError): quality.historical_outputs(files, changed, before, broken)
+
+    def test_worker_receipt_retains_verified_versions_without_machine_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'receipt.json'
+            value = {'mode': 'reuse', 'inspection': {'role': 'diarization',
+                     'python': {'path': 'private-interpreter', 'sha256': 'a' * 64},
+                     'python_version': '3.13.0', 'packages': {'torch': '2.14.0'},
+                     'engine_available': True, 'compatible': True, 'cpus': 8,
+                     'devices': {'cpu': {'available': True}, 'cuda': {'available': True}},
+                     'files': [{'path': 'private-dependency', 'sha256': 'b' * 64}]}}
+            raw = json.dumps(value).encode()
+            path.write_bytes(raw)
+            setup = {'role': 'diarization', 'verification': 'dependency_bytes_and_library_probe',
+                     'inference': 'not_run', 'processing_tools_revision': 2,
+                     'environment_receipt': {'path': str(path), 'sha256': hashlib.sha256(raw).hexdigest()}}
+            result = quality.worker_environment(setup, 'a' * 64)
+            self.assertEqual(result['packages'], {'torch': '2.14.0'})
+            self.assertNotIn('private', json.dumps(result))
+            path.write_bytes(raw + b' ')
+            with self.assertRaises(ValueError): quality.worker_environment(setup, 'a' * 64)
+
     def test_real_mode_requires_election_and_is_separate_from_ci(self):
         config = {'enabled': True, 'adapter': 'ollama', 'route': 'local',
                   'endpoint': 'http://127.0.0.1:11435', 'model': 'qwen2.5:14b'}

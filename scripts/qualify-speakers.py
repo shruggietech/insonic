@@ -54,11 +54,11 @@ def prepare(journey, module, args):
                                          'cueson': module.engine.sha(journey.cueson)}
     if args.mode != 'real': return None
     interpreter = Path(args.diarization_python).resolve(strict=True)
-    inspected = journey.input('workers', 'inspect', value={'role': 'diarization', 'python_path': str(interpreter)})
+    journey.input('workers', 'inspect', value={'role': 'diarization', 'python_path': str(interpreter)})
     election = journey.input('workers', 'plan', value={'role': 'diarization', 'mode': 'reuse', 'python_path': str(interpreter)})
     setup = journey.finish(journey.input('workers', 'setup', value=election['election']))
     journey.receipt['acoustic_python_sha256'] = module.engine.sha(interpreter)
-    journey.receipt['worker_environment_setup'] = {key: setup.get(key) for key in ('state', 'environment_id', 'role')}
+    journey.receipt['worker_environment_setup'] = quality.worker_environment(setup, module.engine.sha(interpreter))
     # The product captures and validates the exact reusable environment. Do not
     # copy interpreter paths, raw inventory or credentials into public receipts.
     root = module.engine.verify_model('diarize', args.diarization_model)
@@ -137,7 +137,8 @@ def campaign(args):
             journey.deadline = qualification_started + phase.QUALIFICATION_LIMIT_SECONDS - phase.FINALIZATION_RESERVE_SECONDS
             def checkpoint(): module.write_json(output, receipt)
             checkpoint()
-            receipt['contextual'] = quality.contextual(journey, effective, controlled=control, corpus=contextual_corpus)
+            receipt['contextual'] = quality.contextual(journey, effective, controlled=control,
+                                                     corpus=contextual_corpus, checkpoint=checkpoint)
             checkpoint()
             if original_mode == 'real':
                 acoustic, speakers, recordings = quality.acoustic(journey, corpus, model_id, checkpoint=checkpoint)
