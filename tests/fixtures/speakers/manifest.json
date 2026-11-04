@@ -1,0 +1,306 @@
+{
+  "version": 2,
+  "id": "speaker-context-v2",
+  "provenance": "Synthetic semantic conversations with supplied local-voice truth. PCM audio is an import carrier only; it does not contain this speech. Supplied imports retain an unknown audio-stream route; contradictory names on that shared source are ambiguous, not independently conflicting.",
+  "cases": [
+    {
+      "id": "direct-introduction",
+      "identities": [
+        {
+          "key": "alex",
+          "name": "Alex"
+        },
+        {
+          "key": "jordan",
+          "name": "Jordan"
+        }
+      ],
+      "cues": [
+        {
+          "voice": "v1",
+          "text": "My name is Alex."
+        }
+      ],
+      "expected": [
+        {
+          "voice": "v1",
+          "outcome": "supported-contextual",
+          "speaker": "alex",
+          "identity_status": "registered",
+          "name": null
+        }
+      ],
+      "observations": [
+        {
+          "cue": 0,
+          "class": "self-identification",
+          "name": "Alex"
+        }
+      ]
+    },
+    {
+      "id": "two-introductions",
+      "identities": [
+        {
+          "key": "alex",
+          "name": "Alex"
+        },
+        {
+          "key": "jordan",
+          "name": "Jordan"
+        }
+      ],
+      "cues": [
+        {
+          "voice": "v1",
+          "text": "My name is Alex."
+        },
+        {
+          "voice": "v2",
+          "text": "My name is Jordan."
+        }
+      ],
+      "expected": [
+        {
+          "voice": "v1",
+          "outcome": "supported-contextual",
+          "speaker": "alex",
+          "identity_status": "registered",
+          "name": null
+        },
+        {
+          "voice": "v2",
+          "outcome": "supported-contextual",
+          "speaker": "jordan",
+          "identity_status": "registered",
+          "name": null
+        }
+      ],
+      "observations": [
+        {
+          "cue": 0,
+          "class": "self-identification",
+          "name": "Alex"
+        },
+        {
+          "cue": 1,
+          "class": "self-identification",
+          "name": "Jordan"
+        }
+      ]
+    },
+    {
+      "id": "duplicate-name",
+      "identities": [
+        {
+          "key": "morgan-one",
+          "name": "Morgan"
+        },
+        {
+          "key": "morgan-two",
+          "name": "Morgan"
+        }
+      ],
+      "cues": [
+        {
+          "voice": "v1",
+          "text": "My name is Morgan."
+        }
+      ],
+      "expected": [
+        {
+          "voice": "v1",
+          "outcome": "ambiguous",
+          "speaker": null,
+          "identity_status": "unknown",
+          "name": null
+        }
+      ],
+      "observations": [
+        {
+          "cue": 0,
+          "class": "self-identification",
+          "name": "Morgan"
+        }
+      ]
+    },
+    {
+      "id": "quoted-introduction",
+      "identities": [
+        {
+          "key": "alex",
+          "name": "Alex"
+        },
+        {
+          "key": "jordan",
+          "name": "Jordan"
+        }
+      ],
+      "cues": [
+        {
+          "voice": "v1",
+          "text": "I am reading a quotation: 'My name is Alex.' Those are someone else's words."
+        }
+      ],
+      "expected": [
+        {
+          "voice": "v1",
+          "outcome": "unknown",
+          "speaker": null,
+          "identity_status": "unknown",
+          "name": null
+        }
+      ],
+      "observations": [
+        {
+          "cue": 0,
+          "class": "quotation",
+          "name": "Alex"
+        }
+      ]
+    },
+    {
+      "id": "third-person-mention",
+      "identities": [
+        {
+          "key": "alex",
+          "name": "Alex"
+        },
+        {
+          "key": "jordan",
+          "name": "Jordan"
+        }
+      ],
+      "cues": [
+        {
+          "voice": "v1",
+          "text": "Alex will arrive tomorrow. I have not introduced myself."
+        }
+      ],
+      "expected": [
+        {
+          "voice": "v1",
+          "outcome": "unknown",
+          "speaker": null,
+          "identity_status": "unknown",
+          "name": null
+        }
+      ],
+      "observations": [
+        {
+          "cue": 0,
+          "class": "mention",
+          "name": "Alex"
+        }
+      ]
+    },
+    {
+      "id": "contradictory-introductions",
+      "identities": [
+        {
+          "key": "alex",
+          "name": "Alex"
+        },
+        {
+          "key": "jordan",
+          "name": "Jordan"
+        }
+      ],
+      "cues": [
+        {
+          "voice": "v1",
+          "text": "My name is Alex."
+        },
+        {
+          "voice": "v1",
+          "text": "My name is Jordan."
+        }
+      ],
+      "expected": [
+        {
+          "voice": "v1",
+          "outcome": "ambiguous",
+          "speaker": null,
+          "identity_status": "unknown",
+          "name": null
+        }
+      ],
+      "observations": [
+        {
+          "cue": 0,
+          "class": "self-identification",
+          "name": "Alex"
+        },
+        {
+          "cue": 1,
+          "class": "self-identification",
+          "name": "Jordan"
+        }
+      ]
+    },
+    {
+      "id": "unregistered-introduction",
+      "identities": [
+        {
+          "key": "alex",
+          "name": "Alex"
+        },
+        {
+          "key": "jordan",
+          "name": "Jordan"
+        }
+      ],
+      "cues": [
+        {
+          "voice": "v1",
+          "text": "My name is Taylor."
+        }
+      ],
+      "expected": [
+        {
+          "voice": "v1",
+          "outcome": "supported-contextual",
+          "speaker": null,
+          "identity_status": "unregistered",
+          "name": "Taylor"
+        }
+      ],
+      "observations": [
+        {
+          "cue": 0,
+          "class": "self-identification",
+          "name": "Taylor"
+        }
+      ]
+    },
+    {
+      "id": "anonymous-voice",
+      "identities": [
+        {
+          "key": "alex",
+          "name": "Alex"
+        },
+        {
+          "key": "jordan",
+          "name": "Jordan"
+        }
+      ],
+      "cues": [
+        {
+          "voice": "v1",
+          "text": "The weather is pleasant today."
+        }
+      ],
+      "expected": [
+        {
+          "voice": "v1",
+          "outcome": "unknown",
+          "speaker": null,
+          "identity_status": "unknown",
+          "name": null
+        }
+      ],
+      "observations": []
+    }
+  ]
+}

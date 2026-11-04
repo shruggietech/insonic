@@ -1,0 +1,1016 @@
+{
+  "kind": "insonic-speaker-quality-v1",
+  "mode": "deterministic",
+  "state": "passed",
+  "preparation_started_utc": "2026-11-03T08:56:07.416417+00:00",
+  "required_check": true,
+  "platform": "Windows",
+  "cli_sha256": "79ce90a8e1b59c6e795ef9873b2760fc18da92d7f67dbaa55a97440dea5860f7",
+  "worker_sha256": "74db3392cfbba39c3f0bf2fd4e21cb13aa382bef849c76690308abb8f256908b",
+  "product_version": "1.3.0",
+  "source_revision": "00529de6a68c73891464928686856b5ef613a479",
+  "source_dirty": true,
+  "source_inputs_sha256": "78cc9fb219862603a2aff3b768b525c3751917705e2fc55f4deaa956bf46cf48",
+  "operation_bound_seconds": 600,
+  "overall_bound_seconds": 3600,
+  "hard_rss_limit_bytes": null,
+  "operations": [
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "4f9343e9-2060-42a7-8a63-79deef7216c0",
+      "wait_wall_seconds": 1.7190000000118744
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "9342815a-f1b1-4303-a931-67e8b42b4ad7",
+      "wait_wall_seconds": 0.7030000000086147
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "4de1aefd-7a9c-4109-a4b2-d7374c4c6553",
+      "wait_wall_seconds": 0.29699999999138527
+    },
+    {
+      "kind": "speakers.run",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "fb8f64a8-e10e-4da7-bdc4-5e9b532d1adf",
+      "wait_wall_seconds": 1.9530000000086147
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "d19a0810-18a4-4409-b5b6-d23bb90a3698",
+      "wait_wall_seconds": 2.125
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "394725ac-aeed-42e4-bc96-c856eb436c47",
+      "wait_wall_seconds": 0.9219999999913853
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "7cf17cd5-4e63-4476-a809-737d33b010a5",
+      "wait_wall_seconds": 0.375
+    },
+    {
+      "kind": "speakers.run",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "d3c55fcc-0cbb-42dc-823b-1cd7dd6ec0ef",
+      "wait_wall_seconds": 1.1400000000139698
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "7b02a838-ae7a-4750-ac8e-b0ac7528b14c",
+      "wait_wall_seconds": 2.125
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "348266a8-f41f-4620-a4af-dd26178274cb",
+      "wait_wall_seconds": 0.735000000015134
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "218121ff-3e95-4211-9068-c59a86767c4f",
+      "wait_wall_seconds": 0.28099999998812564
+    },
+    {
+      "kind": "speakers.run",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "4a3c05fd-bbe9-4996-a6f0-bda1bed1a29e",
+      "wait_wall_seconds": 1.7339999999967404
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "e49518e6-e792-4ebe-a764-cc2563dc5946",
+      "wait_wall_seconds": 2.1410000000032596
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "d84394f1-7a9d-46e2-af88-41ec84145991",
+      "wait_wall_seconds": 0.9220000000204891
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "21f1b687-dd02-4eb0-a6f0-81569ff47ad6",
+      "wait_wall_seconds": 0.3279999999795109
+    },
+    {
+      "kind": "speakers.run",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "ab5ed540-a209-4f6f-9294-aa9c9f45fcaa",
+      "wait_wall_seconds": 1.3280000000086147
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "31401860-1c72-4012-a9c7-cab4ad1d2835",
+      "wait_wall_seconds": 1.75
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "17450df1-194c-4557-b2e3-fb35d4f3d898",
+      "wait_wall_seconds": 0.75
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "a50435f7-aba6-4f2f-a3ff-6572a0b1ef7e",
+      "wait_wall_seconds": 0.29699999999138527
+    },
+    {
+      "kind": "speakers.run",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "0bed75f3-f03c-4d4d-aefc-4927ec0358a5",
+      "wait_wall_seconds": 1.937000000005355
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "4737bdfa-2ae2-451d-a910-25b09c7b6219",
+      "wait_wall_seconds": 1.75
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "6c4072ba-a55c-4c69-8eaf-d697ec63e4b7",
+      "wait_wall_seconds": 0.6879999999946449
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "a0b1f2ac-8146-4595-be1c-6b84978110c7",
+      "wait_wall_seconds": 0.29699999999138527
+    },
+    {
+      "kind": "speakers.run",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "1b708fb1-18a9-427e-8737-18fd16c9d7bd",
+      "wait_wall_seconds": 1.1410000000032596
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "e3e49825-d3f9-41fe-acd8-5f5d427f6853",
+      "wait_wall_seconds": 1.9530000000086147
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "07773a91-3910-4d0b-9707-a13cb94e2dca",
+      "wait_wall_seconds": 0.7189999999827705
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "8572755c-74e1-40d7-8a78-69f7f66368a0",
+      "wait_wall_seconds": 0.32800000000861473
+    },
+    {
+      "kind": "speakers.run",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "71b1d838-f555-49ec-a3c4-1b8ddef61ba4",
+      "wait_wall_seconds": 1.9059999999881256
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "dc65090e-4da5-4f64-9643-dd605f493bab",
+      "wait_wall_seconds": 1.735000000015134
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "d19277a5-f971-4ab1-b0f2-8d46b228f1f2",
+      "wait_wall_seconds": 0.5
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "dce3f4ed-7442-45a6-a960-f09ac9d5306f",
+      "wait_wall_seconds": 0.3120000000053551
+    },
+    {
+      "kind": "speakers.run",
+      "state": "succeeded",
+      "phase": "complete",
+      "work_id": "0ae635b6-55ce-4d71-aee2-c43decbffc71",
+      "wait_wall_seconds": 1.327999999979511
+    }
+  ],
+  "records": [],
+  "runtime_startups": [
+    {
+      "kind": "runtime-startup",
+      "schema_version": "1.3.0",
+      "startup_id": "4dc79419-3e05-41c6-b33d-37b6513317dc",
+      "workspace_id": "f2ba25be-4172-47e1-9ddc-66afd3afc0a7",
+      "state": "ready",
+      "stage": "ready",
+      "reported": true,
+      "elapsed_seconds": 0.29699999999138527,
+      "budget_seconds": 60.0
+    }
+  ],
+  "graph": {
+    "state": "available",
+    "adapter_id": "ladybugdb",
+    "backend_version": "0.21.2"
+  },
+  "companion_sha256": {
+    "ffmpeg": "907ada7625288d225dc96368d9e37ef87e462456b3d6d6c5be47c32959baa8ac",
+    "ffprobe": "769b66bf02b044fcd27e2e1c62f40784a844c7284fb53a2718810500ed4f1b64",
+    "exiftool": "68c079c32fdae0d6c7130e9a5fb73f8ac9dabdf9ab8da312da4f6c549d6d3385",
+    "cueson": "a074673e71ced8567f6d84a9537ddd3d80600cc02964bb847273d69246903d19"
+  },
+  "configuration_sha256": "61847c83e4a05f084bde31ac9f0eaebd84259f2f7207a7c40d6ea538c6246dad",
+  "contextual_configuration": {
+    "enabled": true,
+    "adapter": "insonic-http",
+    "contract_version": "1",
+    "route": "local",
+    "model": "controlled-speaker-fixture"
+  },
+  "contextual_model": null,
+  "contextual_corpus_sha256": "1f4b60b1696460a37e97fdfcafec2859d3fd096223bf73238ddf7de1b67fa016",
+  "preparation_seconds": 2.2039999999979045,
+  "qualification_started_utc": "2026-11-03T08:56:09.613561+00:00",
+  "target_seconds": 1800,
+  "hard_limit_seconds": 3600,
+  "finalization_reserve_seconds": 60,
+  "contextual": {
+    "corpus_sha256": "1f4b60b1696460a37e97fdfcafec2859d3fd096223bf73238ddf7de1b67fa016",
+    "model_quality": false,
+    "audio_content_not_evaluated": true,
+    "cases": [
+      {
+        "id": "direct-introduction",
+        "state": "completed",
+        "observations": [
+          {
+            "voice": "v1",
+            "outcome": "supported-contextual",
+            "speaker": "alex",
+            "identity_status": "registered",
+            "name": null
+          }
+        ],
+        "recording_id": "afd45598-027d-4bb7-bd51-4210eea57135",
+        "work_id": "fb8f64a8-e10e-4da7-bdc4-5e9b532d1adf",
+        "aggregate_sha256": "aacdf654669f1399c78c37c5e5d05ba406c353e240f6db5c9f335a82f9e0f895",
+        "coverage": {
+          "calls": 1,
+          "omitted_cues": 0,
+          "selected_cues": 1,
+          "total_cues": 1
+        },
+        "provenance": {
+          "adapter": "insonic-http",
+          "input_digest": "38f54125c6d19089d353d304a6b7c4a053b7c69f637877d7d2fcb52b061d5a63",
+          "model": "controlled-speaker-fixture",
+          "route": "local"
+        },
+        "hypotheses": [
+          {
+            "aliases": [],
+            "attributable": true,
+            "class": "self-identification",
+            "id": "3a6b1b5f3a8da19fab4cbcccb987117d8e91f1a263a95dca5323aebf20e44a35",
+            "language": "",
+            "name": "Alex",
+            "references": [
+              {
+                "cue_id": "cue-000000",
+                "end_byte": 16,
+                "quote_digest": "81284e80aa8fecde16e1eab29d461d4b2fc4062f19313511e5e2067fe9466d68",
+                "start_byte": 0
+              }
+            ],
+            "relationship": "",
+            "role": "",
+            "roots": [
+              "960215c0a569df6f0d197715cb98fd3a55dfcd77fb961a1b67c2faef658b4582"
+            ],
+            "uncertain": false,
+            "voice_id": "v1"
+          }
+        ],
+        "decisions": [
+          {
+            "alternatives": [
+              {
+                "name": "Alex",
+                "speaker_id": "7f09a94f-9d93-48ab-a1c3-6561dc2ed28b"
+              }
+            ],
+            "evidence_ids": [
+              "3a6b1b5f3a8da19fab4cbcccb987117d8e91f1a263a95dca5323aebf20e44a35"
+            ],
+            "identity_status": "registered",
+            "name": "Alex",
+            "outcome": "supported-contextual",
+            "reasons": [
+              "acoustic_unavailable",
+              "evidence:self-identification"
+            ],
+            "roots": [
+              "960215c0a569df6f0d197715cb98fd3a55dfcd77fb961a1b67c2faef658b4582"
+            ],
+            "speaker_id": "7f09a94f-9d93-48ab-a1c3-6561dc2ed28b",
+            "voice_id": "v1"
+          }
+        ]
+      },
+      {
+        "id": "two-introductions",
+        "state": "completed",
+        "observations": [
+          {
+            "voice": "v1",
+            "outcome": "supported-contextual",
+            "speaker": "alex",
+            "identity_status": "registered",
+            "name": null
+          },
+          {
+            "voice": "v2",
+            "outcome": "supported-contextual",
+            "speaker": "jordan",
+            "identity_status": "registered",
+            "name": null
+          }
+        ],
+        "recording_id": "ea6a4890-3f86-47dc-b32a-4d48467f882d",
+        "work_id": "d3c55fcc-0cbb-42dc-823b-1cd7dd6ec0ef",
+        "aggregate_sha256": "192b274db497003f1b7c54550db33d1191e16785187e595cc2b86ebbc07cd924",
+        "coverage": {
+          "calls": 1,
+          "omitted_cues": 0,
+          "selected_cues": 2,
+          "total_cues": 2
+        },
+        "provenance": {
+          "adapter": "insonic-http",
+          "input_digest": "13a18185e9b8f175347c0b2209d91a8f705ecbb001762413d3bccf6bbe9b9377",
+          "model": "controlled-speaker-fixture",
+          "route": "local"
+        },
+        "hypotheses": [
+          {
+            "aliases": [],
+            "attributable": true,
+            "class": "self-identification",
+            "id": "05108cbbfd14562ba87ac7ab2a8b6b47521a8f8d53e49961618417b60cb2fe4a",
+            "language": "",
+            "name": "Alex",
+            "references": [
+              {
+                "cue_id": "cue-000000",
+                "end_byte": 16,
+                "quote_digest": "81284e80aa8fecde16e1eab29d461d4b2fc4062f19313511e5e2067fe9466d68",
+                "start_byte": 0
+              }
+            ],
+            "relationship": "",
+            "role": "",
+            "roots": [
+              "037c086e1b420411ad8581765b7a4ceee5a27c6ebc4294dbe9d626e26411f010"
+            ],
+            "uncertain": false,
+            "voice_id": "v1"
+          },
+          {
+            "aliases": [],
+            "attributable": true,
+            "class": "self-identification",
+            "id": "ac4d76d704d9e2c51b6060ab4ce7e88d53e1476f6b4c3789492c0260c2d36ec3",
+            "language": "",
+            "name": "Jordan",
+            "references": [
+              {
+                "cue_id": "cue-000001",
+                "end_byte": 18,
+                "quote_digest": "78808b877c0638553d99f38177ccef8b7b83cd1a88271e84eed296e78abcf911",
+                "start_byte": 0
+              }
+            ],
+            "relationship": "",
+            "role": "",
+            "roots": [
+              "037c086e1b420411ad8581765b7a4ceee5a27c6ebc4294dbe9d626e26411f010"
+            ],
+            "uncertain": false,
+            "voice_id": "v2"
+          }
+        ],
+        "decisions": [
+          {
+            "alternatives": [
+              {
+                "name": "Alex",
+                "speaker_id": "0e5c6f92-d596-4b16-806a-8326a4ed2dc9"
+              }
+            ],
+            "evidence_ids": [
+              "05108cbbfd14562ba87ac7ab2a8b6b47521a8f8d53e49961618417b60cb2fe4a"
+            ],
+            "identity_status": "registered",
+            "name": "Alex",
+            "outcome": "supported-contextual",
+            "reasons": [
+              "acoustic_unavailable",
+              "evidence:self-identification"
+            ],
+            "roots": [
+              "037c086e1b420411ad8581765b7a4ceee5a27c6ebc4294dbe9d626e26411f010"
+            ],
+            "speaker_id": "0e5c6f92-d596-4b16-806a-8326a4ed2dc9",
+            "voice_id": "v1"
+          },
+          {
+            "alternatives": [
+              {
+                "name": "Jordan",
+                "speaker_id": "c714207a-8ec0-435a-bd55-cfaaee8faebb"
+              }
+            ],
+            "evidence_ids": [
+              "ac4d76d704d9e2c51b6060ab4ce7e88d53e1476f6b4c3789492c0260c2d36ec3"
+            ],
+            "identity_status": "registered",
+            "name": "Jordan",
+            "outcome": "supported-contextual",
+            "reasons": [
+              "acoustic_unavailable",
+              "evidence:self-identification"
+            ],
+            "roots": [
+              "037c086e1b420411ad8581765b7a4ceee5a27c6ebc4294dbe9d626e26411f010"
+            ],
+            "speaker_id": "c714207a-8ec0-435a-bd55-cfaaee8faebb",
+            "voice_id": "v2"
+          }
+        ]
+      },
+      {
+        "id": "duplicate-name",
+        "state": "completed",
+        "observations": [
+          {
+            "voice": "v1",
+            "outcome": "ambiguous",
+            "speaker": null,
+            "identity_status": "unknown",
+            "name": null
+          }
+        ],
+        "recording_id": "75743084-5fef-4aef-8c36-657de6157680",
+        "work_id": "4a3c05fd-bbe9-4996-a6f0-bda1bed1a29e",
+        "aggregate_sha256": "d4b34dd34eaf3c74fc6fe9c0f9dfa6224261f17085b7392a5072cf0e24b83985",
+        "coverage": {
+          "calls": 1,
+          "omitted_cues": 0,
+          "selected_cues": 1,
+          "total_cues": 1
+        },
+        "provenance": {
+          "adapter": "insonic-http",
+          "input_digest": "d9068d81dc20deae33fee501f3f4207c602b73ca0907c54bd0325a93a744f055",
+          "model": "controlled-speaker-fixture",
+          "route": "local"
+        },
+        "hypotheses": [
+          {
+            "aliases": [],
+            "attributable": true,
+            "class": "self-identification",
+            "id": "929f102d2a66db33872e05c4d50ce9ea539dae3c3cd545f7ce739d0b4ae8b9bb",
+            "language": "",
+            "name": "Morgan",
+            "references": [
+              {
+                "cue_id": "cue-000000",
+                "end_byte": 18,
+                "quote_digest": "1d714a8da9e5c4af91b55faec4cc08bdf0af21e5d960ba1b191fc979dc8baa8a",
+                "start_byte": 0
+              }
+            ],
+            "relationship": "",
+            "role": "",
+            "roots": [
+              "57b1fae9af0c05dbd4693aa9c3556a8f8fe65975cb27e7e06ad8ebe6dd7bbc8d"
+            ],
+            "uncertain": false,
+            "voice_id": "v1"
+          }
+        ],
+        "decisions": [
+          {
+            "alternatives": [
+              {
+                "name": "Morgan",
+                "speaker_id": "44a06a3a-a964-4fa7-91c4-e6fe6eefb488"
+              },
+              {
+                "name": "Morgan",
+                "speaker_id": "96dac481-43d8-4acf-adbb-46939ecea4a4"
+              }
+            ],
+            "evidence_ids": [
+              "929f102d2a66db33872e05c4d50ce9ea539dae3c3cd545f7ce739d0b4ae8b9bb"
+            ],
+            "identity_status": "unknown",
+            "name": "",
+            "outcome": "ambiguous",
+            "reasons": [
+              "acoustic_unavailable",
+              "duplicate_identity_name",
+              "evidence:self-identification"
+            ],
+            "roots": [
+              "57b1fae9af0c05dbd4693aa9c3556a8f8fe65975cb27e7e06ad8ebe6dd7bbc8d"
+            ],
+            "speaker_id": null,
+            "voice_id": "v1"
+          }
+        ]
+      },
+      {
+        "id": "quoted-introduction",
+        "state": "completed",
+        "observations": [
+          {
+            "voice": "v1",
+            "outcome": "unknown",
+            "speaker": null,
+            "identity_status": "unknown",
+            "name": null
+          }
+        ],
+        "recording_id": "c099af0c-214d-4ed3-9664-97492d62ba01",
+        "work_id": "ab5ed540-a209-4f6f-9294-aa9c9f45fcaa",
+        "aggregate_sha256": "14297659eda4d7ee48864513a59dc8fb335b36015dbfd82b12d2482ee3d21f44",
+        "coverage": {
+          "calls": 1,
+          "omitted_cues": 0,
+          "selected_cues": 1,
+          "total_cues": 1
+        },
+        "provenance": {
+          "adapter": "insonic-http",
+          "input_digest": "e37b2346b642df5fb56e9ba66f6172b8a362ffd5d74933470538ba8ddcda740d",
+          "model": "controlled-speaker-fixture",
+          "route": "local"
+        },
+        "hypotheses": [
+          {
+            "aliases": [],
+            "attributable": true,
+            "class": "quotation",
+            "id": "3c402199ca4b3cb72a88e2e0bd50bae7e9de38d14bda586b272321dcf841de83",
+            "language": "",
+            "name": "Alex",
+            "references": [
+              {
+                "cue_id": "cue-000000",
+                "end_byte": 76,
+                "quote_digest": "7785d237de1efc88b0a9d8824cbd0eb287abdb4ba10f57c932d09710855683c8",
+                "start_byte": 0
+              }
+            ],
+            "relationship": "",
+            "role": "",
+            "roots": [
+              "0cf7afbbea871101153ebb946c30f9a39a15b6111482291ef474ba0881a4f3d9"
+            ],
+            "uncertain": false,
+            "voice_id": "v1"
+          }
+        ],
+        "decisions": [
+          {
+            "alternatives": [
+              {
+                "name": "Alex",
+                "speaker_id": "6b3bf15a-1647-46af-927d-f63d470785d3"
+              }
+            ],
+            "evidence_ids": [
+              "3c402199ca4b3cb72a88e2e0bd50bae7e9de38d14bda586b272321dcf841de83"
+            ],
+            "identity_status": "unknown",
+            "name": "",
+            "outcome": "unknown",
+            "reasons": [
+              "acoustic_unavailable",
+              "evidence:quotation",
+              "insufficient_independent_support",
+              "non_identifying_context"
+            ],
+            "roots": [
+              "0cf7afbbea871101153ebb946c30f9a39a15b6111482291ef474ba0881a4f3d9"
+            ],
+            "speaker_id": null,
+            "voice_id": "v1"
+          }
+        ]
+      },
+      {
+        "id": "third-person-mention",
+        "state": "completed",
+        "observations": [
+          {
+            "voice": "v1",
+            "outcome": "unknown",
+            "speaker": null,
+            "identity_status": "unknown",
+            "name": null
+          }
+        ],
+        "recording_id": "ea3e7363-e7c3-4cac-bde4-b2cebebc2cdb",
+        "work_id": "0bed75f3-f03c-4d4d-aefc-4927ec0358a5",
+        "aggregate_sha256": "8c42b35e8b5db51a849563794ceb0f2855664a51aba48e4adfcbdcc50aef6286",
+        "coverage": {
+          "calls": 1,
+          "omitted_cues": 0,
+          "selected_cues": 1,
+          "total_cues": 1
+        },
+        "provenance": {
+          "adapter": "insonic-http",
+          "input_digest": "af95151bbe9d056452e5476a7f3f76b4831f205fbcc36142a7f814d785a47ef5",
+          "model": "controlled-speaker-fixture",
+          "route": "local"
+        },
+        "hypotheses": [
+          {
+            "aliases": [],
+            "attributable": true,
+            "class": "mention",
+            "id": "3ef923663a12891cdf7551f5bfba4a56db213c3b9e9edd987f5882adb5c1c2af",
+            "language": "",
+            "name": "Alex",
+            "references": [
+              {
+                "cue_id": "cue-000000",
+                "end_byte": 56,
+                "quote_digest": "c48582c58a1b504e09dce256d6284618ca7f02db5042b948dfc781da335c1341",
+                "start_byte": 0
+              }
+            ],
+            "relationship": "",
+            "role": "",
+            "roots": [
+              "60ab89fc85c81852c3cae7af0854fe5dd0c37bed9ed03aceada63be06f77a0cd"
+            ],
+            "uncertain": false,
+            "voice_id": "v1"
+          }
+        ],
+        "decisions": [
+          {
+            "alternatives": [
+              {
+                "name": "Alex",
+                "speaker_id": "bcb158e5-3b0d-450b-abe9-6f2ec557d09a"
+              }
+            ],
+            "evidence_ids": [
+              "3ef923663a12891cdf7551f5bfba4a56db213c3b9e9edd987f5882adb5c1c2af"
+            ],
+            "identity_status": "unknown",
+            "name": "",
+            "outcome": "unknown",
+            "reasons": [
+              "acoustic_unavailable",
+              "evidence:mention",
+              "insufficient_independent_support",
+              "non_identifying_context"
+            ],
+            "roots": [
+              "60ab89fc85c81852c3cae7af0854fe5dd0c37bed9ed03aceada63be06f77a0cd"
+            ],
+            "speaker_id": null,
+            "voice_id": "v1"
+          }
+        ]
+      },
+      {
+        "id": "contradictory-introductions",
+        "state": "completed",
+        "observations": [
+          {
+            "voice": "v1",
+            "outcome": "ambiguous",
+            "speaker": null,
+            "identity_status": "unknown",
+            "name": null
+          }
+        ],
+        "recording_id": "ed72356e-6745-4326-a0a9-270d237203ca",
+        "work_id": "1b708fb1-18a9-427e-8737-18fd16c9d7bd",
+        "aggregate_sha256": "0a55cf9f53e94b90f0efcac00df1bb8bbbfe99ce4dd4af874d8f7f5a7c41ce66",
+        "coverage": {
+          "calls": 1,
+          "omitted_cues": 0,
+          "selected_cues": 2,
+          "total_cues": 2
+        },
+        "provenance": {
+          "adapter": "insonic-http",
+          "input_digest": "7ef8803b8a05dacc2d6f8f09298aec671c077c23d354f31017a550ab39f2b4ed",
+          "model": "controlled-speaker-fixture",
+          "route": "local"
+        },
+        "hypotheses": [
+          {
+            "aliases": [],
+            "attributable": true,
+            "class": "self-identification",
+            "id": "92bdf1e37c88b51afa69649d3129a955cb99ec0164ca0dced9e0cf8cfc7eef64",
+            "language": "",
+            "name": "Alex",
+            "references": [
+              {
+                "cue_id": "cue-000000",
+                "end_byte": 16,
+                "quote_digest": "81284e80aa8fecde16e1eab29d461d4b2fc4062f19313511e5e2067fe9466d68",
+                "start_byte": 0
+              }
+            ],
+            "relationship": "",
+            "role": "",
+            "roots": [
+              "8bec5339544af30836399290f2050064afdfb9af08ee0241e063961f59874d8f"
+            ],
+            "uncertain": false,
+            "voice_id": "v1"
+          },
+          {
+            "aliases": [],
+            "attributable": true,
+            "class": "self-identification",
+            "id": "a2ee5a47dc4e6e7e0a3bfe51cb6e9536e635d04a8532157b09cc18291843f48d",
+            "language": "",
+            "name": "Jordan",
+            "references": [
+              {
+                "cue_id": "cue-000001",
+                "end_byte": 18,
+                "quote_digest": "78808b877c0638553d99f38177ccef8b7b83cd1a88271e84eed296e78abcf911",
+                "start_byte": 0
+              }
+            ],
+            "relationship": "",
+            "role": "",
+            "roots": [
+              "8bec5339544af30836399290f2050064afdfb9af08ee0241e063961f59874d8f"
+            ],
+            "uncertain": false,
+            "voice_id": "v1"
+          }
+        ],
+        "decisions": [
+          {
+            "alternatives": [
+              {
+                "name": "Jordan",
+                "speaker_id": "0d233d8e-ba87-490a-b4ed-748395727b6b"
+              },
+              {
+                "name": "Alex",
+                "speaker_id": "7f218b75-62ee-418e-9b4e-f4cb084a3a55"
+              }
+            ],
+            "evidence_ids": [
+              "92bdf1e37c88b51afa69649d3129a955cb99ec0164ca0dced9e0cf8cfc7eef64",
+              "a2ee5a47dc4e6e7e0a3bfe51cb6e9536e635d04a8532157b09cc18291843f48d"
+            ],
+            "identity_status": "unknown",
+            "name": "",
+            "outcome": "ambiguous",
+            "reasons": [
+              "acoustic_unavailable",
+              "duplicate_identity_name",
+              "evidence:self-identification"
+            ],
+            "roots": [
+              "8bec5339544af30836399290f2050064afdfb9af08ee0241e063961f59874d8f"
+            ],
+            "speaker_id": null,
+            "voice_id": "v1"
+          }
+        ]
+      },
+      {
+        "id": "unregistered-introduction",
+        "state": "completed",
+        "observations": [
+          {
+            "voice": "v1",
+            "outcome": "supported-contextual",
+            "speaker": null,
+            "identity_status": "unregistered",
+            "name": "Taylor"
+          }
+        ],
+        "recording_id": "e35b7d7f-7416-499d-b69b-13b275ac4bc0",
+        "work_id": "71b1d838-f555-49ec-a3c4-1b8ddef61ba4",
+        "aggregate_sha256": "2abff85fcac2cce2214b97b0b646e3903ec5beed2e1281d43fcb6f09d8d5533c",
+        "coverage": {
+          "calls": 1,
+          "omitted_cues": 0,
+          "selected_cues": 1,
+          "total_cues": 1
+        },
+        "provenance": {
+          "adapter": "insonic-http",
+          "input_digest": "b8f9bd0c282365a005331d31df7a0f867b2ca64ef33270acbf57c5ce1e76d3e5",
+          "model": "controlled-speaker-fixture",
+          "route": "local"
+        },
+        "hypotheses": [
+          {
+            "aliases": [],
+            "attributable": true,
+            "class": "self-identification",
+            "id": "8186498521964a76cb22922a969a9952a10e9e94107337ede72b691be01382de",
+            "language": "",
+            "name": "Taylor",
+            "references": [
+              {
+                "cue_id": "cue-000000",
+                "end_byte": 18,
+                "quote_digest": "8ebb86d086a02645b77933e1736661dce6e6072438e9a6e3de7a267d1b649e6f",
+                "start_byte": 0
+              }
+            ],
+            "relationship": "",
+            "role": "",
+            "roots": [
+              "4b1fcf07659e30960a67904d275f3937ea3b31301f4bdebc7ebf62c3e31449da"
+            ],
+            "uncertain": false,
+            "voice_id": "v1"
+          }
+        ],
+        "decisions": [
+          {
+            "alternatives": [
+              {
+                "name": "Taylor",
+                "speaker_id": null
+              }
+            ],
+            "evidence_ids": [
+              "8186498521964a76cb22922a969a9952a10e9e94107337ede72b691be01382de"
+            ],
+            "identity_status": "unregistered",
+            "name": "Taylor",
+            "outcome": "supported-contextual",
+            "reasons": [
+              "acoustic_unavailable",
+              "evidence:self-identification"
+            ],
+            "roots": [
+              "4b1fcf07659e30960a67904d275f3937ea3b31301f4bdebc7ebf62c3e31449da"
+            ],
+            "speaker_id": null,
+            "voice_id": "v1"
+          }
+        ]
+      },
+      {
+        "id": "anonymous-voice",
+        "state": "completed",
+        "observations": [
+          {
+            "voice": "v1",
+            "outcome": "unknown",
+            "speaker": null,
+            "identity_status": "unknown",
+            "name": null
+          }
+        ],
+        "recording_id": "37a320a8-4e73-43ae-bf18-4575daf2e9d4",
+        "work_id": "0ae635b6-55ce-4d71-aee2-c43decbffc71",
+        "aggregate_sha256": "264ae29023a1c03465b3c63ad4cd3d46379618c0ca3ad941bfbc9a0972638dfa",
+        "coverage": {
+          "calls": 1,
+          "omitted_cues": 0,
+          "selected_cues": 1,
+          "total_cues": 1
+        },
+        "provenance": {
+          "adapter": "insonic-http",
+          "input_digest": "3f7508178cf300854cf27b8e224f55e695cbf9d12d00884eee9e19e7685c2091",
+          "model": "controlled-speaker-fixture",
+          "route": "local"
+        },
+        "hypotheses": [],
+        "decisions": [
+          {
+            "alternatives": [],
+            "evidence_ids": [],
+            "identity_status": "unknown",
+            "name": "",
+            "outcome": "unknown",
+            "reasons": [
+              "acoustic_unavailable",
+              "insufficient_independent_support"
+            ],
+            "roots": [],
+            "speaker_id": null,
+            "voice_id": "v1"
+          }
+        ]
+      }
+    ],
+    "metrics": {
+      "cases": {
+        "total": 8,
+        "completed": 8,
+        "errors": 0
+      },
+      "voices": 9,
+      "outcome_counts": {
+        "supported-contextual": 4,
+        "matched": 0,
+        "unknown": 3,
+        "ambiguous": 2,
+        "conflicting": 0
+      },
+      "unregistered": 1,
+      "identity_precision": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0
+      },
+      "identity_coverage": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1.0
+      },
+      "outcome_accuracy": {
+        "numerator": 9,
+        "denominator": 9,
+        "value": 1.0
+      },
+      "unresolved_correctness": {
+        "numerator": 5,
+        "denominator": 5,
+        "value": 1.0
+      }
+    }
+  },
+  "acoustic_quality": "not-measured",
+  "inputs_unchanged": true,
+  "owned_runtime_released": true,
+  "temporary_workspace_removed": true,
+  "finished_utc": "2026-11-03T08:57:49.751458+00:00",
+  "combined_seconds": 102.3289999999979,
+  "qualification_seconds": 100.125,
+  "target_exceeded": false
+}

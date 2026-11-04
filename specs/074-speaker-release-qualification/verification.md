@@ -1,0 +1,55 @@
+# S074 verification
+
+## 2026-11-03 specification and design
+
+Base main ad0fb3534f88b8065361967b3c34640e44d762e1 is clean and synchronized. Branch codex/074-speaker-release-qualification, feature directory and ignored selector all identify S074. Existing #233/#211 are assigned S074/In progress; no new issue.
+
+Installed Spec Kit specify/clarify/checklist/plan/tasks workflows completed with their Python helpers and resolved templates. No extension hooks exist. Built-in requirements checklist passes 11/11. Reviewer-owned qualification checklist remains 0/10, unchanged; explicit owner autopilot authorization allows implementation without a new approval pause.
+
+Read-only analyze covered 12 functional requirements, five success criteria, eight acceptance scenarios, 21 tasks and all five constitution principles. Coverage is complete; no critical/high findings, unmapped task or unresolved scope ambiguity. FR-001/002/003 map T003-T009; FR-004/005 map T006-T012; FR-006/007 map T002/T003/T006/T010-T012; FR-008/009 map T013-T017; FR-010/011/012 map T009/T015/T017-T021. SC-001/002 map T004-T009; SC-003 maps T010-T012; SC-004 maps T013-T017; SC-005 maps T020-T021. Governance supplies T001/T002/T019. Real final measurement will follow version preparation so receipts identify 1.3.0.
+
+Preparation research found compatible acoustic libraries, CUDA availability and an NVIDIA RTX 5090, hash-verified pinned community-1/whisper snapshots and the frozen licensed acoustic corpus. A cached qwen2.5:14b model is available; its owned loopback service has not started. These are readiness observations, not inference acceptance. Raw logs, model paths and commands remain under ignored .local/s074; public receipts must not contain credentials or machine paths.
+
+.gitignore already excludes .local, build outputs, models, credentials and runtime state. No ignore changes are needed. The prior local qualification evidence remains intact.
+
+## 2026-11-03 failing-first implementation
+
+Corpus/scoring tests failed before implementation, then passed 10/10. Election/device/identity tests failed before implementation, then passed with the scorer tests 18/18. The native development CLI built successfully. First installed readiness stopped on the DLL search path; the hidden launcher now supplies the pinned native library directory.
+
+The first complete deterministic campaign accounted for all eight cases and nine voices, with one oracle mismatch: imported supplied transcripts have an unknown stream route, so contradictory names share one evidence root and correctly remain ambiguous. Catalog source-root and resolver contracts independently establish this behavior. The corpus annotation was corrected before real-model evaluation; no resolver behavior, acceptance threshold or independence guard was weakened. Old failed receipts are retained in .local/s074. The corrected frozen corpus SHA-256 is c24a3b86629c159960b4a6e5b41823d3ed4eb27814e3164d3af522b2470388b4.
+
+## 2026-11-03 candidate preparation
+
+The corrected deterministic installed campaign passed all eight cases/nine outcomes; identity precision and known-identity coverage are each 3/3. These are controlled-provider contract results, not model quality. Aligned product/docs/master-schema version 1.3.0 was prepared; published docs/v1.2.0 and schemas/v1.2.0 exactly match tag v1.2.0. The schema-12 catalog upgrade and pre-upgrade-backup rollback boundary are documented.
+
+Frontend check/test/build passed. Foundation/schema checks passed after adding the required highlights heading. Root tests identified new timing owners; the campaign now consumes the shared phase policy and all three owners are classified, and the root tests pass. The initial site export check correctly rejected stale v1.2.0 output; fresh build/verification follows. The first Go suite lacked the Windows USERPROFILE environment inherited by the Node launcher; failures consistently reported the unavailable OS profile. A bounded rerun supplies the verified current profile and preserves the original logs.
+
+The hosted-capture bootstrap temporarily omits only new-version walkthrough sections. Complete new-version text is retained locally and will be restored with the original hosted PNGs/receipts before the official PR. No local GUI capture, release tag or publication is performed.
+
+Launcher readiness diagnosis: Go platform paths require USERPROFILE, APPDATA and LOCALAPPDATA. Supplying all verified directories makes the focused workspace suite pass. The failed environment-only Go tree was stopped before rerunning. Python discovery (771 tests) exposed the inherited Unix locale and a bare compiler resolving to the wrong version under GOTOOLCHAIN=local; the verified launcher now places Go 1.27.1 first on PATH and uses the Windows-supported C locale. These corrections are ignored operator configuration, not product behavior changes. Fresh complete suites are in progress.
+
+## 2026-11-03 real-engine development campaign
+
+All local suites passed after verified launcher readiness: root checks/tests, 773 Python tests (five explicit skips), Go test/vet/module verification, frontend check/test/build and site test/build/check (259 pages). The clean capture bootstrap is ec21ca3f70ae71b4658b8a2441e54014f8584ab1, hosted run 41602621847.
+
+The first real development campaign completed contextual evaluation (all nine expected outcomes), explicit CPU and CUDA enrollment/matching (each: one of two known readers matched, the other unknown, one unseen reader correctly rejected; no incorrect matches or fallback), and zero independent references from match-only predictions. Configured real contextual enrollment completed and correction invalidated current profile usability. Its final assertion failed because it incorrectly required the exported manifest, including current lineage, to remain byte-identical. The catalog contract intentionally invalidates that lineage while retaining immutable model artifacts. Failing-first regressions now require unchanged binary inventory and exactly the allowed invalidation metadata changes, rejecting origin changes or retained obsolete lineage. Worker environment receipt projection now verifies the original receipt hash and retains actual package versions without paths. Twenty focused tests pass.
+
+This development binary predates the source commit in its embedded Go build information and is not final exact-source package evidence. Final acceptance will run against the original CI package/receipt at the elected head. The failed raw campaign and service-cleanup receipts remain under .local/s074; its 392.406-second qualification and 48.672-second preparation are diagnostic observations, not a passed campaign. Contextual progress now checkpoints all cases, including explicit not-executed errors, and integrated evidence survives a late assertion failure.
+
+## 2026-11-03 completed source qualification and capture audit
+
+The corrected real campaign passed against clean source 00529de6a68c73891464928686856b5ef613a479 and a CLI whose embedded Go build revision matches that commit with vcs.modified=false. Original receipt evidence/real-source.json retains all eight contextual cases, CPU/CUDA enrollment and matching, independent-source exclusion, integrated application/enrollment/correction and immutable profile bytes. qwen2.5:14b produced all nine expected outcomes; registered-identity precision/coverage are 3/3 each. Each acoustic device produced one correct known-reader match, one unknown known reader and one correct unseen rejection: precision 1/1, coverage 1/2, unseen rejection 1/1. No incorrect matches or device fallback occurred. These small-corpus observations are not broad accuracy or diarization/recognition claims, and thresholds were not tuned against held-out results.
+
+Preparation was 40.656 seconds, qualification 387.875 seconds and combined time 428.531 seconds. Inputs/model identities remained unchanged; the workspace, owned runtime and local model service were released. The service receipt separately retains verified cached model blob identities. Final exact-head package acceptance follows CI and will be attached to the PR without a self-referential source commit.
+
+Hosted bootstrap run 41602621847 is terminal green and independently audited with retained acceptance archive, complete job/artifact inventories and 7 installed speaker workflow/restart receipts, including alternative backends. Evidence is retained outside the workflow before any subsequent full run. The original 25 PNGs and four capture receipts were copied byte-for-byte from digest-verified hosted archives; representative application, enlarged-text, setup and native installer images were inspected. Full walkthroughs are restored.
+
+## 2026-11-03 convergence and repeated checks
+
+Convergence found one HIGH partial gap (FR-003/SC-001): unregistered names were omitted from normalized observations, allowing a wrong name to count as the expected outcome. A failing-first wrong-name/missing-name regression now passes; all 21 focused scorer/quality tests pass. Corpus format 2 explicitly records unregistered name truth, SHA-256 1f4b60b1696460a37e97fdfcafec2859d3fd096223bf73238ddf7de1b67fa016. The earlier source receipt remains unmodified and its raw decision correctly names Taylor; final packaged acceptance uses the stricter scorer. No model thresholds or input conversations changed.
+
+Repeat convergence checked 12 FR, five SC, eight acceptance scenarios, ten plan decisions and all five constitution principles. No further missing/partial/contradictory/unrequested implementation gaps remain. Final candidate/review/CI evidence stays explicitly pending under T017/T020/T021 and is completed on the PR after the source commit.
+
+Timing clarification: the source receipt records 40.656 seconds preparation plus 387.875 seconds qualification (428.531 combined) inside the campaign. Its outer owned-service launcher took 437.606 seconds including cached-model verification and service orchestration. The 9.075-second outer overhead is not attributed to a more precise phase than the retained evidence supports.
+
+Repeated validation passed: root check/test, all 776 Python tests (five explicit skips), site tests/build/check with the original new-version captures, and the stricter installed deterministic campaign (8/8 cases, 9/9 outcomes including Taylor). The deterministic receipt is preserved unchanged in evidence/deterministic-source.json. Its phase times are 2.204 seconds preparation, 100.125 qualification and 102.329 combined. A Node orchestration wait timed out and reset its parent session; the independent children completed, retained terminal unittest OK and campaign passed/cleanup receipts, and no matching child processes remain. Outer launcher exit receipts for those two checks were therefore unavailable; no exit receipt has been reconstructed. Root/site receipts and the earlier full Go/frontend checks remain intact. Published v1.2.0 documentation/schema trees still exactly match their release tag. Changed text passed UTF-8/no-BOM/LF and mojibake checks; git diff --check is clean.

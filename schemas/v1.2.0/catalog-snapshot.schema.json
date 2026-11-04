@@ -82,8 +82,7 @@
         8,
         9,
         10,
-        11,
-        12
+        11
       ]
     },
     "digest": {
@@ -2361,13 +2360,6 @@
             "description": "Immutable producing-attempt checkpoint."
           },
           "description": "Validated resumable state distinct from completed models."
-        },
-        "speaker_discoveries": {
-          "description": "Current discoveries validated against latest receipt proofs and current source epochs.",
-          "type": "array",
-          "items": {
-            "$ref": "speaker-discovery.schema.json#/$defs/current"
-          }
         }
       },
       "required": [
@@ -2527,35 +2519,6 @@
               }
             },
             "description": "Current records contract."
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "catalog_schema": {
-            "type": "integer",
-            "maximum": 11,
-            "description": "Historical catalog versions precede discovery records."
-          }
-        },
-        "required": [
-          "catalog_schema"
-        ]
-      },
-      "then": {
-        "properties": {
-          "records": {
-            "type": "object",
-            "description": "Historical portable record collections.",
-            "properties": {
-              "speaker_discoveries": {
-                "type": "array",
-                "maxItems": 0,
-                "description": "Historical snapshots cannot inject current discovery authority."
-              }
-            }
           }
         }
       }

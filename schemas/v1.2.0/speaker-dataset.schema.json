@@ -352,15 +352,6 @@
         "mapping_revision": {
           "$ref": "common.schema.json#/$defs/revision",
           "description": "Revision of the independent manual mapping used for this current reference."
-        },
-        "evidence_class": {
-          "const": "independent-contextual",
-          "description": "evidence class."
-        },
-        "evidence_digest": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$",
-          "description": "evidence digest."
         }
       },
       "required": [
@@ -372,15 +363,7 @@
         "cue_id",
         "local_speaker_id"
       ],
-      "additionalProperties": false,
-      "dependentRequired": {
-        "evidence_class": [
-          "evidence_digest"
-        ],
-        "evidence_digest": [
-          "evidence_class"
-        ]
-      }
+      "additionalProperties": false
     },
     "exclusion": {
       "type": "object",

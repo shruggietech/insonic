@@ -1,0 +1,32 @@
+{
+  "model_digest": "7cdf5a0187d5c58cc5d369b255592f7841d1c4696d45a8c8a9489440385b22f6",
+  "verified_blobs": [
+    {
+      "size_bytes": 488,
+      "sha256": "db59b814cab753a51167db007fa6b6e0095f678ff24c9f7284753b75b34c6df3"
+    },
+    {
+      "size_bytes": 8988110688,
+      "sha256": "2049f5674b1e92b4464e5729975c9689fcfbf0b0e4443ccf10b5339f370f9a54"
+    },
+    {
+      "size_bytes": 68,
+      "sha256": "66b9ea09bd5b7099cbb4fc820f31b575c0366fa439b08245566692c6784e281e"
+    },
+    {
+      "size_bytes": 1482,
+      "sha256": "eb4402837c7829a690fa845de4d7f3fd842c2adee476d5341da8a46ea9255175"
+    },
+    {
+      "size_bytes": 11343,
+      "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e"
+    }
+  ],
+  "started_unix": 1793694921.4048934,
+  "service": {
+    "version": "0.40.13"
+  },
+  "exit_code": 0,
+  "owned_service_released": true,
+  "finished_unix": 1793695355.2508636
+}
