@@ -1,0 +1,72 @@
+{
+  "root_check": {
+    "command": [
+      "npm.cmd",
+      "run",
+      "check"
+    ],
+    "started_utc": "2026-11-04T05:41:49Z",
+    "finished_utc": "2026-11-04T05:41:54Z",
+    "seconds": 4.633621692657471,
+    "code": 0
+  },
+  "root_test": {
+    "command": [
+      "npm.cmd",
+      "test"
+    ],
+    "started_utc": "2026-11-04T05:41:49Z",
+    "finished_utc": "2026-11-04T05:41:59Z",
+    "seconds": 10.11217188835144,
+    "code": 0,
+    "tests": 223
+  },
+  "site_test": {
+    "command": [
+      "npm.cmd",
+      "--prefix",
+      "site",
+      "test"
+    ],
+    "started_utc": "2026-11-04T05:41:49Z",
+    "finished_utc": "2026-11-04T05:41:59Z",
+    "seconds": 9.291320562362671,
+    "code": 0,
+    "tests": 18
+  },
+  "site_build": {
+    "command": [
+      "npm.cmd",
+      "--prefix",
+      "site",
+      "run",
+      "build"
+    ],
+    "started_utc": "2026-11-04T05:41:49Z",
+    "finished_utc": "2026-11-04T05:42:06Z",
+    "seconds": 16.242781400680542,
+    "code": 0
+  },
+  "site_check": {
+    "command": [
+      "npm.cmd",
+      "--prefix",
+      "site",
+      "run",
+      "check"
+    ],
+    "started_utc": "2026-11-04T05:42:58Z",
+    "finished_utc": "2026-11-04T05:43:00Z",
+    "seconds": 1.3347878456115723,
+    "code": 0
+  },
+  "python_guards": {
+    "total": 148,
+    "release": 78,
+    "pages": 35,
+    "public_verification": 11,
+    "website": 13,
+    "http_read": 11,
+    "unchanged_implementation": true
+  }
+}

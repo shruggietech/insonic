@@ -1,0 +1,199 @@
+{
+  "format": "insonic-s075-publication-evidence-v1",
+  "release": "v1.3.0",
+  "revision": "27ddddcd8afe8e44b1dd0c570ae3fd2070130728",
+  "entries": [
+    {
+      "name": "main-audit.json.gz",
+      "original_bytes": 36751,
+      "original_sha256": "c0d36f14ce27467ae5ef13dda70a0045c607cdd0913332df715c76456467604b",
+      "stored_bytes": 6338,
+      "stored_sha256": "6b51103f920111c46a5710b31193302e5b86a2e2155bc5ca23faf9ea106a829a",
+      "description": "Original retained main CI acceptance and installed workflows"
+    },
+    {
+      "name": "release-metadata.json.gz",
+      "original_bytes": 221405,
+      "original_sha256": "fd8253fdb67b0f45a20b6ce8c727e54a04f949d754a9751e7b2b6e69b9415274",
+      "stored_bytes": 16034,
+      "stored_sha256": "6d69f7742c00680f84706233375fff04f3bac5cc4db9d6020dff8f1f4c07d21d",
+      "description": "Original terminal Release run, jobs, steps and artifact inventory"
+    },
+    {
+      "name": "release-timing.json.gz",
+      "original_bytes": 372,
+      "original_sha256": "076926ca2c59de16e2d336a1adafc65410b2f6f1a1500d6f21b28b34da0b308c",
+      "stored_bytes": 226,
+      "stored_sha256": "4f3cb671ba9ac0e6dcecae076339b3dfc88c7887f87cd82ad60ae5d5157df04a",
+      "description": "Audited conservative Release qualification timing"
+    },
+    {
+      "name": "release-manifest.json.gz",
+      "original_bytes": 8455333,
+      "original_sha256": "c8179765691a7a2fba4c51811a739e8fbc6347446242f71cf073184cfaf9a5bb",
+      "stored_bytes": 308735,
+      "stored_sha256": "705daa88adab3926b19b0ff7bae32db5472d5d117193be2ddf298c277047e269",
+      "description": "Original accepted and published full package and installer receipts"
+    },
+    {
+      "name": "candidate-acceptance.json.gz",
+      "original_bytes": 2130,
+      "original_sha256": "a2b8152fede662cfc18a86be7bb63b35f2e5cf664f0c6264d23e15bdc97edf5e",
+      "stored_bytes": 900,
+      "stored_sha256": "078a3742b0111e1f3cc7a7eeedcab4e5f7b23d6eac55a88cab73775744b7d1f3",
+      "description": "Exact-source ten-file and release-status documentation validation"
+    },
+    {
+      "name": "elected-producer.json.gz",
+      "original_bytes": 11298,
+      "original_sha256": "bc9cd57c3bc4e288d79ccb11aebf2b30c34db007d57fe9d841d141b67bf31354",
+      "stored_bytes": 1908,
+      "stored_sha256": "d36e025963064305bcf57220bb73d8bd4e4bda29eaf4c3bdd305472443bdba61",
+      "description": "Original qualified Windows CLI producer and artifact identities"
+    },
+    {
+      "name": "elected-candidate-match.json.gz",
+      "original_bytes": 282,
+      "original_sha256": "c59aeff5f52551ea9f04458664aee2d8acb1f0d19b8d25e66dcd72136ba859e4",
+      "stored_bytes": 210,
+      "stored_sha256": "fdf968ba7994d74163b5e258d34fc3fb2c606c213f1579e935ff6ca21fa33fe0",
+      "description": "Byte equality between elected archive and final candidate"
+    },
+    {
+      "name": "real-package-receipt.json.gz",
+      "original_bytes": 51333,
+      "original_sha256": "22c946d3390f5e097ebd16cec0653408e89fdd4ed4d366f266ffab4944811acb",
+      "stored_bytes": 9364,
+      "stored_sha256": "33d4bb4c12edf140584f4e5d8e507df0470851752b077183b2cde4d757d6f758",
+      "description": "Original complete actual CPU and CUDA contextual/acoustic campaign"
+    },
+    {
+      "name": "real-package-service.json.gz",
+      "original_bytes": 1039,
+      "original_sha256": "7c341e6175bb1025a92d01760b943203963af006962f803094d211f556f76c86",
+      "stored_bytes": 523,
+      "stored_sha256": "a9c16a557e5a70f460a0062ca55f45e77cf7d6b9be85171c1d693e0aeeb5f3bb",
+      "description": "Original owned model service, verified blobs and cleanup"
+    },
+    {
+      "name": "real-acceptance.json.gz",
+      "original_bytes": 3953,
+      "original_sha256": "218304b95c40ef1cbcddfd92ef94abcee318c24a270000ba4b6c3ecc34a8bbe7",
+      "stored_bytes": 1276,
+      "stored_sha256": "fd93e71c1220f991fbddbba50aad55d2dbf78c6fab0c2469582872fc1cc979e2",
+      "description": "Audited actual-device result and timing summary"
+    },
+    {
+      "name": "publish-result.json.gz",
+      "original_bytes": 359,
+      "original_sha256": "8822480ca7d40f68dac06ddf2578c5de96c8ca26bcc66fb4afff32a9b17a0905",
+      "stored_bytes": 244,
+      "stored_sha256": "4e344d1f46fa99789510676d2eee04cc773ab803a40c98e313049506a3b264b1",
+      "description": "Original publisher completion and operational duration"
+    },
+    {
+      "name": "publish.json.gz",
+      "original_bytes": 119,
+      "original_sha256": "5d67d0d422ea16a03929eb8b44649cf0a5f48c827405a9a68630b03d4d40caba",
+      "stored_bytes": 126,
+      "stored_sha256": "454a607c91d989c50830514dda972661ec94d05b3047f1f6edf179bee3dfdfe8",
+      "description": "Original successful publisher response"
+    },
+    {
+      "name": "official-release.json.gz",
+      "original_bytes": 21715,
+      "original_sha256": "db2556b3da5a10b47da62176969525e3f4b167e8a5054ee6cd0c67cacb5f47a9",
+      "stored_bytes": 2464,
+      "stored_sha256": "a6c32854e32d05bb0b3e7d98f942bc1b56b4e9b0edb5626f888bb5084f174daf",
+      "description": "Official published release and ten asset metadata records"
+    },
+    {
+      "name": "tag.json.gz",
+      "original_bytes": 1345,
+      "original_sha256": "748871cdb7bb558f58bfa78212c6f5ddec560f3ceb689439b7efcf39d166070a",
+      "stored_bytes": 531,
+      "stored_sha256": "e2eec5a7a0077595a18a10a2ca087d8688edbaf6600467b1b205da72078ae7fe",
+      "description": "Immutable annotated tag and source identity"
+    },
+    {
+      "name": "public-download-result.json.gz",
+      "original_bytes": 348,
+      "original_sha256": "a77468fcabb13cd786f481cc20e92c3a7abb19f2fffa4ab2ec2ef5dcb9a82f69",
+      "stored_bytes": 243,
+      "stored_sha256": "e6d0e3f2623498188ed031bbfadf880392fcc23d11130a5ab66d22a4f987afe4",
+      "description": "Independent download completion and duration"
+    },
+    {
+      "name": "public-download-comparison.json.gz",
+      "original_bytes": 2191,
+      "original_sha256": "a76ab0457a81ab46d36fbd9c93f1db53f4c30c0ab8c0b2528addf02e56431a0a",
+      "stored_bytes": 835,
+      "stored_sha256": "9ffb74b4b4dda38f95233e0c0fe171583262e2e4bd7216018443bce49772eab7",
+      "description": "Saved-byte equality for all ten independently downloaded files"
+    },
+    {
+      "name": "pages-promotion.json.gz",
+      "original_bytes": 1089182,
+      "original_sha256": "ce1a89177e391c2477284e19c4c6e3a62afa3e967baf8baf934add8c9ecd7602",
+      "stored_bytes": 152865,
+      "stored_sha256": "6d7bd5a46ca1e392f10d887314996aa18838921806f0a02793ed3920f4424c1f",
+      "description": "Original exact-identity Pages promotion and live verification"
+    },
+    {
+      "name": "pages-promotion-result.json.gz",
+      "original_bytes": 340,
+      "original_sha256": "adffe251c032b64c714b59e76762ca2276d0b54e13acea3a2f1c5be16b84dd29",
+      "stored_bytes": 222,
+      "stored_sha256": "967a14465e28c60d4c26a187339ad015a32c52ab29fba64ba4862976f0231d09",
+      "description": "Promotion completion and operational duration"
+    },
+    {
+      "name": "completed-pages-build.json.gz",
+      "original_bytes": 1405,
+      "original_sha256": "ee529cb7aed1decd246732fe04b6febab0b7cbb3694e9b3b15dfdec784eccc76",
+      "stored_bytes": 518,
+      "stored_sha256": "5a5b69bfa0ccda104d3464f8a5fa11c3e0dc41e8ee50ba3493949735a7225150",
+      "description": "Independent exact completed Pages build metadata"
+    },
+    {
+      "name": "pages-retention.json.gz",
+      "original_bytes": 247,
+      "original_sha256": "767622a1655e003d34d4f4c1b85df5cb1bfad754e91175594e83fe9e168efb71",
+      "stored_bytes": 197,
+      "stored_sha256": "b1c6d2d1873f2b0f8fbda1e752d441f7c443190d1469ee3f67684fe0c6158e97",
+      "description": "Original exact deployment archive digest and confined file inventory"
+    },
+    {
+      "name": "public-verification.json.gz",
+      "original_bytes": 480874,
+      "original_sha256": "94746d4d578b23499b73a0b9016b609c366c1e70ed9709a45041248a994ebd82",
+      "stored_bytes": 78656,
+      "stored_sha256": "ea5bebffa19d1a317d3216688cdadfbefd605cdc6a45c1722644fd98254e48d4",
+      "description": "Independent released-documentation saved-content and URL proof"
+    },
+    {
+      "name": "live-website.json.gz",
+      "original_bytes": 506193,
+      "original_sha256": "f111f5bb7c2012975f41604b9e93b48e6a488deaa82da59b14c92ae5f9e2871b",
+      "stored_bytes": 80319,
+      "stored_sha256": "cf7c8cf44a4b1738d32db8fc015623a9ec90eebce05f5d56a8d03210135c9b9d",
+      "description": "Independent full deployed-site and six download-target proof"
+    },
+    {
+      "name": "live-ui.json.gz",
+      "original_bytes": 147858,
+      "original_sha256": "e57f66f6f357035371f2716cc9aa30286fdbb4c9d0b561e5b4bd59872b046e35",
+      "stored_bytes": 5750,
+      "stored_sha256": "fd4e312d8e504787af7cddb8c56463ca53fb5d668cdbfc01b0165bd02c91d65f",
+      "description": "Original eight-case bounded-live-response browser report"
+    },
+    {
+      "name": "live-ui-images.json.gz",
+      "original_bytes": 1698,
+      "original_sha256": "9c09731080e7f316a4b389e5eabf2838a95707044967e4f2ccca1231297b9887",
+      "stored_bytes": 643,
+      "stored_sha256": "538c40b8d0cf53b72a97885cdc6a07171226a853cbdb6129dc2f77ab32dd53de",
+      "description": "Original screenshot hashes and visual inspection record"
+    }
+  ]
+}

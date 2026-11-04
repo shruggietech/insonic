@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-03
 
-**Status**: Specified
+**Status**: Publication and verification complete; final PR delivery gates pending
 
 **Input**: PR #252 is merged and its remote branch deleted. Perform standard housekeeping and publish the next version release. Existing publication, documentation destination and model elections persist; no new tracking issue.
 

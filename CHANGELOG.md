@@ -4,6 +4,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Changed
+
+- 2026-11-04: Publish v1.3.0 with all ten accepted original files and matching live documentation. Independently verify every download, deployed content and eight mobile/desktop light/dark layouts, with fresh packaged CPU/NVIDIA speaker qualification.
+
 ## [1.3.0] - 2026-11-03
 
 ### Added
