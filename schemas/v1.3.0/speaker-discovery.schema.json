@@ -1,0 +1,1261 @@
+{
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.3.0/schemas/v1.3.0/speaker-discovery.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Speaker discovery",
+  "description": "Versioned standalone discovery envelope.",
+  "$defs": {
+    "current": {
+      "description": "Workspace-scoped current discovery with receipt proof and freshness fence.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Workspace-scoped UUID.",
+          "$ref": "common.schema.json#/$defs/uuid"
+        },
+        "work_id": {
+          "description": "Workspace-scoped UUID.",
+          "$ref": "common.schema.json#/$defs/uuid"
+        },
+        "revision": {
+          "description": "Current aggregate revision.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "recording_revision": {
+          "description": "Frozen current recording revision.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "document_digest": {
+          "description": "SHA-256 of canonical authority bytes.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_epoch": {
+          "description": "SHA-256 of canonical authority bytes.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "max_cues": {
+          "description": "Elected cue admission cap.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "matching_work_id": {
+          "description": "Canonical identity when registered; null otherwise.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "aggregate": {
+          "description": "Bounded current discovery evidence and resolution; not a speaker mapping.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "version": {
+              "const": 1,
+              "description": "Discovery contract version."
+            },
+            "coverage": {
+              "description": "Explicit selected and omitted cue coverage.",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "total_cues": {
+                  "description": "All current cues.",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "selected_cues": {
+                  "description": "Cues actually sent to the provider.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 500
+                },
+                "omitted_cues": {
+                  "description": "Current cues outside the elected bounded scan.",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "calls": {
+                  "description": "Provider calls made in one aggregate deadline.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 20
+                }
+              },
+              "required": [
+                "total_cues",
+                "selected_cues",
+                "omitted_cues",
+                "calls"
+              ]
+            },
+            "provenance": {
+              "description": "Elected provider identity without credentials or transcript copies.",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "adapter": {
+                  "description": "Elected adapter.",
+                  "type": "string",
+                  "maxLength": 512
+                },
+                "model": {
+                  "description": "Elected model.",
+                  "type": "string",
+                  "maxLength": 512
+                },
+                "route": {
+                  "description": "Elected local or hosted route.",
+                  "type": "string",
+                  "maxLength": 512
+                },
+                "input_digest": {
+                  "description": "Frozen input digest.",
+                  "type": "string",
+                  "maxLength": 64
+                }
+              },
+              "required": [
+                "adapter",
+                "model",
+                "route",
+                "input_digest"
+              ]
+            },
+            "hypotheses": {
+              "description": "Deduplicated current hypotheses.",
+              "type": "array",
+              "items": {
+                "description": "Versioned, non-authoritative name hypothesis with current source references.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "description": "SHA-256 of canonical authority bytes.",
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "class": {
+                    "description": "Evidence class, never inferred from confidence.",
+                    "enum": [
+                      "self-identification",
+                      "context-association",
+                      "mention",
+                      "quotation"
+                    ]
+                  },
+                  "name": {
+                    "description": "Observed candidate name.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "aliases": {
+                    "description": "Observed alternatives and aliases.",
+                    "type": "array",
+                    "items": {
+                      "description": "Observed name variant.",
+                      "type": "string",
+                      "maxLength": 512
+                    },
+                    "maxItems": 16
+                  },
+                  "language": {
+                    "description": "Language observation, empty when unknown.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "role": {
+                    "description": "Observed role context.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "relationship": {
+                    "description": "Observed relationship context.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "voice_id": {
+                    "description": "Recording-local voice; empty for unattributed mention.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "references": {
+                    "description": "Exact current source citations.",
+                    "type": "array",
+                    "items": {
+                      "description": "Exact current text citation without copied transcript.",
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "start_byte": {
+                          "description": "Inclusive UTF-8 byte offset in current cue text.",
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "end_byte": {
+                          "description": "Exclusive UTF-8 byte offset in current cue text.",
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "cue_id": {
+                          "description": "Current Cue JSON cue identifier.",
+                          "type": "string",
+                          "maxLength": 512
+                        },
+                        "quote_digest": {
+                          "description": "SHA-256 of canonical authority bytes.",
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        }
+                      },
+                      "required": [
+                        "start_byte",
+                        "end_byte",
+                        "cue_id",
+                        "quote_digest"
+                      ]
+                    },
+                    "maxItems": 16
+                  },
+                  "roots": {
+                    "description": "Deduplicated original evidence-root hashes.",
+                    "type": "array",
+                    "items": {
+                      "description": "SHA-256 of canonical authority bytes.",
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "maxItems": 16
+                  },
+                  "uncertain": {
+                    "description": "Explicit evidence classification flag.",
+                    "type": "boolean"
+                  },
+                  "attributable": {
+                    "description": "Explicit evidence classification flag.",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "class",
+                  "name",
+                  "aliases",
+                  "language",
+                  "role",
+                  "relationship",
+                  "voice_id",
+                  "references",
+                  "roots",
+                  "uncertain",
+                  "attributable"
+                ]
+              },
+              "maxItems": 512
+            },
+            "acoustic": {
+              "description": "Authenticated prior matching evidence with independently checked current enrollment lineage.",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "description": "Current proof availability.",
+                  "enum": [
+                    "current",
+                    "stale",
+                    "unavailable"
+                  ]
+                },
+                "work_id": {
+                  "description": "Matching work ID, empty when absent.",
+                  "type": "string",
+                  "maxLength": 512
+                },
+                "digest": {
+                  "description": "Authenticated evidence digest, empty when unavailable.",
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "decisions": {
+                  "description": "Persisted accepted acoustic decisions; no client scores.",
+                  "type": "array",
+                  "items": {
+                    "description": "Voice-specific acoustic proof.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "voice_id": {
+                        "description": "Current local voice.",
+                        "type": "string",
+                        "maxLength": 512
+                      },
+                      "speaker_id": {
+                        "description": "Canonical ID if selected, otherwise empty.",
+                        "type": "string",
+                        "maxLength": 512
+                      },
+                      "state": {
+                        "description": "Original acoustic outcome.",
+                        "enum": [
+                          "matched",
+                          "ambiguous",
+                          "unknown",
+                          "manual-preserved",
+                          "contextual-preserved"
+                        ]
+                      },
+                      "score": {
+                        "description": "Authenticated cosine score, or null when unavailable.",
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "minimum": -1,
+                        "maximum": 1
+                      },
+                      "runner_up_score": {
+                        "description": "Authenticated cosine score, or null when unavailable.",
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "minimum": -1,
+                        "maximum": 1
+                      },
+                      "independent": {
+                        "description": "Explicit evidence classification flag.",
+                        "type": "boolean"
+                      },
+                      "reason": {
+                        "description": "Lineage eligibility reason.",
+                        "type": "string",
+                        "maxLength": 512
+                      },
+                      "profile_id": {
+                        "description": "Exact profile version, empty when unavailable.",
+                        "type": "string",
+                        "maxLength": 512
+                      }
+                    },
+                    "required": [
+                      "voice_id",
+                      "speaker_id",
+                      "state",
+                      "score",
+                      "runner_up_score",
+                      "independent",
+                      "reason",
+                      "profile_id"
+                    ]
+                  },
+                  "maxItems": 1000
+                },
+                "eligible_profiles": {
+                  "description": "Eligible canonical profile owners, unranked.",
+                  "type": "array",
+                  "items": {
+                    "description": "Workspace-scoped UUID.",
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  "maxItems": 1000
+                }
+              },
+              "required": [
+                "availability",
+                "work_id",
+                "digest",
+                "decisions",
+                "eligible_profiles"
+              ]
+            },
+            "policy": {
+              "description": "Deterministic configurable support thresholds.",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "minimum_contextual_roots": {
+                  "description": "Minimum distinct source roots for contextual support.",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16
+                },
+                "minimum_acoustic_score": {
+                  "description": "Minimum cosine match score.",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minimum_acoustic_margin": {
+                  "description": "Minimum winner versus runner-up margin.",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": [
+                "minimum_contextual_roots",
+                "minimum_acoustic_score",
+                "minimum_acoustic_margin"
+              ]
+            },
+            "decisions": {
+              "description": "One decision per current local voice.",
+              "type": "array",
+              "items": {
+                "description": "Reproducible decision preserving uncertainty and owner authority.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "voice_id": {
+                    "description": "Current local voice.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "outcome": {
+                    "description": "Resolution outcome.",
+                    "enum": [
+                      "matched",
+                      "supported-contextual",
+                      "ambiguous",
+                      "conflicting",
+                      "unknown"
+                    ]
+                  },
+                  "speaker_id": {
+                    "description": "Canonical identity when registered; null otherwise.",
+                    "anyOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/uuid"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "identity_status": {
+                    "description": "Canonical registration status.",
+                    "enum": [
+                      "registered",
+                      "unregistered",
+                      "unknown"
+                    ]
+                  },
+                  "name": {
+                    "description": "Supported name, empty without a selected candidate.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "alternatives": {
+                    "description": "Competing identities remain separate despite equal spelling.",
+                    "type": "array",
+                    "items": {
+                      "description": "Candidate identity.",
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "speaker_id": {
+                          "description": "Canonical identity when registered; null otherwise.",
+                          "anyOf": [
+                            {
+                              "$ref": "common.schema.json#/$defs/uuid"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "name": {
+                          "description": "Candidate name.",
+                          "type": "string",
+                          "maxLength": 512
+                        }
+                      },
+                      "required": [
+                        "speaker_id",
+                        "name"
+                      ]
+                    },
+                    "maxItems": 1000
+                  },
+                  "reasons": {
+                    "description": "Sorted machine-readable reason codes.",
+                    "type": "array",
+                    "items": {
+                      "description": "Reason code.",
+                      "type": "string",
+                      "maxLength": 512
+                    },
+                    "maxItems": 1024
+                  },
+                  "evidence_ids": {
+                    "description": "Sorted supporting or non-identifying hypothesis IDs.",
+                    "type": "array",
+                    "items": {
+                      "description": "SHA-256 of canonical authority bytes.",
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "maxItems": 512
+                  },
+                  "roots": {
+                    "description": "Sorted original source-root IDs.",
+                    "type": "array",
+                    "items": {
+                      "description": "SHA-256 of canonical authority bytes.",
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "maxItems": 8192
+                  }
+                },
+                "required": [
+                  "voice_id",
+                  "outcome",
+                  "speaker_id",
+                  "identity_status",
+                  "name",
+                  "alternatives",
+                  "reasons",
+                  "evidence_ids",
+                  "roots"
+                ]
+              },
+              "maxItems": 1000
+            },
+            "owner_evidence": {
+              "description": "References to current independently authoritative owner mappings; no copied assignment list.",
+              "type": "array",
+              "items": {
+                "description": "Current manual mapping reference.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "mapping_id": {
+                    "description": "Workspace-scoped UUID.",
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  "revision": {
+                    "description": "Exact accepted owner mapping revision.",
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "voice_id": {
+                    "description": "Current local voice identified by the mapping.",
+                    "type": "string",
+                    "maxLength": 512
+                  }
+                },
+                "required": [
+                  "mapping_id",
+                  "revision",
+                  "voice_id"
+                ]
+              },
+              "maxItems": 1000
+            }
+          },
+          "required": [
+            "version",
+            "coverage",
+            "provenance",
+            "hypotheses",
+            "acoustic",
+            "policy",
+            "decisions"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "work_id",
+        "revision",
+        "recording_revision",
+        "document_digest",
+        "source_epoch",
+        "max_cues",
+        "matching_work_id",
+        "aggregate"
+      ]
+    },
+    "aggregate": {
+      "description": "Bounded current discovery evidence and resolution; not a speaker mapping.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1,
+          "description": "Discovery contract version."
+        },
+        "coverage": {
+          "description": "Explicit selected and omitted cue coverage.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "total_cues": {
+              "description": "All current cues.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "selected_cues": {
+              "description": "Cues actually sent to the provider.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500
+            },
+            "omitted_cues": {
+              "description": "Current cues outside the elected bounded scan.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "calls": {
+              "description": "Provider calls made in one aggregate deadline.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "total_cues",
+            "selected_cues",
+            "omitted_cues",
+            "calls"
+          ]
+        },
+        "provenance": {
+          "description": "Elected provider identity without credentials or transcript copies.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {
+              "description": "Elected adapter.",
+              "type": "string",
+              "maxLength": 512
+            },
+            "model": {
+              "description": "Elected model.",
+              "type": "string",
+              "maxLength": 512
+            },
+            "route": {
+              "description": "Elected local or hosted route.",
+              "type": "string",
+              "maxLength": 512
+            },
+            "input_digest": {
+              "description": "Frozen input digest.",
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "adapter",
+            "model",
+            "route",
+            "input_digest"
+          ]
+        },
+        "hypotheses": {
+          "description": "Deduplicated current hypotheses.",
+          "type": "array",
+          "items": {
+            "description": "Versioned, non-authoritative name hypothesis with current source references.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "description": "SHA-256 of canonical authority bytes.",
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "class": {
+                "description": "Evidence class, never inferred from confidence.",
+                "enum": [
+                  "self-identification",
+                  "context-association",
+                  "mention",
+                  "quotation"
+                ]
+              },
+              "name": {
+                "description": "Observed candidate name.",
+                "type": "string",
+                "maxLength": 512
+              },
+              "aliases": {
+                "description": "Observed alternatives and aliases.",
+                "type": "array",
+                "items": {
+                  "description": "Observed name variant.",
+                  "type": "string",
+                  "maxLength": 512
+                },
+                "maxItems": 16
+              },
+              "language": {
+                "description": "Language observation, empty when unknown.",
+                "type": "string",
+                "maxLength": 512
+              },
+              "role": {
+                "description": "Observed role context.",
+                "type": "string",
+                "maxLength": 512
+              },
+              "relationship": {
+                "description": "Observed relationship context.",
+                "type": "string",
+                "maxLength": 512
+              },
+              "voice_id": {
+                "description": "Recording-local voice; empty for unattributed mention.",
+                "type": "string",
+                "maxLength": 512
+              },
+              "references": {
+                "description": "Exact current source citations.",
+                "type": "array",
+                "items": {
+                  "description": "Exact current text citation without copied transcript.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "start_byte": {
+                      "description": "Inclusive UTF-8 byte offset in current cue text.",
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "end_byte": {
+                      "description": "Exclusive UTF-8 byte offset in current cue text.",
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "cue_id": {
+                      "description": "Current Cue JSON cue identifier.",
+                      "type": "string",
+                      "maxLength": 512
+                    },
+                    "quote_digest": {
+                      "description": "SHA-256 of canonical authority bytes.",
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "start_byte",
+                    "end_byte",
+                    "cue_id",
+                    "quote_digest"
+                  ]
+                },
+                "maxItems": 16
+              },
+              "roots": {
+                "description": "Deduplicated original evidence-root hashes.",
+                "type": "array",
+                "items": {
+                  "description": "SHA-256 of canonical authority bytes.",
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "maxItems": 16
+              },
+              "uncertain": {
+                "description": "Explicit evidence classification flag.",
+                "type": "boolean"
+              },
+              "attributable": {
+                "description": "Explicit evidence classification flag.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "class",
+              "name",
+              "aliases",
+              "language",
+              "role",
+              "relationship",
+              "voice_id",
+              "references",
+              "roots",
+              "uncertain",
+              "attributable"
+            ]
+          },
+          "maxItems": 512
+        },
+        "acoustic": {
+          "description": "Authenticated prior matching evidence with independently checked current enrollment lineage.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "availability": {
+              "description": "Current proof availability.",
+              "enum": [
+                "current",
+                "stale",
+                "unavailable"
+              ]
+            },
+            "work_id": {
+              "description": "Matching work ID, empty when absent.",
+              "type": "string",
+              "maxLength": 512
+            },
+            "digest": {
+              "description": "Authenticated evidence digest, empty when unavailable.",
+              "type": "string",
+              "maxLength": 64
+            },
+            "decisions": {
+              "description": "Persisted accepted acoustic decisions; no client scores.",
+              "type": "array",
+              "items": {
+                "description": "Voice-specific acoustic proof.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "voice_id": {
+                    "description": "Current local voice.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "speaker_id": {
+                    "description": "Canonical ID if selected, otherwise empty.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "state": {
+                    "description": "Original acoustic outcome.",
+                    "enum": [
+                      "matched",
+                      "ambiguous",
+                      "unknown",
+                      "manual-preserved",
+                      "contextual-preserved"
+                    ]
+                  },
+                  "score": {
+                    "description": "Authenticated cosine score, or null when unavailable.",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": -1,
+                    "maximum": 1
+                  },
+                  "runner_up_score": {
+                    "description": "Authenticated cosine score, or null when unavailable.",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": -1,
+                    "maximum": 1
+                  },
+                  "independent": {
+                    "description": "Explicit evidence classification flag.",
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "description": "Lineage eligibility reason.",
+                    "type": "string",
+                    "maxLength": 512
+                  },
+                  "profile_id": {
+                    "description": "Exact profile version, empty when unavailable.",
+                    "type": "string",
+                    "maxLength": 512
+                  }
+                },
+                "required": [
+                  "voice_id",
+                  "speaker_id",
+                  "state",
+                  "score",
+                  "runner_up_score",
+                  "independent",
+                  "reason",
+                  "profile_id"
+                ]
+              },
+              "maxItems": 1000
+            },
+            "eligible_profiles": {
+              "description": "Eligible canonical profile owners, unranked.",
+              "type": "array",
+              "items": {
+                "description": "Workspace-scoped UUID.",
+                "$ref": "common.schema.json#/$defs/uuid"
+              },
+              "maxItems": 1000
+            }
+          },
+          "required": [
+            "availability",
+            "work_id",
+            "digest",
+            "decisions",
+            "eligible_profiles"
+          ]
+        },
+        "policy": {
+          "description": "Deterministic configurable support thresholds.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "minimum_contextual_roots": {
+              "description": "Minimum distinct source roots for contextual support.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            },
+            "minimum_acoustic_score": {
+              "description": "Minimum cosine match score.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minimum_acoustic_margin": {
+              "description": "Minimum winner versus runner-up margin.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "minimum_contextual_roots",
+            "minimum_acoustic_score",
+            "minimum_acoustic_margin"
+          ]
+        },
+        "decisions": {
+          "description": "One decision per current local voice.",
+          "type": "array",
+          "items": {
+            "description": "Reproducible decision preserving uncertainty and owner authority.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "voice_id": {
+                "description": "Current local voice.",
+                "type": "string",
+                "maxLength": 512
+              },
+              "outcome": {
+                "description": "Resolution outcome.",
+                "enum": [
+                  "matched",
+                  "supported-contextual",
+                  "ambiguous",
+                  "conflicting",
+                  "unknown"
+                ]
+              },
+              "speaker_id": {
+                "description": "Canonical identity when registered; null otherwise.",
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "identity_status": {
+                "description": "Canonical registration status.",
+                "enum": [
+                  "registered",
+                  "unregistered",
+                  "unknown"
+                ]
+              },
+              "name": {
+                "description": "Supported name, empty without a selected candidate.",
+                "type": "string",
+                "maxLength": 512
+              },
+              "alternatives": {
+                "description": "Competing identities remain separate despite equal spelling.",
+                "type": "array",
+                "items": {
+                  "description": "Candidate identity.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "speaker_id": {
+                      "description": "Canonical identity when registered; null otherwise.",
+                      "anyOf": [
+                        {
+                          "$ref": "common.schema.json#/$defs/uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "name": {
+                      "description": "Candidate name.",
+                      "type": "string",
+                      "maxLength": 512
+                    }
+                  },
+                  "required": [
+                    "speaker_id",
+                    "name"
+                  ]
+                },
+                "maxItems": 1000
+              },
+              "reasons": {
+                "description": "Sorted machine-readable reason codes.",
+                "type": "array",
+                "items": {
+                  "description": "Reason code.",
+                  "type": "string",
+                  "maxLength": 512
+                },
+                "maxItems": 1024
+              },
+              "evidence_ids": {
+                "description": "Sorted supporting or non-identifying hypothesis IDs.",
+                "type": "array",
+                "items": {
+                  "description": "SHA-256 of canonical authority bytes.",
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "maxItems": 512
+              },
+              "roots": {
+                "description": "Sorted original source-root IDs.",
+                "type": "array",
+                "items": {
+                  "description": "SHA-256 of canonical authority bytes.",
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "maxItems": 8192
+              }
+            },
+            "required": [
+              "voice_id",
+              "outcome",
+              "speaker_id",
+              "identity_status",
+              "name",
+              "alternatives",
+              "reasons",
+              "evidence_ids",
+              "roots"
+            ]
+          },
+          "maxItems": 1000
+        },
+        "owner_evidence": {
+          "description": "References to current independently authoritative owner mappings; no copied assignment list.",
+          "type": "array",
+          "items": {
+            "description": "Current manual mapping reference.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mapping_id": {
+                "description": "Workspace-scoped UUID.",
+                "$ref": "common.schema.json#/$defs/uuid"
+              },
+              "revision": {
+                "description": "Exact accepted owner mapping revision.",
+                "type": "integer",
+                "minimum": 1
+              },
+              "voice_id": {
+                "description": "Current local voice identified by the mapping.",
+                "type": "string",
+                "maxLength": 512
+              }
+            },
+            "required": [
+              "mapping_id",
+              "revision",
+              "voice_id"
+            ]
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "version",
+        "coverage",
+        "provenance",
+        "hypotheses",
+        "acoustic",
+        "policy",
+        "decisions"
+      ]
+    },
+    "policy": {
+      "description": "Deterministic configurable support thresholds.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minimum_contextual_roots": {
+          "description": "Minimum distinct source roots for contextual support.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "minimum_acoustic_score": {
+          "description": "Minimum cosine match score.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_acoustic_margin": {
+          "description": "Minimum winner versus runner-up margin.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "minimum_contextual_roots",
+        "minimum_acoustic_score",
+        "minimum_acoustic_margin"
+      ]
+    },
+    "inputPolicy": {
+      "description": "Deterministic configurable support thresholds.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minimum_contextual_roots": {
+          "description": "Minimum distinct source roots for contextual support.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "minimum_acoustic_score": {
+          "description": "Minimum cosine match score.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_acoustic_margin": {
+          "description": "Minimum winner versus runner-up margin.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": []
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "speaker-discovery",
+      "description": "Master registry discriminator."
+    },
+    "schema_version": {
+      "const": "1.3.0",
+      "description": "Shared software and contract version."
+    },
+    "workspace_id": {
+      "description": "Workspace-scoped UUID.",
+      "$ref": "common.schema.json#/$defs/uuid"
+    },
+    "discovery": {
+      "$ref": "#/$defs/current",
+      "description": "Current workspace-scoped discovery."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "workspace_id",
+    "discovery"
+  ],
+  "examples": [
+    {
+      "kind": "speaker-discovery",
+      "schema_version": "1.3.0",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "discovery": {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "work_id": "33333333-3333-4333-8333-333333333333",
+        "revision": 3,
+        "recording_revision": 1,
+        "document_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_epoch": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "max_cues": 100,
+        "matching_work_id": null,
+        "aggregate": {
+          "version": 1,
+          "coverage": {
+            "total_cues": 0,
+            "selected_cues": 0,
+            "omitted_cues": 0,
+            "calls": 0
+          },
+          "provenance": {
+            "adapter": "insonic-http",
+            "model": "elected-model",
+            "route": "local",
+            "input_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "hypotheses": [],
+          "acoustic": {
+            "availability": "unavailable",
+            "work_id": "",
+            "digest": "",
+            "decisions": [],
+            "eligible_profiles": []
+          },
+          "policy": {
+            "minimum_contextual_roots": 1,
+            "minimum_acoustic_score": 0.8,
+            "minimum_acoustic_margin": 0.1
+          },
+          "decisions": []
+        }
+      }
+    }
+  ]
+}
