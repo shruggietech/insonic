@@ -110,6 +110,7 @@ var operatorReasons = map[string]string{
 	"runtime_directory":                   "The runtime control directory is unavailable or cannot be secured for this user. Check ownership and access permissions.",
 	"runtime_owner":                       "Another runtime owns this workspace. Use the live owner or wait for it to finish before exclusive maintenance.",
 	"runtime_endpoint":                    "The owned runtime endpoint could not be opened. Check runtime directory permissions and stale ownership.",
+	"catalog_schema_incompatible":         "The catalog schema is unsupported by this executable. Use a compatible Insonic executable or restore a verified pre-upgrade backup into a separate library; no catalog downgrade was performed.",
 	"runtime_catalog":                     "Runtime application or catalog startup failed. Inspect workspace configuration and catalog access; startup does not prove provider readiness.",
 	"startup_launch":                      "The runtime executable could not start. Check the installed package, executable path and platform prerequisites.",
 	"startup_exit":                        "The runtime exited before reporting readiness. Check the installed package and workspace prerequisites.",

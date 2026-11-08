@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.3.1/schemas/v1.3.1/grounded-answer.schema.json",
+  "title": "Grounded answer",
+  "type": "object",
+  "additionalProperties": false,
+  "description": "Immutable synthesized answer with authoritative evidence and separate work acceptance/freshness.",
+  "properties": {
+    "kind": {
+      "const": "grounded-answer",
+      "description": "Document kind."
+    },
+    "schema_version": {
+      "const": "1.3.1",
+      "description": "Release contract version."
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Immutable answer publication identity."
+    },
+    "workspace_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Owning workspace."
+    },
+    "work_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Originating durable work attempt."
+    },
+    "package_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Retained evidence package identity."
+    },
+    "source_epoch": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Current-source identity observed during validation."
+    },
+    "answer": {
+      "$ref": "answer-evidence.schema.json#/$defs/envelope",
+      "description": "Validated typed claims and visible uncertainty.",
+      "allOf": [
+        {
+          "properties": {
+            "claims": {
+              "type": "array",
+              "maxItems": 128,
+              "items": {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "description": "Explicit quote/paraphrase claim."
+              },
+              "description": "Bounded generated claims."
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "provider": {
+      "$ref": "answer-evidence.schema.json#/$defs/provider",
+      "description": "Nonsecret frozen provider identity without endpoints or credentials."
+    },
+    "route": {
+      "enum": [
+        "local",
+        "hosted"
+      ],
+      "description": "Elected inference route."
+    },
+    "independent_families": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 500,
+      "description": "Distinct observed source families, not a confidence score."
+    },
+    "evidence_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 500,
+      "description": "Selected evidence spans."
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/attempt",
+        "description": "Attempt observation."
+      },
+      "maxItems": 2,
+      "description": "Provider attempts with generated diagnostics."
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096,
+        "description": "Diagnostic."
+      },
+      "maxItems": 256,
+      "description": "Locally generated limitations."
+    },
+    "validation": {
+      "const": "current-source-citation-authority;semantic-entailment-not-evaluated",
+      "description": "Exact scope of runtime validation."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "workspace_id",
+    "work_id",
+    "package_id",
+    "source_epoch",
+    "answer",
+    "provider",
+    "route",
+    "independent_families",
+    "evidence_count",
+    "attempts",
+    "diagnostics",
+    "validation"
+  ],
+  "$defs": {
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Frozen synthesis provider election and finite repair policy.",
+      "properties": {
+        "provider": {
+          "$ref": "query-assistance.schema.json#/$defs/configuration",
+          "description": "Existing configured provider route and opaque credential reference."
+        },
+        "max_repairs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1,
+          "description": "Repairs after the initial call, sharing one provider deadline."
+        }
+      },
+      "required": [
+        "provider"
+      ]
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Durable grounded answer request. Exactly one explicit configuration or saved pipeline may be elected; omission uses saved assistance configuration.",
+      "properties": {
+        "request": {
+          "$ref": "answer-evidence.schema.json#/$defs/request",
+          "description": "Question, current evidence scope and budgets. Provider metadata is derived by the runtime."
+        },
+        "configuration": {
+          "$ref": "#/$defs/configuration",
+          "description": "Optional explicit configuration."
+        },
+        "pipeline_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Optional saved pipeline identity."
+        },
+        "pipeline_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Expected saved pipeline revision."
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "not": {
+        "required": [
+          "configuration",
+          "pipeline_id"
+        ]
+      },
+      "dependentRequired": {
+        "pipeline_revision": [
+          "pipeline_id"
+        ]
+      },
+      "examples": [
+        {
+          "request": {
+            "version": "1.3.1",
+            "question": "What do the recordings establish?"
+          },
+          "configuration": {
+            "provider": {
+              "enabled": true,
+              "adapter": "insonic-http",
+              "contract_version": "1",
+              "route": "local",
+              "endpoint": "http://127.0.0.1:11435/answer",
+              "model": "elected-model"
+            },
+            "max_repairs": 1
+          }
+        }
+      ]
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Bounded generated provider-attempt observation.",
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2,
+          "description": "One-based attempt number."
+        },
+        "response_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA256 of the returned structured bytes."
+        },
+        "outcome": {
+          "enum": [
+            "rejected",
+            "validated"
+          ],
+          "description": "Validation disposition."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Locally generated rejection reason."
+        }
+      },
+      "required": [
+        "number",
+        "outcome"
+      ]
+    }
+  },
+  "examples": [
+    {
+      "kind": "grounded-answer",
+      "schema_version": "1.3.1",
+      "id": "11111111-1111-4111-8111-111111111111",
+      "workspace_id": "22222222-2222-4222-8222-222222222222",
+      "work_id": "33333333-3333-4333-8333-333333333333",
+      "package_id": "44444444-4444-4444-8444-444444444444",
+      "source_epoch": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "answer": {
+        "version": "1.3.1",
+        "package_id": "44444444-4444-4444-8444-444444444444",
+        "state": "insufficient",
+        "claims": [
+          {
+            "id": "unknown",
+            "kind": "paraphrase",
+            "text": "The evidence does not establish an answer.",
+            "support": "unsupported",
+            "uncertainty": "No visible supporting evidence."
+          }
+        ],
+        "limitations": [
+          "no_visible_evidence"
+        ]
+      },
+      "provider": {
+        "id": "insonic-http",
+        "model": "elected-model",
+        "configuration_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "prompt_contract": "answer-synthesis-v1",
+        "summary_contract": "source-extract-v1"
+      },
+      "route": "local",
+      "independent_families": 0,
+      "evidence_count": 0,
+      "attempts": [],
+      "diagnostics": [
+        "no_visible_evidence"
+      ],
+      "validation": "current-source-citation-authority;semantic-entailment-not-evaluated"
+    }
+  ]
+}

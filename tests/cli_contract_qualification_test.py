@@ -137,7 +137,7 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
             launch.assert_called_once()
 
     def test_readiness_regression_is_isolated_and_every_worker_joins_on_failure(self):
-        names = ['operator', 'input', 'text_duration', 'readiness', 'terminal', 'recovery', 'storage', 'backup']
+        names = ['catalog_startup', 'operator', 'input', 'text_duration', 'readiness', 'terminal', 'recovery', 'storage', 'backup']
         modules = [importlib.import_module('cli_' + name + '_qualification') for name in names]
         barrier = threading.Barrier(4)
         finished, roots = [], []
@@ -147,7 +147,7 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
             def run(invoke, workspace, version, **options):
                 with lock:
                     roots.append(workspace)
-                if name not in ('terminal', 'recovery', 'storage', 'backup'):
+                if name not in ('terminal', 'recovery', 'storage', 'backup', 'catalog_startup'):
                     barrier.wait(timeout=2)
                 try:
                     if name == 'readiness':
@@ -165,10 +165,10 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
                 stack.enter_context(patch.object(module, 'qualify', side_effect=fixture(name)))
             with self.assertRaisesRegex(ValueError, 'readiness fixture failure'):
                 with qualification.parallel_regressions(lambda *a, **k: {}, Path(directory),
-                        '1.3.0', False, {}, 'fixture-cli', {}) as checks:
+                        '1.3.1', False, {}, 'fixture-cli', {}) as checks:
                     checks['readiness'].result()
         self.assertEqual(set(finished), set(names))
-        self.assertEqual(len(set(roots)), 8)
+        self.assertEqual(len(set(roots)), 9)
 
 if __name__ == '__main__':
     unittest.main()

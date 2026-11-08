@@ -4,6 +4,17 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-08
+
+### Fixed
+
+- Native local Ollama answer synthesis receives a full typed response schema and bounded actionable repair diagnostics, retaining strict citation authority and existing deadlines (#254).
+- Cold startup and explicit catalog maintenance retain catalog schema incompatibility, exit 3 and compatible-executable/verified-backup guidance without changing accepted catalog records (#255).
+
+### Decisions
+
+- 2026-11-08: Derive the generation schema from packaged answer definitions, keep raw shape validation separate from source authority, and classify catalog schema incompatibility at its origin. Prepare v1.3.1 without a catalog migration, provider reroute or product deadline increase.
+
 ### Changed
 
 - 2026-11-04: Publish v1.3.0 with all ten accepted original files and matching live documentation. Independently verify every download, deployed content and eight mobile/desktop light/dark layouts, with fresh packaged CPU/NVIDIA speaker qualification.
@@ -566,7 +577,7 @@ All notable changes to this project will be documented here. The format follows 
 - Preserve closed GitHub Projects when rerunning repository setup.
 - Cover root schema-validation dependencies in grouped Dependabot updates and correct contributor installation guidance.
 
-[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.3.1...HEAD
 
 ## Decisions (2026-10-08)
 
@@ -593,3 +604,5 @@ All notable changes to this project will be documented here. The format follows 
 [1.2.0]: https://github.com/shruggietech/insonic/compare/v1.1.0...v1.2.0
 
 [1.3.0]: https://github.com/shruggietech/insonic/compare/v1.2.0...v1.3.0
+
+[1.3.1]: https://github.com/shruggietech/insonic/compare/v1.3.0...v1.3.1

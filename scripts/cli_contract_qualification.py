@@ -123,7 +123,9 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
     from cli_recovery_qualification import qualify as qualify_recovery
     from cli_storage_qualification import qualify as qualify_storage
     from cli_backup_qualification import qualify as qualify_backup
-    jobs = [('operator', qualify_operator, {'media': documentation}),
+    from cli_catalog_startup_qualification import qualify as qualify_catalog_startup
+    jobs = [('catalog_startup', qualify_catalog_startup, {'executable': executable, 'environment': environment}),
+            ('operator', qualify_operator, {'media': documentation}),
             ('input', qualify_inputs, {'media': documentation}),
             ('text_duration', qualify_text_duration, {}),
             ('readiness', qualify_readiness, {'executable': executable}),
@@ -133,7 +135,7 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
             ('backup', qualify_backup, {'executable': executable, 'environment': environment})]
     if process_factory is not None:
         for name, _, keywords in jobs:
-            if name in ('terminal', 'recovery', 'storage', 'backup'):
+            if name in ('terminal', 'recovery', 'storage', 'backup', 'catalog_startup'):
                 keywords['process_factory'] = process_factory
     if documentation:
         from cli_help_examples import qualify as qualify_examples

@@ -261,6 +261,12 @@ func (a Ollama) Generate(ctx context.Context, input Request, c Config, instructi
 	body := map[string]any{"model": c.Model, "stream": false, "messages": []map[string]string{{"role": "system", "content": instruction}, {"role": "user", "content": string(raw)}}, "options": map[string]any{"temperature": 0}}
 	if m.InferenceRoute == "local" {
 		body["format"] = "json"
+		if input.Operation == "answer-synthesis" {
+			if len(input.Schema) == 0 || catalog.ValidateJSON(input.Schema) != nil {
+				return empty, contracts.Fail("invalid_request")
+			}
+			body["format"] = input.Schema
+		}
 	}
 	var response struct {
 		Done        bool   `json:"done"`
