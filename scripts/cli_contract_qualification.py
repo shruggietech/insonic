@@ -112,6 +112,22 @@ def isolated_invoker(invoke, workspace, scenario=None):
     return run
 
 
+def collect_regressions(futures):
+    """Observe every elected result, including failures in newly added helpers."""
+    results, failures = {}, []
+    for name, future in futures.items():
+        try:
+            results[name] = future.result()
+        except Exception as error:
+            failures.append((name, error))
+    if failures:
+        primary = failures[0][1]
+        for name, _ in failures[1:]:
+            primary.add_note('Another elected regression failed: ' + name)
+        raise primary
+    return results
+
+
 @contextmanager
 def parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, *, process_factory=None, observe=None):
     """Join every owned regression even when another branch raises."""
@@ -421,16 +437,18 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
                 raise ValueError('Installed answer corpus failed: ' + json.dumps(answer_workflows))
             # Package smoke's existing bounded idle-owner cleanup covers these workspaces too.
         phase('join-regressions')
-        operator_contracts = regressions['operator'].result()
-        input_contracts = regressions['input'].result()
-        text_duration_contracts = regressions['text_duration'].result()
-        readiness_contracts = regressions['readiness'].result()
-        terminal_contracts = regressions['terminal'].result()
-        recovery_contracts = regressions['recovery'].result()
-        storage_contracts = regressions['storage'].result()
-        backup_contracts = regressions['backup'].result()
+        completed_regressions = collect_regressions(regressions)
+        catalog_startup_contracts = completed_regressions['catalog_startup']
+        operator_contracts = completed_regressions['operator']
+        input_contracts = completed_regressions['input']
+        text_duration_contracts = completed_regressions['text_duration']
+        readiness_contracts = completed_regressions['readiness']
+        terminal_contracts = completed_regressions['terminal']
+        recovery_contracts = completed_regressions['recovery']
+        storage_contracts = completed_regressions['storage']
+        backup_contracts = completed_regressions['backup']
         if documentation:
-            examples = regressions['examples'].result()
+            examples = completed_regressions['examples']
     input_file.unlink(missing_ok=True)
     for path in [logfile, Path(str(logfile) + '.1'), Path(str(logfile) + '.2')]:
         if path.exists():
@@ -439,10 +457,10 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
     for entry in examples.get('ledger', []):
         coverage.assert_example(entry)
-    ledger = coverage.finish({'core': True, 'operator': True, 'input': True, 'text-duration': True, 'readiness': True, 'terminal': True, 'recovery': True, 'storage': True, 'backup': True,
+    ledger = coverage.finish({'catalog-startup': True, 'core': True, 'operator': True, 'input': True, 'text-duration': True, 'readiness': True, 'terminal': True, 'recovery': True, 'storage': True, 'backup': True,
                               **{name: documentation for name in ['media', 'query', 'provider', 'answer', 'documented', 'examples']}})
     phase('complete')
-    return {'answer_workflows': answer_workflows, 'coverage': ledger, 'terminal_contracts': terminal_contracts, 'recovery_contracts': recovery_contracts, 'storage_contracts': storage_contracts, 'backup_contracts': backup_contracts, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'catalog_startup_contracts': catalog_startup_contracts, 'answer_workflows': answer_workflows, 'coverage': ledger, 'terminal_contracts': terminal_contracts, 'recovery_contracts': recovery_contracts, 'storage_contracts': storage_contracts, 'backup_contracts': backup_contracts, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'cold_startup_timing': cold_timing, 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

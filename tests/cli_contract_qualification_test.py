@@ -170,5 +170,24 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
         self.assertEqual(set(finished), set(names))
         self.assertEqual(len(set(roots)), 9)
 
+class CollectedRegressionTests(unittest.TestCase):
+    def test_new_helper_failure_is_required_and_every_result_is_observed(self):
+        from concurrent.futures import Future
+        observed = []
+        class ObservedFuture(Future):
+            def result(self, *args, **kwargs):
+                observed.append(self.name)
+                return super().result(*args, **kwargs)
+        futures = {}
+        for name in ('operator', 'catalog_startup', 'last'):
+            future = ObservedFuture(); future.name = name
+            if name == 'catalog_startup': future.set_exception(ValueError('catalog fixture failed'))
+            else: future.set_result({'state': 'passed'})
+            futures[name] = future
+        with self.assertRaisesRegex(ValueError, 'catalog fixture failed'):
+            qualification.collect_regressions(futures)
+        self.assertEqual(observed, list(futures))
+
+
 if __name__ == '__main__':
     unittest.main()

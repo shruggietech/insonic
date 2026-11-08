@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Installed cold-start incompatibility over an exclusively owned disposable catalog."""
+from contextlib import closing
 import hashlib
 import json
 from pathlib import Path
@@ -43,10 +44,20 @@ def qualify(invoke, workspace, version, *, executable, environment, process_fact
             reader.join(bounds.CLEANUP_SECONDS)
             if reader.is_alive():
                 raise ValueError('Catalog startup reader did not release')
-        if (ready.get('state') != 'ready' or ready.get('startup_id') != startup
+        workspace_id = json.loads((workspace / '.insonic/workspace.json').read_text(encoding='utf-8'))['workspace_id']
+        if (ready.get('kind') != 'runtime-startup' or ready.get('stage') != 'ready'
+                or ready.get('workspace_id') != workspace_id or ready.get('state') != 'ready' or ready.get('startup_id') != startup
                 or ready.get('schema_version') != version):
             raise ValueError('Valid catalog cold startup did not report correlated readiness')
         invoke(['catalog', 'show'])
+        appearance = invoke(['settings', 'show'])['result']['sections']['appearance']
+        setting = workspace / 'accepted-setting.json'
+        setting.write_text(json.dumps({'section': 'appearance', 'revision': appearance['revision'],
+                                       'value': {**appearance['value'], 'theme': 'dark'}}) + '\n', encoding='utf-8', newline='\n')
+        invoke(['settings', 'set', '--input', setting])
+        accepted = invoke(['settings', 'show'])['result']['sections']['appearance']
+        if accepted['value']['theme'] != 'dark':
+            raise ValueError('Catalog fixture did not accept its setting')
         # This succeeds only after the exact owned process naturally releases.
         stdout, stderr = owner.process.communicate(timeout=min(bounds.FIXTURE_IDLE_SECONDS, remaining()))
         if owner.process.returncode or stdout or stderr or not owner.wait_for_descendants(bounds.CLEANUP_SECONDS):
@@ -54,7 +65,7 @@ def qualify(invoke, workspace, version, *, executable, environment, process_fact
     snapshot = workspace / 'exclusive-export.json'
     invoke(['catalog', 'export', snapshot])
     catalog = workspace / '.insonic/catalog.sqlite'
-    with sqlite3.connect(catalog) as connection:
+    with closing(sqlite3.connect(catalog)) as connection:
         connection.execute('UPDATE catalog_schema SET version=999')
         connection.commit()
         before = '\n'.join(connection.iterdump())
@@ -76,6 +87,6 @@ def qualify(invoke, workspace, version, *, executable, environment, process_fact
     return {'state': 'passed', 'issues': [255], 'valid_cold_start': True,
             'runtime_natural_exit': True, 'exclusive_export': True, 'schema_marker': 999,
             'commands': ['catalog show', 'catalog migrate'], 'exit_code': 3,
-            'reason': 'catalog_schema_incompatible', 'accepted_records_unchanged': True,
+            'reason': 'catalog_schema_incompatible', 'accepted_records_unchanged': True, 'accepted_setting': True,
             'logical_catalog_sha256': hashlib.sha256(before.encode()).hexdigest(),
             'elapsed_seconds': round(time.monotonic() - started, 3)}

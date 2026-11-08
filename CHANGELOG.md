@@ -13,11 +13,9 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Decisions
 
+- 2026-11-08: Observe every elected CLI qualification future and retain the catalog startup result and coverage scenario so a newly scheduled helper cannot silently disappear from acceptance receipts.
+
 - 2026-11-08: Derive the generation schema from packaged answer definitions, keep raw shape validation separate from source authority, and classify catalog schema incompatibility at its origin. Prepare v1.3.1 without a catalog migration, provider reroute or product deadline increase.
-
-### Changed
-
-- 2026-11-04: Publish v1.3.0 with all ten accepted original files and matching live documentation. Independently verify every download, deployed content and eight mobile/desktop light/dark layouts, with fresh packaged CPU/NVIDIA speaker qualification.
 
 ## [1.3.0] - 2026-11-03
 
@@ -37,6 +35,8 @@ All notable changes to this project will be documented here. The format follows 
 ### Changed
 
 - Published v1.2.0 on 2026-11-02 and independently verified all ten original release files, matching live documentation and desktop/mobile light/dark landing views.
+
+- 2026-11-04: Publish v1.3.0 with all ten accepted original files and matching live documentation. Independently verify every download, deployed content and eight mobile/desktop light/dark layouts, with fresh packaged CPU/NVIDIA speaker qualification.
 
 ## [1.2.0] - 2026-11-02
 

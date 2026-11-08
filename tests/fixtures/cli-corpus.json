@@ -241,6 +241,20 @@
       "expectations": [
         "Installed answer lifecycle and seven explicit rubric metrics; fixture success is not model quality."
       ]
+    },
+    {
+      "id": "catalog-startup",
+      "owners": [
+        {
+          "path": "scripts/cli_catalog_startup_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "An exclusively owned disposable SQLite catalog is initialized by the installed CLI, its runtime exits naturally, and only then its schema marker is changed.",
+      "expectations": [
+        "Valid correlated cold readiness, exclusive export, exit 3 and generated catalog recovery guidance through cold show and maintenance, with unchanged accepted records and schema marker."
+      ]
     }
   ],
   "scenarios": [
@@ -403,6 +417,16 @@
       "fixtures": [
         "grounded-answers",
         "pcm-subtitles"
+      ]
+    },
+    {
+      "id": "catalog-startup",
+      "owner": {
+        "path": "scripts/cli_catalog_startup_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "catalog-startup"
       ]
     }
   ]

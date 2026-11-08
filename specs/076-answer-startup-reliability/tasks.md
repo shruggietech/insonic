@@ -31,13 +31,13 @@
 
 - [x] T009 [US2] Add failing origin/non-mutation and startup report tests in internal/catalog/migration_test.go and internal/runtime/startup_test.go (FR-006/FR-007, SC-003).
 - [x] T010 [US2] Tag schema incompatibility origins in internal/catalog/migration.go, add generated reason in internal/contracts/operator.go and current response schema, preserve it in internal/runtime/runtime.go (FR-006/FR-007).
-- [ ] T011 [US2] Add and execute maintained installed CLI cold/valid/maintenance checks using isolated fixtures in scripts/cli_operator_qualification.py or a focused qualification helper/tests (FR-007, SC-003).
+- [x] T011 [US2] Add and execute maintained installed CLI cold/valid/maintenance checks using isolated fixtures in scripts/cli_operator_qualification.py or a focused qualification helper/tests (FR-007, SC-003).
 
 ## Phase 5: Qualification and delivery
 
 - [x] T012 Prepare matching v1.3.1 authorities and public answer/startup documentation using scripts/release.py; record changes/decisions in CHANGELOG.md and internal highlights (FR-008).
-- [ ] T013 Run npm run check, npm test, Go tests/vet and affected Python/site/frontend/build checks with retained readiness/timing evidence and format/encoding sanity checks (FR-009, SC-004).
-- [ ] T014 Converge against spec/plan/tasks and retain compact audited verification in specs/076-answer-startup-reliability/verification.md and evidence (FR-001..FR-009).
+- [x] T013 Run npm run check, npm test, Go tests/vet and affected Python/site/frontend/build checks with retained readiness/timing evidence and format/encoding sanity checks (FR-009, SC-004).
+- [x] T014 Converge against spec/plan/tasks and retain compact audited verification in specs/076-answer-startup-reliability/verification.md and evidence (FR-001..FR-009).
 - [ ] T015 Commit, push and open one official issue-linked PR; associate milestone/Project metadata and retain review/CI status outside Actions (.local/s076 and PR) (FR-009).
 - [ ] T016 Address every received review comment, request no more than one second round, retain exact-head green terminal CI and hand off for owner merge (FR-009, SC-005).
 
@@ -46,3 +46,5 @@
 T001 -> T002 -> T003 -> US1 and US2 regressions/implementation -> matching version preparation -> package and actual-model qualification -> convergence -> official PR -> exact-head review/CI handoff. T008 needs the implemented candidate package. T010's current schema reason applies after T012 copies the next-version schema.
 
 The two stories are independently testable. Tests in separate schema/adapter files can be prepared independently, as can catalog origin and report tests. Research was delegated under speckit-plan; implementation is serial in the existing checkout to avoid shared-file contention. Deliver both stories together, without an intermediate user gate.
+
+Final operational closure for T008/T015/T016 is retained in the official PR conversation after exact-head package/CI/review proof. T011 implements and directly verifies the maintained installed-CLI check; T016 additionally requires its corrected aggregate package receipt.

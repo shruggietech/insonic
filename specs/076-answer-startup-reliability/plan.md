@@ -36,7 +36,7 @@ All five principles pass before research and after design. Approved scope is pre
 2. D2 Set native local Ollama format to the full schema only for answer synthesis. Existing query/metadata/speaker consumers and hosted route behavior retain their current format selection. No automatic provider/model substitution.
 3. D3 Validate raw response shape before typed decoding; encoding/json alone accepts null into string zero values. Add at most one sanitized InputViolation detail plus its generated reason to synthesis repair context; never echo response text, unknown field names or validator prose. Full schema supplies all expectations. Repairs retain existing reason history and share the original provider deadline.
 4. D4 Tag catalog_schema_incompatible at actual migration/checkVersion origins, not every incompatible_version return. Preserve only that known classification through Serve and retain runtime_catalog fallback for unrelated initialization errors. Existing bounded StartupReport and CLI exit mapping need no new transport shape.
-5. D5 Verify logical accepted records and schema marker after refusal, not whole SQLite file bytes, since opening may touch WAL state. Cover valid startup, maintenance, malformed report redaction and shared PostgreSQL catalog behavior.
+5. D5 Verify logical accepted records and schema marker after refusal, not whole SQLite file bytes, since opening may touch WAL state. Cover valid startup, maintenance, malformed report redaction and shared PostgreSQL catalog behavior. Every elected helper result must be observed, its failure propagated and its receipt/coverage scenario retained; a newly scheduled future cannot silently disappear from acceptance.
 6. D6 Use release.py prepare for v1.3.1; freeze old docs/schema authority and adapt existing current tests to new version. Do not copy or relabel old UI captures. New-version capture prerequisites will be handled with existing maintained bootstrap machinery if required by CI. Release/tag publication is outside this push/PR authorization.
 7. D7 Reuse the maintained answer evaluation and unchanged frozen corpus/rubric. Verify exact qwen model manifest/blob hashes, own a private hidden Ollama service and disposable package workspace, and retain all outcomes plus cleanup. The Monday reproduction must succeed; report other model limitations explicitly rather than weaken scoring.
 8. D8 Retain compact audited receipts outside Actions before any full rerun. Push/open the official PR automatically under explicit authorization, address every review, request at most one second review, retain exact-head green checks, and leave merge to the owner.
@@ -44,7 +44,7 @@ All five principles pass before research and after design. Approved scope is pre
 ## Project Structure
 
 - schemas/registry.go and a focused schema helper/test: generated answer schema and sanitized shape validation.
-- internal/answers/synthesis.go: bounded repair context and raw shape validation.
+- internal/answers/synthesis.go: bounded repair context. Raw shape validation runs in internal/app/answer_synthesis.go before the independent typed/semantic answer parser, preserving package layering.
 - internal/app/answer_synthesis.go and tests: schema transmission and actionable bounded repair.
 - internal/assistance/ollama.go and tests: operation-specific local schema format.
 - internal/catalog/migration.go and tests, internal/runtime/runtime.go and startup tests, internal/contracts/operator.go, current runtime-response schema: catalog classification and transport.
