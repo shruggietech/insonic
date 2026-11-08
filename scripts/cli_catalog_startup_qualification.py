@@ -79,7 +79,7 @@ def qualify(invoke, workspace, version, *, executable, environment, process_fact
         human = invoke(command, expected=3, machine=False).lower()
         if 'compatible' not in human or 'backup' not in human:
             raise ValueError('Human catalog recovery guidance is absent')
-        with sqlite3.connect(catalog) as connection:
+        with closing(sqlite3.connect(catalog)) as connection:
             after = '\n'.join(connection.iterdump())
             marker = connection.execute('SELECT version FROM catalog_schema').fetchone()[0]
         if after != before or marker != 999:
