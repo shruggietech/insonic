@@ -151,3 +151,34 @@ func TestDiscoveryRetainsVersionEvidenceOnMetadataFailure(t *testing.T) {
 	}
 	t.Fatal("missing candidate")
 }
+
+func TestOllamaAnswerSchemaFormat(t *testing.T) {
+	var observed any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/show" {
+			w.Write([]byte("{\"capabilities\":[\"completion\"],\"details\":{\"format\":\"gguf\"}}"))
+			return
+		}
+		var body map[string]any
+		json.NewDecoder(r.Body).Decode(&body)
+		observed = body["format"]
+		json.NewEncoder(w).Encode(map[string]any{"done": true, "message": map[string]any{"role": "assistant", "content": "{}"}})
+	}))
+	defer server.Close()
+	c := DefaultConfig()
+	c.Enabled = true
+	c.Adapter = "ollama"
+	c.Endpoint = server.URL
+	c.Model = "fixture"
+	schema := json.RawMessage("{\"type\":\"object\",\"properties\":{\"version\":{\"const\":\"current\"}}}")
+	_, err := (Ollama{Client: server.Client()}).Generate(context.Background(), Request{Operation: "answer-synthesis", Schema: schema}, c, "answer")
+	raw, _ := json.Marshal(observed)
+	if err != nil || string(raw) != string(schema) {
+		var want any
+		json.Unmarshal(schema, &want)
+		a, _ := json.Marshal(want)
+		if err != nil || string(raw) != string(a) {
+			t.Fatal("answer schema not enforced", string(raw), err)
+		}
+	}
+}

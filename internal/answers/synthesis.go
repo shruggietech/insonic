@@ -19,7 +19,13 @@ type ProviderEvidence struct {
 	Text      string    `json:"text"`
 	Family    string    `json:"family"`
 }
+type RepairDetail struct {
+	Reason     string                    `json:"reason"`
+	Validation *contracts.InputViolation `json:"validation,omitempty"`
+}
+
 type SynthesisRequest struct {
+	RepairDetail  *RepairDetail      `json:"repair_detail,omitempty"`
 	Contract      string             `json:"contract"`
 	Version       string             `json:"version"`
 	PackageID     string             `json:"package_id"`

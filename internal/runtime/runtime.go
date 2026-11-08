@@ -76,6 +76,10 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 		if closer, ok := provider.(interface{ Close() }); ok {
 			closer.Close()
 		}
+		condition := contracts.SafeError(err)
+		if condition.Code == "incompatible_version" && condition.Reason == "catalog_schema_incompatible" {
+			return condition
+		}
 		return contracts.Condition("unavailable", "runtime_catalog")
 	}
 	application.AssistanceFixture = options.AssistanceFixture

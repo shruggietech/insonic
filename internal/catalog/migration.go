@@ -209,7 +209,7 @@ func (s *Store) checkVersion(ctx context.Context) error {
 		return contracts.Fail("unavailable")
 	}
 	if v != SchemaVersion || digest != migrationDigest() {
-		return contracts.Fail("incompatible_version")
+		return contracts.Condition("incompatible_version", "catalog_schema_incompatible")
 	}
 	return nil
 }
@@ -328,7 +328,7 @@ func (s *Store) migrate(ctx context.Context) error {
 			return s.finishMigration(ctx, tx)
 		}
 		if version != SchemaVersion || digest != migrationDigest() {
-			return contracts.Fail("incompatible_version")
+			return contracts.Condition("incompatible_version", "catalog_schema_incompatible")
 		}
 		return sanitize(tx.Commit())
 	}

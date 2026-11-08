@@ -251,3 +251,5 @@ func TestPostgreSQLContextualApplication(t *testing.T) {
 	contextualInvalidationSuite(t, func() *Store { return postgresStore(t, contracts.ID()) })
 	speakerWorkflowSuite(t, postgresStore(t, contracts.ID()))
 }
+
+func TestPostgreSQLNewerCatalogRefusal(t *testing.T) { newerMigrationSuite(t, postgresStore) }

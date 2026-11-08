@@ -566,6 +566,17 @@
         "scripts/speaker_quality.py",
         "tests/speaker_quality_test.py"
       ]
+    },
+    {
+      "id": "s076-contract-regressions",
+      "disposition": "Shared maintained test policy; product deadline identity is asserted without changing its allowance.",
+      "origin": "S076 answer and startup contract reliability",
+      "parent": "Go test process and installed CLI qualification enclosing budgets",
+      "effective": "Existing provider clock identity, READINESS_SECONDS, FIXTURE_IDLE_SECONDS and CLEANUP_SECONDS; no product timeout increase",
+      "files": [
+        "internal/app/answer_synthesis_test.go",
+        "scripts/cli_catalog_startup_qualification.py"
+      ]
     }
   ],
   "workflow_owners": {

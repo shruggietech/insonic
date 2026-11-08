@@ -4,6 +4,7 @@ package runtime
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -13,6 +14,7 @@ import (
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"io"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -192,10 +194,12 @@ func TestStartupReportValidationAndImmediateFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, mode := range []string{"failed", "wrong-workspace", "wrong-id", "wrong-version", "wrong-stage", "unknown", "trailing", "duplicate"} {
+	for _, mode := range []string{"failed", "catalog-version", "wrong-workspace", "wrong-id", "wrong-version", "wrong-stage", "unknown", "trailing", "duplicate"} {
 		start := func(_ context.Context, _ string, args []string, input []byte, validate func([]byte) error) ([]byte, error) {
 			report := contracts.StartupReport{Kind: "runtime-startup", Version: contracts.Version, StartupID: startupID(args), WorkspaceID: w.Config.WorkspaceID, State: "failed", Stage: "startup", Code: "unavailable", Reason: "runtime_catalog"}
 			switch mode {
+			case "catalog-version":
+				report.Code, report.Reason = "incompatible_version", "catalog_schema_incompatible"
 			case "wrong-workspace":
 				report.WorkspaceID = contracts.ID()
 			case "wrong-id":
@@ -222,6 +226,12 @@ func TestStartupReportValidationAndImmediateFailure(t *testing.T) {
 		want := "startup_report"
 		if mode == "failed" {
 			want = "runtime_catalog"
+		}
+		if mode == "catalog-version" {
+			want = "catalog_schema_incompatible"
+			if !ok || typed.Code != "incompatible_version" {
+				t.Fatal("classification lost", err)
+			}
 		}
 		if !ok || typed.Reason != want || time.Since(begin) > qt.Duration("readiness_seconds") || strings.Contains(err.Error(), "fixture-secret") {
 			t.Fatal(mode, err)
@@ -411,5 +421,55 @@ func TestStartupReconcilesOwnerWinningAfterAuthorityCheck(t *testing.T) {
 	}
 	if err != nil || launches != 2 {
 		t.Fatalf("closing owner prevented restart: launches=%d error=%v", launches, err)
+	}
+}
+
+func TestColdStartupPreservesNewerCatalog(t *testing.T) {
+	w, err := workspace.Init(t.TempDir(), "Newer catalog")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = secrets.Select(w, "session"); err != nil {
+		t.Fatal(err)
+	}
+	store, err := catalog.OpenWorkspace(context.Background(), w, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.PutNamedSetting(context.Background(), contracts.ID(), "accepted", 0, json.RawMessage("{\"text\":\"retained\"}")); err != nil {
+		t.Fatal(err)
+	}
+	before, revision, err := store.NamedSetting(context.Background(), "accepted")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.Close()
+	db, err := sql.Open("sqlite3", filepath.Join(w.Control, "catalog.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err = db.Exec("UPDATE catalog_schema SET version=999"); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	err = Serve(context.Background(), w, Options{})
+	safe := contracts.SafeError(err)
+	if safe.Code != "incompatible_version" || safe.Reason != "catalog_schema_incompatible" {
+		t.Fatal("cold startup lost cause", err)
+	}
+	db, err = sql.Open("sqlite3", filepath.Join(w.Control, "catalog.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var version int
+	var value string
+	var gotRevision int64
+	if err = db.QueryRow("SELECT version FROM catalog_schema").Scan(&version); err != nil || version != 999 {
+		t.Fatal("marker changed", err, version)
+	}
+	if err = db.QueryRow("SELECT value,revision FROM setting_revision WHERE name='accepted'").Scan(&value, &gotRevision); err != nil || value != string(before) || gotRevision != revision {
+		t.Fatal("accepted authority changed", err, value, gotRevision)
 	}
 }

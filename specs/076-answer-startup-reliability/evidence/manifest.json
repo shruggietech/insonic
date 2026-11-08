@@ -1,0 +1,62 @@
+{
+  "format": "insonic-s076-evidence-v1",
+  "source_revision": "5e311c9398a6fb48871fafb3978ec2d92a8b2eb0",
+  "records": [
+    {
+      "path": "development-answers.json.gz",
+      "purpose": "Current-source development CLI actual-model outcomes; not installed package acceptance",
+      "raw_sha256": "563d487465b1c7f50d010a1e4eec59f727a0fa322b86396ac8a26ad1f52e110d",
+      "raw_size": 23051,
+      "sha256": "0e09ac96b0c6fd7eebdaa272c46d0466599d4b729201735afa64de1036dc53b2",
+      "size": 2700
+    },
+    {
+      "path": "development-model-service.json.gz",
+      "purpose": "Exact manifest/blob verification, service identity and owned cleanup",
+      "raw_sha256": "703452ca35f197090507db2be11dad805037060c15d64405e5c183cbe590965a",
+      "raw_size": 1041,
+      "sha256": "dba8285c16fc3ba7356093fc3c078af489a5e636d20eef686f12a29bdb256664",
+      "size": 526
+    },
+    {
+      "path": "development-catalog.json.gz",
+      "purpose": "Current-source CLI valid/cold/maintenance non-mutation reproduction",
+      "raw_sha256": "33eb2a9888e1975a3eb924d56d2bebfe79775bf79d1673932fd8a18c2fce466c",
+      "raw_size": 450,
+      "sha256": "e70d8d4cbba954f45c39f26b5c46391383fcc622e7d2347a99317c3e08806725",
+      "size": 289
+    },
+    {
+      "path": "bootstrap-audit.json.gz",
+      "purpose": "Original terminal timing/required-check audit; catalog helper projection gap is explicitly documented",
+      "raw_sha256": "fbcbf08954a3441e67e6b37e165f3583796fb3a038d13d1b7405a47f14933ac5",
+      "raw_size": 36756,
+      "sha256": "d2f37472331d4f253f25bee09d2122e19f46c2166ab5869170f627030d7979c1",
+      "size": 6280
+    },
+    {
+      "path": "bootstrap-metadata.json.gz",
+      "purpose": "Original run, job and artifact inventories",
+      "raw_sha256": "507f62eb2a59c2da965a7aa8153598f3fa881a8aeb65e56b8b17592508de7881",
+      "raw_size": 256486,
+      "sha256": "5b0cea340ebb9e0a3320cf640fa29f8228e9e3e6c4cb400075ce7cf380766a7f",
+      "size": 16929
+    },
+    {
+      "path": "development-catalog-accepted-setting.json.gz",
+      "purpose": "Strengthened source-CLI control with explicit closed SQLite handles and accepted setting",
+      "raw_sha256": "a45c920136975c036925267c7fd5910d9880a46388c20c51f4e405edbf395b53",
+      "raw_size": 478,
+      "sha256": "4948c1c0e154f6b16f0e8c952c234fbc58f2de21a530af8c756a58dc74505cc3",
+      "size": 298
+    },
+    {
+      "path": "bootstrap-windows-cli.json.gz",
+      "purpose": "Original complete package acceptance before catalog projection correction",
+      "raw_sha256": "d1269fccd10e2d744049dc272ff4198dcd22266288b6f4852ee6513081b3d3de",
+      "raw_size": 1394278,
+      "sha256": "731aeb3e7f195dc247f27924077262dddde1830f2fa9f594573e70e6856c88b1",
+      "size": 42311
+    }
+  ]
+}

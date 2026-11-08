@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"path/filepath"
 	"testing"
@@ -22,12 +23,29 @@ func TestPortableDDL(t *testing.T) {
 	}
 }
 func TestNewerMigrationFailsWithoutChanges(t *testing.T) {
-	s := localStore(t, contracts.ID())
+	newerMigrationSuite(t, localStore)
+}
+func newerMigrationSuite(t *testing.T, create func(*testing.T, string) *Store) {
+	s := create(t, contracts.ID())
+	if _, err := s.PutNamedSetting(context.Background(), contracts.ID(), "accepted", 0, json.RawMessage(`{"text":"retained"}`)); err != nil {
+		t.Fatal(err)
+	}
+	before, revision, err := s.NamedSetting(context.Background(), "accepted")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, e := s.db.Exec("UPDATE catalog_schema SET version=99"); e != nil {
 		t.Fatal(e)
 	}
-	if e := s.checkVersion(context.Background()); e == nil {
-		t.Fatal("newer catalog opened")
+	for _, open := range []func(context.Context) error{s.checkVersion, s.migrate} {
+		e := contracts.SafeError(open(context.Background()))
+		if e.Code != "incompatible_version" || e.Reason != "catalog_schema_incompatible" {
+			t.Fatal("newer catalog classification lost", e)
+		}
+		after, gotRevision, err := s.NamedSetting(context.Background(), "accepted")
+		if err != nil || string(after) != string(before) || gotRevision != revision {
+			t.Fatal("accepted authority changed", err)
+		}
 	}
 	var version int
 	if e := s.db.QueryRow("SELECT version FROM catalog_schema WHERE singleton=1").Scan(&version); e != nil || version != 99 {

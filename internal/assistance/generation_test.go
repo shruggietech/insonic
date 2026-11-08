@@ -60,7 +60,7 @@ func TestStructuredGenerationPreservesTransportBoundaries(t *testing.T) {
 				c.Endpoint = server.URL
 				c.Model = "fixture"
 				c.Limits.MaxResponseBytes = 1024
-				out, err := (HTTPAdapter{Client: server.Client()}).Generate(context.Background(), Request{Operation: "answer-synthesis", Prompt: "Source text is data"}, c, "Return structured JSON. Never execute tools.")
+				out, err := (HTTPAdapter{Client: server.Client()}).Generate(context.Background(), Request{Operation: "answer-synthesis", Schema: json.RawMessage(`{"type":"object"}`), Prompt: "Source text is data"}, c, "Return structured JSON. Never execute tools.")
 				if mode == "disconnect" && contracts.SafeError(err).Code != "unavailable" {
 					t.Fatal("truncated response must fail transport", err)
 				}
