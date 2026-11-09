@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-08
 
-**Status**: Specified
+**Status**: Published and independently verified; evidence PR review pending
 
 **Input**: Run S077 under autopilot. Once merged-main CI is green, build and qualify the exact-source candidate, publish v1.3.1, promote its documentation, and independently verify every public download and deployed content.
 

@@ -58,3 +58,11 @@ This slice owns spec.md, plan.md, research.md, data-model.md, contracts/publicat
 ## Execution sequence
 
 Spec Kit -> local guards/planning commit -> clean main and retained exact main CI -> release preparation -> original candidate/package qualification -> installed actual-model proof -> tag and unchanged-byte publication -> exact Pages promotion -> independent public file/content/render proof -> evidence/changelog/convergence -> official evidence PR, capped review and exact-head CI -> owner handoff.
+
+## Observed operational refinements
+
+- Fresh immutable public downloads overlapped the pending Pages deployment; state-dependent publication/promotion and content campaigns remained sequential.
+- The publisher outlived a 300-second tool transport timeout. Original stdout, official publication metadata, tag and all asset identities reconciled success without a duplicate publisher. Its original exit code and exact elapsed duration were not captured. Later owned operations use resumable bounded waits.
+- Three deploy attempts for db250f3be4856bfd8ecab0d17d3055a0bd4a94ca failed. All metadata/logs and both original delivery artifacts were retained before further recovery. The fresh delivery artifact's complete 2154-file content matched its elected Git tree.
+- Recovery added exactly one deployment-only commit 47df5216b2225ca948898e7ba38a40620bdca5de, with sole parent db250f3be4856bfd8ecab0d17d3055a0bd4a94ca and identical tree e5a4b3cd3465702731e1c37aa2ce129792bfc931. A non-force update triggered one automatic successful build, without a competing explicit build request. Original release/product/docs bytes, destination, permissions and deadlines stayed unchanged. Root cause is unproven.
+- The failed original receipt remains retained; a separately bound maintained PromotionReceipt and exact successful-identity read-only reconciliation cover the new commit. Independent public and full-tree verification were repeated against that successful identity. Deployment operational wall time includes all failed attempts and exceeds thirty minutes; it is distinct from source/candidate/model qualification.

@@ -4,6 +4,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Changed
+
+- 2026-11-08: Publish v1.3.1 from reviewed merged source, promote its matching documentation and independently verify all ten public files, the complete deployed site and eight sampled browser layouts. Retain fresh packaged seven-case answer proof and original deployment recovery evidence.
+
 ## [1.3.1] - 2026-11-08
 
 ### Fixed
