@@ -1,0 +1,13 @@
+# Publication research
+
+Read-only research delegated under speckit-plan Phase 0. Findings independently align with maintained scripts and prior publication practice.
+
+- Decision: release selected S076 squash 1443198e0dec4738c129bb6dfe48baba9830d6e3 only after successful exact merged-main CI. Rationale: branch and temporary merge packages have different source identities. Alternative: reuse S076 artifacts, rejected.
+- Decision: release.yml preparation uses publish=false, promote_docs=false, documentation-transport=pages, then maintained release.py publishes the accepted original files. Rationale: redispatch with publish=true rebuilds; ordinary CI docs retain candidate status. Alternatives rejected.
+- Decision: reuse this checkout by committing planning locally, switching to clean main for trusted tooling/source operations and returning to the evidence branch afterward. If current main moves, select separate clean trusted tooling and pinned source; never relax source checks.
+- Decision: retain original complete main/release metadata and artifacts, verify digest/size before confined extraction, load the maintained ten-file candidate and explicitly require both docs archives to have release target. Rationale: cache/run success does not establish saved bytes or release navigation.
+- Decision: install the original qualified Windows CLI and repeat the unchanged seven-case answer corpus with exact qwen2.5:14b manifest and all blobs verified. No development overrides or new speaker campaigns. Rationale: measure the changed answer contract, keep fixture proof and prior speaker results separate.
+- Decision: use existing Pages transport and preflight. Read-only research confirmed legacy gh-pages:/, insonic.io with HTTPS and exact gh-pages environment policy. Prior Pages head 7f52224a540c868cb0aa1d529db4ad0c171c1e94 is only a starting observation, recheck before writes. Reject introducing generic transport or forcing updates.
+- Decision: fresh published download compares every file, then verify-public checks original documentation against exact completed Pages commit, verify-deployed checks complete elected tree and six product targets, and full headless Chromium checks eight viewport/theme cases. Metadata/HEAD checks do not replace downloads.
+- Decision: use unique attempts and exact-identity reconciliation on ambiguous Pages updates. Preserve failures and original candidate, with no silent rollback or fresh rebuild.
+- Decision: retained current S076 highlights are concise and end with tagged changelog; publication may add truthful signing disposition. Evidence PR/changelog records follow successful operations and preserve immutable product version/source bytes.
