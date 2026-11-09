@@ -1,0 +1,175 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" as="image"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" as="image"/><link rel="stylesheet" href="../../../_next/static/chunks/2uagwtcyuh2xm.css" data-precedence="next"/><link rel="preload" href="../../../brand/theme.css" as="style"/><link rel="preload" href="../../../brand/fonts/fonts.css" as="style"/><title>Answer evidence and context (v1.3.1) | insonic</title><meta name="description" content="Voice archives, speaker models, and connected knowledge."/><meta name="color-scheme" content="light dark"/><link rel="icon" href="../../../brand/icons/web/favicon.ico"/><link rel="apple-touch-icon" href="../../../brand/icons/web/favicon-180x180.png"/><script src="../../../theme-init.js"></script><link rel="stylesheet" href="../../../brand/theme.css"/><link rel="stylesheet" href="../../../brand/fonts/fonts.css"/></head><body><div hidden=""><!--$--><!--/$--></div><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><a class="brand-link" href="../../../index.html" aria-label="insonic home"><img class="theme-logo-light" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" alt="insonic" width="240" height="64"/><img class="theme-logo-dark" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" alt="insonic" width="240" height="64"/></a><nav aria-label="Main navigation"><a href="../../latest/index.html">Documentation</a><a href="https://github.com/shruggietech/insonic">Repository</a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-label="Dark mode" aria-checked="false" title="Switch to dark theme" hidden=""><svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"></path></svg><svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"></path></svg></button></nav></header><div class="docs-layout"><aside class="docs-sidebar"><details class="navigation-disclosure" data-responsive-disclosure="960"><summary>Documentation</summary><nav aria-label="Documentation topics v1.3.1"><p class="version-label">v<!-- -->1.3.1<!-- --> · <!-- -->released</p><ul><li><a href="../index/index.html">Start here</a></li><li><a href="../cli/index.html">CLI invocation and results</a></li><li><a href="../setup/index.html">Optional first-run setup</a></li><li><a href="../product/index.html">Product and requirements</a></li><li><a href="../architecture/index.html">System architecture</a></li><li><a href="../technology/index.html">Technology decisions</a></li><li><a href="../ingestion/index.html">Import, metadata and dates</a></li><li><a href="../media/index.html">Media and provenance</a></li><li><a href="../processing-setup/index.html">Local processing setup</a></li><li><a href="../pipelines/index.html">Pipelines and adapters</a></li><li><a href="../subtitles/index.html">Cueson and subtitles</a></li><li><a href="../speakers/index.html">Speakers and terminology</a></li><li><a href="../voice-models/index.html">Speaker audio and voice models</a></li><li><a href="../graph/index.html">Queries, timeline and graph</a></li><li><a href="index.html" aria-current="page">Answer evidence and context</a></li><li><a href="../storage/index.html">Installation and storage</a></li><li><a href="../schema/index.html">Storage and catalog schema</a></li><li><a href="../contracts/index.html">JSON contracts</a></li><li><a href="../security/index.html">Credentials and data access</a></li><li><a href="../secrets/index.html">Credential commands</a></li><li><a href="../models/index.html">Downloaded models</a></li><li><a href="../desktop/index.html">CLI and desktop experience</a></li><li><a href="../windows-installation/index.html">Windows installation, updates and removal</a></li><li><a href="../development/index.html">Development workflow</a></li><li><a href="../releases/index.html">Brand, docs and releases</a></li><li><a href="../roadmap/index.html">Delivery outcomes</a></li><li><a href="../glossary/index.html">Glossary</a></li><li><a href="../changelog/index.html">Changelog</a></li></ul></nav></details></aside><aside class="table-of-contents"><details class="navigation-disclosure" data-responsive-disclosure="1200"><summary>On this page</summary><nav aria-label="On this page"><ul><li><a href="#request-a-grounded-answer">Request a grounded answer</a></li><li><a href="#prepare-and-inspect">Prepare and inspect</a></li><li><a href="#bounded-retrieval">Bounded retrieval</a></li><li><a href="#provenance-and-reproducible-ranking">Provenance and reproducible ranking</a></li><li><a href="#context-and-cache-authority">Context and cache authority</a></li><li><a href="#claims-and-citations">Claims and citations</a></li></ul></nav></details></aside><main id="main" class="docs-main" tabindex="-1"><div class="docs-version-context"><p>insonic<!-- --> · v<!-- -->1.3.1<!-- --> · <!-- -->released<!-- --> · Current documentation</p><a href="../../versions/index.html">All versions</a></div><article class="prose"><h1 id="grounded-answers-evidence-and-context">Grounded answers, evidence and context</h1>
+<p>Evidence preparation collects current source spans for a question, explains their selection and provenance, and fits source-preserving extracts into an explicit context budget. <code>answers prepare</code> does not call an inference provider. <code>answers request</code> uses the elected provider to produce a structured answer, checks its citations against the exact visible context and current source authority, and retains verified answer bytes. Citation validity and faithful quotations do not establish that a quotation logically proves a paraphrased claim.</p>
+<p>These commands are available in builds containing the evidence/context capability. Published package availability follows the <a href="../changelog/index.html">release notes</a>. Dedicated desktop controls follow; the shared runtime already accepts the same requests as the CLI. Ordinary <a href="../graph/index.html">search and graph queries</a> remain available independently.</p>
+<h2 id="request-a-grounded-answer">Request a grounded answer</h2>
+<p>Save this request as <code>answer-request.json</code>, replacing the example endpoint and model with your elected provider. The <code>insonic-http</code> adapter implements the structured answer contract; native <code>ollama</code> uses its configured service root and exact model. An existing encrypted credential reference can be supplied as <code>credential_id</code> for authenticated routes.</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;request&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.3.1&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;question&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Which recordings describe changes to the launch plan?&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;filters&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;text&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;launch&quot;</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;budget&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;items&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">64</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;context_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">32768</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;context_tokens&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">8192</span> <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;configuration&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;provider&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;enabled&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;adapter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic-http&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;route&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;local&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;endpoint&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://127.0.0.1:11435/answer&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;model&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;elected-model&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;limits&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;timeout_ms&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">30000</span> <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;max_repairs&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> answers request <span class="hljs-attr">--input</span> answer-request.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> work <span class="hljs-built_in">wait</span> <span class="hljs-variable">WORK_UUID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> work show <span class="hljs-variable">WORK_UUID</span>
+<span class="hljs-title">insonic</span> work results <span class="hljs-variable">WORK_UUID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> answers show <span class="hljs-variable">ANSWER_UUID</span>
+<span class="hljs-title">insonic</span> answers <span class="hljs-built_in">export</span> <span class="hljs-variable">ANSWER_UUID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> work cancel <span class="hljs-variable">WORK_UUID</span>
+<span class="hljs-title">insonic</span> answers retry <span class="hljs-variable">WORK_UUID</span> <span class="hljs-attr">--json</span>
+</code></pre>
+<p>Admission returns a durable <code>work_id</code>. Work reports retrieval, context, synthesis, validation and publication phases, selected model/route, budgets, independent families and limitations. Successful work returns <code>answer_id</code> and <code>package_id</code>. A wait timeout ends only the wait. Explicit cancellation prevents later acceptance. Retry of failed, cancelled or interrupted work creates a new linked attempt with the original frozen configuration; prior history remains readable. Generic <code>work retry</code> uses the same behavior for answer work. A new <code>answers request</code> elects changed settings.</p>
+<p>Instead of <code>configuration</code>, select a saved <code>pipeline_id</code> and optional <code>pipeline_revision</code>. A pipeline can contain only <code>answer_synthesis</code>, or combine it with processing/training configuration. With neither configuration nor pipeline specified, the current saved assistance settings supply the election. Admission freezes that election, including its nonsecret configuration digest. No provider, model or route is silently substituted.</p>
+<p>The provider receives only the question, bounded visible cue prefixes, authoritative references, family identities, conflicts and limitations. Source instructions remain source data. Generated claims declare <code>kind: quote</code> or <code>kind: paraphrase</code>; quote claims must equal one of their cited quotations. A response can contain at most 128 claims and 128 distinct references. The provider response is bounded to 512 KiB, the complete serialized request to 128 KiB, and the retained answer to 1 MiB. An oversized request fails explicitly rather than silently dropping evidence.</p>
+<p>Answer synthesis supplies a complete typed JSON Schema, including exact version and package identity, structured citation references and string-valued limitations. Native local Ollama receives that schema as its structured output format. Schema conformity does not establish source authority or semantic support.</p>
+<p><code>max_repairs</code> accepts zero or one and defaults to one. Invalid structured output can consume that single repair using locally generated reasons, a bounded field/type/constraint diagnostic where available, and the same complete schema, evidence and route. Diagnostics exclude rejected provider values and arbitrary validator text. The optional <code>repair_detail</code> contains a generated <code>reason</code> and a <code>validation</code> object with a sanitized field pointer, expected type or constraint/bound where available; it does not contain the rejected response. Both calls and their validation share the elected provider deadline (30 seconds by default, maximum 60 seconds). Exhaustion produces an explicit insufficient answer without accepted unsupported claims. Authentication, routing and transport failures remain durable failures. Whole-work execution has a separate 180-second bound; ordinary retrieval retains the bounds below.</p>
+<p>Candidate bytes are hash-verified before acceptance. The catalog accepts the answer and terminal work state together only while source identity, work generation, lease and cancellation state still match. Restart reconciles retained candidate bytes before any provider rerun. Inspection separates immutable historical bytes from current freshness and acceptance. An artifact published before failed or cancelled acceptance is never presented as an accepted answer. Export contains source references and safe provider identity, without provider endpoints or credential values.</p>
+<h2 id="prepare-and-inspect">Prepare and inspect</h2>
+<p>Save a request as <code>question.json</code>:</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1.3.1&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;question&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Which recordings describe changes to the launch plan?&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;filters&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;text&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;launch&quot;</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;traversal&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;direction&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;both&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;max_depth&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;budget&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;items&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">64</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;context_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">32768</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;context_tokens&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">8192</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> answers prepare <span class="hljs-attr">--input</span> question.json
+<span class="hljs-title">insonic</span> answers prepare <span class="hljs-attr">--input</span> question.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> answers show <span class="hljs-variable">PACKAGE_UUID</span>
+<span class="hljs-title">insonic</span> answers <span class="hljs-built_in">export</span> <span class="hljs-variable">PACKAGE_UUID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> answers validate <span class="hljs-attr">--input</span> answer.json <span class="hljs-attr">--json</span>
+</code></pre>
+<p><code>prepare</code> returns a retained package UUID when persistence succeeds, the evidence/context package, current source freshness, cache reuse and measured work. <code>show</code> and <code>export</code> read the same verified immutable package and report current freshness separately. Use <code>--json</code> for the complete versioned response and redirection. Human output puts state, freshness, graph limitations, context omissions and continuation before details.</p>
+<p>A package can be <code>complete</code>, <code>partial</code> or <code>insufficient</code>. Completeness describes evidence preparation, not successful answer synthesis. Cancellation returns a non-success error with the available partial observation; an unretained attempt has no package UUID. Missing or stale graph publication remains visible even when current catalog cues are usable. Preparation never implicitly publishes or rebuilds the graph.</p>
+<h2 id="bounded-retrieval">Bounded retrieval</h2>
+<p>The selected SQLite or PostgreSQL catalog is authoritative. A bounded source-identity scan establishes the current recording, document, mapping, date, provenance and assertion identity. Cue pages select one recording before expanding its transcript; the runtime does not export and hydrate the whole library. Exhausting the identity allowance reports <code>source_identity_budget</code>; narrow <code>filters.media_ids</code> or elect a larger allowance before proceeding.</p>
+<p>Text, entity and concept filters select seeds. Media, current speaker, recording-calendar and exact source-interval filters remain enforced during neighboring-cue and relationship expansion. Without a text filter, question terms affect ranking rather than excluding all other text. Entity IDs are normalized graph identities. Concept IDs distinguish subject, relation and object roles, so equal labels in different roles are not silently merged.</p>
+<p>LadybugDB and ArcadeDB use the same bounded neighborhood contract. Each graph page pins workspace, target, generation and sequence, supports relationship kinds and direction, and continues by edge identity. A four-edge route can connect a source cue through its assertion, a shared concept and another assertion to a second recording's cue. Every admitted cue is resolved against its current catalog document. Stale/missing graph references are excluded or diagnosed; disconnected sources do not become related merely because their text is similar.</p>
+<figure class="diagram" role="group" tabindex="0" aria-label="System diagram and source"><div class="mermaid" role="img" aria-label="System diagram">flowchart TD
+  Request[Question and elected scope] --&gt; Identity[Bounded current-source identity]
+  Identity --&gt; Catalog[Bounded catalog cue pages]
+  Catalog --&gt; Seeds[Qualifying current cues]
+  Seeds --&gt; Neighbors[Neighboring cues within scope]
+  Seeds --&gt; Graph[Checkpoint-pinned relationship pages]
+  Graph --&gt; Resolve[Resolve exact current catalog cues]
+  Neighbors --&gt; Rank[Provenance grouping and ranking]
+  Resolve --&gt; Rank
+  Seeds --&gt; Rank
+  Rank --&gt; Context[Budgeted source-linked context]
+  Context --&gt; Artifact[Verified immutable retained package]
+</div><details><summary>Diagram source</summary><pre tabindex="0" aria-label="Diagram source"><code>flowchart TD
+  Request[Question and elected scope] --&gt; Identity[Bounded current-source identity]
+  Identity --&gt; Catalog[Bounded catalog cue pages]
+  Catalog --&gt; Seeds[Qualifying current cues]
+  Seeds --&gt; Neighbors[Neighboring cues within scope]
+  Seeds --&gt; Graph[Checkpoint-pinned relationship pages]
+  Graph --&gt; Resolve[Resolve exact current catalog cues]
+  Neighbors --&gt; Rank[Provenance grouping and ranking]
+  Resolve --&gt; Rank
+  Seeds --&gt; Rank
+  Rank --&gt; Context[Budgeted source-linked context]
+  Context --&gt; Artifact[Verified immutable retained package]
+</code></pre></details></figure><p>Defaults and hard caps:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Allowance</th>
+<th scope="col">Default</th>
+<th scope="col">Hard cap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scanned source-identity/candidate rows</td>
+<td>4,096</td>
+<td>100,000</td>
+</tr>
+<tr>
+<td>Fetched source/cache bytes</td>
+<td>4 MiB</td>
+<td>8 MiB</td>
+</tr>
+<tr>
+<td>Selected evidence spans</td>
+<td>128</td>
+<td>500</td>
+</tr>
+<tr>
+<td>Serialized selected evidence</td>
+<td>256 KiB</td>
+<td>512 KiB</td>
+</tr>
+<tr>
+<td>Graph edges</td>
+<td>128</td>
+<td>1,000</td>
+</tr>
+<tr>
+<td>Logical catalog/graph/cache read rounds</td>
+<td>32</td>
+<td>256</td>
+</tr>
+<tr>
+<td>Aggregate deadline</td>
+<td>20 seconds</td>
+<td>60 seconds</td>
+</tr>
+<tr>
+<td>Graph depth</td>
+<td>3</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Neighbor cues on each side</td>
+<td>1</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Full serialized context</td>
+<td>32,768 bytes</td>
+<td>262,144 bytes</td>
+</tr>
+<tr>
+<td>Conservative context token units</td>
+<td>8,192</td>
+<td>262,144</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Omitted or zero numeric allowances use their defaults, except <code>neighbor_cues: 0</code>, which disables neighbors. Source freshness checks share the aggregate allowance and reserve work before retrieval. Context byte and token allowances apply together; the smaller effective limit wins. The complete retained package has a separate 1 MiB bound. A limit either produces an explicit incomplete result or a typed non-success result, never an oversized successful package.</p>
+<p>When <code>package.next</code> is present, copy it into the next request's <code>cursor</code> while keeping the question, filters, configuration and budgets unchanged. It continues the catalog scan against the same source epoch, including pages with no matching seeds. Changed authority rejects the continuation. Graph and context omissions remain explicit; rerun with a larger elected allowance when those details are needed. Continuation does not silently combine earlier packages into a synthesized answer.</p>
+<h2 id="provenance-and-reproducible-ranking">Provenance and reproducible ranking</h2>
+<p>Exact source digests and accepted canonicalization origin facts establish source families. Known stream/channel identity and overlapping source intervals establish overlap groups. Unknown cross-recording stream identity does not prove overlap. Equal text never proves common origin. Distinct observed source families retain the possibility of an unknown shared upstream origin; their count is not an acoustic independence certification.</p>
+<p>Repeated imports, overlapping cues and repeated extracted assertions retain inspectable source members while receiving independent-family and overlap-coverage credit once. Reported/quoted assertions do not add independent support. Independent sources with similar wording remain distinct. Opposite polarity for the same asserted subject, relation, object and conditions is recorded as a conflict; different conditions or a different object alone do not prove contradiction.</p>
+<p>Ranking uses question-term overlap, distinct-family credit, overlap coverage and opposing-family conflicts. Its total is four times relevance, plus twice independence, plus coverage, plus twice contradiction. Ties use evidence identity. Conflicting evidence remains visible rather than being suppressed by a confidence score. Contradiction detail is bounded to 500 pairs and 64 KiB, with a visible exclusion when more detail exists. No answer confidence is inferred from this score.</p>
+<h2 id="context-and-cache-authority">Context and cache authority</h2>
+<p>Context contains cue extracts, sections of sixteen source cue ordinals, recording nodes and a cross-recording node. Higher levels organize links to underlying evidence; they are not additional sources. Cue text is an exact source prefix of at most 1,024 Unicode code points, shortened further when necessary. Condensation and omitted evidence are explicit. A later reader can resolve each source ID through the retained package.</p>
+<p>Byte accounting includes the entire serialized context, question, hierarchy, source links and accounting fields. Token units conservatively use UTF-8 bytes of that envelope; they do not claim to reproduce a provider's tokenizer. The <code>source-extract-v1</code> contract rejects invented summary text. No context node has stronger or independent authority than its source cues.</p>
+<p>Cache identity binds workspace, effective question/scope/budgets, current source/document/speaker/date/provenance/assertion identity, graph observation, elected provider/model, nonsecret configuration digest, prompt identity and summary contract. Provider identity is optional for preparation and contains no endpoint or credentials. Preparing context makes no provider request.</p>
+<p>Packages use the configured filesystem or S3 artifact storage and SQLite or PostgreSQL catalog. Immutable bytes are hash-verified, explicitly retained, and indexed through a workspace-scoped compare-and-swap pointer. Cache metadata and artifact writes do not change semantic source identity. A corrupt pointer or failed byte verification is a diagnosed miss; recovery creates a new publication instead of overwriting historical bytes. Lost responses and concurrent pointer writes are reconciled against persisted state.</p>
+<p>Inspection reports <code>current</code>, <code>stale</code> or <code>unknown</code> source freshness. Source replacement, mapping/date changes or incompatible configuration prevent reuse. Historical packages remain readable; inspection never rewrites their original observations. The package's usage records work at serialization, while the response's usage includes current request checks performed after publication or during cache reuse.</p>
+<h2 id="claims-and-citations">Claims and citations</h2>
+<p>An answer envelope names its retained <code>package_id</code>, version, state and claims. A <code>supported</code> claim requires citations. <code>unsupported</code>, <code>uncertain</code> and <code>conflicting</code> claims require an explicit uncertainty reason and cannot appear in a completed answer. Each citation binds the evidence member, exact reference and a faithful source quote. Revisions, cue ordinals and microsecond intervals use decimal strings so large values remain exact in JavaScript clients. Untimed sources omit the interval.</p>
+<p>Validation checks every citation against the retained package and current catalog evidence, including multiple quotes from the same cue. Forged workspace/document/mapping/timing identities, stale sources and invented quotes are rejected. Passing citation validation establishes source provenance, not semantic entailment, factual truth or completed answer generation. See the generated <a href="../contracts/index.html">JSON contracts</a> for complete request, package and answer-envelope shapes.</p>
+</article><nav class="page-navigation" aria-label="Previous and next page"><a href="../graph/index.html" rel="prev"><span>Previous</span>Queries, timeline and graph</a><a href="../storage/index.html" rel="next"><span>Next</span>Installation and storage</a></nav></main></div><!--$--><!--/$--><script src="../../../docs-runtime.js" defer=""></script><footer class="site-footer"><p>A <a href="https://shruggie.tech/">ShruggieTech</a> project.</p><p>Apache 2.0. Documentation versions are published with their corresponding releases.</p></footer><script src="../../../site-runtime.js" defer=""></script></body></html>
