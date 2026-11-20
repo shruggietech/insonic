@@ -20,6 +20,14 @@ Official documentation states authoritative system contracts. Keep slice codes a
 
 The software, versioned documentation and master JSON Schema MUST share the release version. Prefer backward and forward compatibility where practical without treating either as an absolute promise. Explain breaking changes in the changelog and concise release notes. For every major release, rescan all documentation for technical terms and refresh the glossary with precise definitions, external primary learning references and local usage links.
 
+## Project continuity
+
+At the start of substantive project work, use the connected Workflowy MCP to find this repo or folder under **AI Agent Workspace**. Keep its notes under that project and check the current status and next actions. Adapt the outline to the work. Add, rename, or skip sections as needed.
+
+Record each major session under the project. Start the entry with an ISO 8601 timestamp in `America/New_York` using the UTC offset in effect. Summarize the outcome, what you verified, and any blocker or next action. Use the same timestamp format for substantive updates. Keep the current status and next actions up to date in place.
+
+Git and the established issue or PR tracker are authoritative for official progress. Link to them. Use Workflowy for working context, decisions, ideas, and handoffs. If Workflowy is unavailable, continue the work and put any useful handoff in the final reply. Simple one-off commands need no session entry.
+
 ## Quality and file integrity
 
 Identify poor logic and fix or propose a proportional improvement. Do not replicate bad code during porting or refactoring. Save UTF-8 without BOM, LF line endings, and check for mojibake before delivering files. Keep Markdown soft-wrapped. Use numbered steps for a purely linear procedure; use diagrams for meaningful branches, relationships, dependencies, feedback or retry paths, keeping Mermaid flowcharts top-down. Sequence plans and update logs chronologically. Avoid unnecessary em-dashes and canned rhetorical contrasts.
